@@ -1,55 +1,62 @@
 Kokoropy
 =========
 
-A python web framework, from my heart <3
+A MVC python web framework, from my heart <3
 
 In japanese, kokoro means heart
 I make kokoropy because I can't find any python web-framework which I really comfort with.
 
-Kokoropy is pythonic, especially in these points:
-* Explicit is better than implicit: kokoropy doesn't hide anything. 
-* Simple is better than complex: kokoropy is made as simple as possible. 
+This is my pet-project, and might be not stable. Don't use it for production purpose !!!
 
-Kokoropy is not too pythonic, especially in these points:
-* There should be one-- and preferably only one --obvious way to do it: although kokoropy encourage OOP approach, but procedural approach is still work
+Kokoropy is built based on my experiences with some framework. Here are some comparison between kokoropy and other framework
 
-Other things about kokoropy:
-
-* Based on Bottlepy
-* It is portable
-* You need to restart the server everytime changing any code (just like django), and actually I hate this way :p
-* It is under-development : don\'t use it for production purpose!
-* Inspired by several PHP frameworks
-	- The "action_" prefix for every published function in controller is inspired by laravel and FuelPHP
-	- MVC approach will be as simple as CodeIgniter
+* In kokoropy, controller name doesn't correspond to URL
+* kokoropy is explicit. There is no such a "magic" like in web2py
+* You can use route directive in bottle.py, since bottle.py is the core of kokoropy
+* kokoropy is built based on HMVC pattern, like laravel, fuelPHP and CodeIgniter+HMVC
+* kokoropy doesn't have any other dependencies. You can even run it without Apache or nginx
+* kokoropy has a funny dragon guarding important source codes, just as laravel :)
 
 How to use
---------------
+==========
 
-* Go to kokoropy/app, you can make a new application by creating a python package (a directory with empty __init__.py)
-* Inside your application, make a new python package named controllers. Until this point you will have something like kokoropy/app/your_app/controllers
-* Inside you controllers, make a python module (a file with .py extension). Let's name it main.py
-* If you prefer procedural approach (personally I suggest you to use OOP approach, but there is nothing wrong with procedural approach), write this script:
+First, you need to create a python package in application folder. The package should consist of
 
-```python
-def action_index(name='Stranger'):
-    return 'Hello world, nice to meet you '+name
-```
+* "controllers" subpackage
+* "models" subpackage
+* "views" directory
+* "static" directory
 
-* If you prefer OOP approach, make a Main class (the name should be \"Main\"):
-
-```python
-class Main(object):
-    def action_index(self, name='Stranger'):
-        return 'Hello world, nice to meet you '+name
-```
-
-* Edit the configuration as you wish (or just leave it as it is), you can find the configuration file in kokoropy/config.py
-* Go to kokoropy directory, start the server 
+Inside the controllers subpackage, create a python file (name is not important, it is not PHP)
+The routing is done via route directive.
+Create something like this:
 
 ```python
- python start.py
+    from application import app
+    
+    @app.route('/', method='GET')
+    def index():
+        return "Hello world"
 ```
 
-* Access your first application via browser (http://localhost:8080/your_app/main/index/aragorn).
-  This will run action_index function and pass aragorn as name parameter in your_app/main.py
+Open start.py, edit configuration. Be careful, there is a dragon there.
+Modify some key configuration or leave it as is
+
+```python
+    HOST                = 'localhost'
+    PORT                = 8080
+    DEBUG               = True
+    RELOADER            = True
+```
+
+Open your console, and do this:
+
+```
+    python start.py
+```
+
+Open your browser, access the page
+
+```
+   http://localhost:8080/ 
+```

@@ -1,18 +1,7 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #########################################################################
-# CONFIGURATION (Feel free to modify it)
-#########################################################################
-HOST                = 'localhost'
-PORT                = 8080
-DEBUG               = True
-RELOADER            = True
-
-
-
-#########################################################################
-# MAIN PROGRAM (Please stay away from this)
+# APPLICATION PROGRAM (Please stay away from this)
 #   Since kokoropy is open source, you are free to edit this
 #   Just make sure you don't wake up the dragon.
 #
@@ -55,15 +44,53 @@ RELOADER            = True
 # Well, the warning has been given, your fate is now your own
 #
 #########################################################################
-import os, sys
-lib_path = os.path.abspath('..')
-sys.path.append(lib_path)
 
-# import modules
-from application import app
-from kokoropy.bottle import debug, run
+__version__ = '0.1'
+from kokoropy.bottle import Bottle, TEMPLATE_PATH, static_file
+import os, glob
 
-debug(DEBUG)
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", PORT))
-    run(app, reloader=RELOADER, host=HOST, port=port)
+#########################################################################
+# get all kokoropy module directories
+#########################################################################
+directories = []
+for directory in os.listdir('./application'):
+    if os.path.isfile(os.path.join('./application', directory, '__init__.py')) and \
+    os.path.isfile(os.path.join('./application', directory, 'controllers', '__init__.py')) and \
+    os.path.isdir(os.path.join('./application', directory, 'views')):
+        directories.append(directory)
+
+app = Bottle()
+TEMPLATE_PATH.remove('./views/')
+
+#########################################################################
+# add template path
+#########################################################################
+for directory in directories:    
+    TEMPLATE_PATH.append('./application/'+directory+'/views/')
+    print 'REGISTER TEMPLATE PATH : '+directory+'/views/'
+    
+#########################################################################
+# load controllers
+#########################################################################
+for directory in directories:
+    for file_name in os.listdir('./application/'+directory+'/controllers'):
+        [file_name, extension] = file_name.split('.')
+        if(extension == 'py' and not file_name == '__init__'):
+            exec('from '+directory+'.controllers.'+file_name+' import *')
+            print 'LOAD CONTROLLER : '+directory+'.controllers.'+file_name
+
+#########################################################################
+# serve application's static file
+#########################################################################
+@app.route('/<path:re:(favicon.ico|humans.txt)>')
+@app.route('/<path:re:(images|css|js|fonts)\/.+>')
+def application_static(path):
+    return static_file(path, root='application/static')
+
+#########################################################################
+# serve kokoropy module's static file
+#########################################################################
+directory_pattern = '|'.join(directories)
+@app.route('/<module_path:re:('+directory_pattern+')>/<path:re:(images|css|js|fonts)\/.+>')
+def module_static(module_path, path):
+    return static_file(path, root='application/'+module_path+'/static')
