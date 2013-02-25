@@ -10,7 +10,7 @@ Basically I expect an easy framework like CodeIgniter (of course, with more feat
 
 If you are in the same boat with me, then kokoropy is for you.
 
-Kokoropy is built in to of Bottle.py (http://bottlepy.org/docs/dev/), a very great python micro-framework.
+Kokoropy is built in top of Bottle.py (http://bottlepy.org/docs/dev/), a very great python micro-framework.
 While bottle.py focus on how to make things as simple as possible, kokoropy focus on how to make things as easy as possible.
 If you've once ever use my another open source project, No-CMS (http://getnocms.com), you will know what I mean by easy.
 
