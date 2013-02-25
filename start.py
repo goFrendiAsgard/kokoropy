@@ -62,9 +62,11 @@ import os
 from application import app, init_directories
 from kokoropy.bottle import debug, run, static_file
 
-# run kokoropy with given parameters
-debug(DEBUG)
+
 if __name__ == '__main__':
+    # set debug mode
+    debug(DEBUG)
+    
     # init directories
     print 'INIT APPLICATION DIRECTORIES'   
     directories = init_directories()    
@@ -83,5 +85,7 @@ if __name__ == '__main__':
     @app.route('/<module_path:re:('+directory_pattern+')>/<path:re:(images|css|js|fonts)\/.+>')
     def module_static(module_path, path):
         return static_file(path, root='application/'+module_path+'/static')
+    
+    # run kokoropy with given parameters    
     port = int(os.environ.get("PORT", PORT))
     run(app, reloader=RELOADER, host=HOST, port=port)
