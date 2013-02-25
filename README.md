@@ -5,17 +5,25 @@ A MVC python web framework, from my heart <3
 
 In japanese, kokoro means heart
 I make kokoropy because I can't find any python web-framework which I really comfort with.
+Some are too verbose, while some other are to "magic". Most of them force me to learn about the framework, and not allow me to focus on my job.
+Basically I expect an easy framework like CodeIgniter (of course, with more features) in python.
 
-This is my pet-project, and might be not stable. Don't use it for production purpose !!!
+If you are in the same boat with me, then kokoropy is for you.
+
+Kokoropy is built in to of Bottle.py (http://bottlepy.org/docs/dev/), a very great python micro-framework.
+While bottle.py focus on how to make things as simple as possible, kokoropy focus on how to make things as easy as possible.
+If you've once ever use my another open source project, No-CMS (http://getnocms.com), you will know what I mean by easy.
 
 Kokoropy is built based on my experiences with some framework. Here are some comparison between kokoropy and other framework
 
 * In kokoropy, controller name doesn't correspond to URL
 * kokoropy is explicit. There is no such a "magic" like in web2py
-* You can use route directive in bottle.py, since bottle.py is the core of kokoropy
+* You can use route directive in bottle.py, since bottle.py is the core of kokoropy. 
 * kokoropy is built based on HMVC pattern, like laravel, fuelPHP and CodeIgniter+HMVC
 * kokoropy doesn't have any other dependencies. You can even run it without Apache or nginx
 * kokoropy has a funny dragon guarding important source codes, just as laravel :)
+
+__PS:__ This is my pet-project, and might be not stable. It is not ready for production purpose (yet)
 
 How to use
 ==========
@@ -92,12 +100,12 @@ kokoropy come with a basic example model located at /application/example/models/
             return ['bubasaur', 'charmender', 'squirtle', 'caterpie', 'pikachu']
 ```
 
-This model can say hello, and can give you a lit of pokemons
+This model can say hello, and can give you a list of pokemons
 
 
 Controller
 ----------
-Have a model, make your application able to do things, but have a controller let you do things
+Have a model, make your application able to do things, but have a controller let you do things.
 Controller is a gateway into your model. Of course, putting some logic here is possible.
 Just keep in mind to keep your controller as slim as possible.
 
@@ -164,7 +172,9 @@ kokoropy come with a basic example controller located at /application/example/co
     app.route("/hello/<name>")(my_controller.hello_normal)
     app.route("/pokemon")(my_controller.pokemon)
 ```
+
 Using procedural style, you can define your routing with @app.route() decorator
+
 Using OOP style, you can use app.route()
 
 View
@@ -210,4 +220,5 @@ and another template at /application/example/views/pokemon.tpl
 ````
 
 pokemon.tpl will include base.tpl and override %include.
+
 As you see, you can also put some (limitted) python script in the template
