@@ -61,6 +61,8 @@ Open your browser, access the page
    http://localhost:8080/ 
 ```
 
+Unlike PHP, you don't need to worry about error message. Every error message will be shown in console, not in browser
+
 MVC
 ===
 

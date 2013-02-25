@@ -4,4 +4,4 @@
     <li>{{pokemon}}</li>
 %end
 </ul>
-%rebase example/base title='Pokemon'
+%rebase example/base title='Pokemon List'
