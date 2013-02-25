@@ -1,53 +1,16 @@
 # -*- coding: utf-8 -*-
 
 #########################################################################
-# APPLICATION PROGRAM (Please stay away from this)
-#   Since kokoropy is open source, you are free to edit this
-#   Just make sure you don't wake up the dragon.
 #
-#
-#                                                  .~))>>
-#                                                 .~)>>
-#                                               .~))))>>>
-#                                             .~))>>             ___
-#                                           .~))>>)))>>      .-~))>>
-#                                         .~)))))>>       .-~))>>)>
-#                                       .~)))>>))))>>  .-~)>>)>
-#                   )                 .~))>>))))>>  .-~)))))>>)>
-#                ( )@@*)             //)>))))))  .-~))))>>)>
-#             ).@(@@               //))>>))) .-~))>>)))))>>)>
-#            (( @.@).              //))))) .-~)>>)))))>>)>
-#          ))  )@@*.@@ )          //)>))) //))))))>>))))>>)>
-#       ((  ((@@@.@@             |/))))) //)))))>>)))>>)>
-#      )) @@*. )@@ )   (\_(\-\b  |))>)) //)))>>)))))))>>)>
-#    (( @@@(.@(@ .    _/`-`  ~|b |>))) //)>>)))))))>>)>
-#     )* @@@ )@*     (@)  (@) /\b|))) //))))))>>))))>>
-#   (( @. )@( @ .   _/  /    /  \b)) //))>>)))))>>>_._
-#    )@@ (@@*)@@.  (6///6)- / ^  \b)//))))))>>)))>>   ~~-.
-# ( @jgs@@. @@@.*@_ VvvvvV//  ^  \b/)>>))))>>      _.     `bb
-#  ((@@ @@@*.(@@ . - | o |' \ (  ^   \b)))>>        .'       b`,
-#   ((@@).*@@ )@ )   \^^^/  ((   ^  ~)_        \  /           b `,
-#     (@@. (@@ ).     `-'   (((   ^    `\ \ \ \ \|             b  `.
-#       (*.@*              / ((((        \| | |  \       .       b `.
-#                         / / (((((  \    \ /  _.-~\     Y,      b  ;
-#                        / / / (((((( \    \.-~   _.`" _.-~`,    b  ;
-#                       /   /   `(((((()    )    (((((~      `,  b  ;
-#                     _/  _/      `"""/   /'                  ; b   ;
-#                 _.-~_.-~           /  /'                _.'~bb _.'
-#               ((((~~              / /'              _.'~bb.--~
-#                                  ((((          __.-~bb.-~
-#   (The same dragon who guard Laravel Realm)  .'  b .~~
-#                                              :bb ,' 
-#                                              ~~~~
-#
-# Still have a gut to edit this?
-# Well, the warning has been given, your fate is now your own
+# MAIN KOKOROPY PROGRAM
+# * This will load all of your controllers and views
+# * Normally there is no need to edit this file
 #
 #########################################################################
 
 __version__ = '0.1'
 from kokoropy.bottle import Bottle, TEMPLATE_PATH, static_file
-import os, glob
+import os
 
 #########################################################################
 # get all kokoropy module directories

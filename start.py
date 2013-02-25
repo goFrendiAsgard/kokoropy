@@ -12,9 +12,9 @@ RELOADER            = True
 
 
 #########################################################################
-# MAIN PROGRAM (Please stay away from this)
-#   Since kokoropy is open source, you are free to edit this
-#   Just make sure you don't wake up the dragon.
+# USER CONFIGURATION STOPPED HERE
+# KOKOROPY BOOTSTRAP BEGINS HERE
+#   And here is the dragon: 
 #
 #
 #                                                  .~))>>
@@ -47,12 +47,9 @@ RELOADER            = True
 #                 _.-~_.-~           /  /'                _.'~bb _.'
 #               ((((~~              / /'              _.'~bb.--~
 #                                  ((((          __.-~bb.-~
-#   (The same dragon who guard Laravel Realm)  .'  b .~~
-#                                              :bb ,' 
+#   (This dragon also guards "laravel" realms)  .'  b .~~
+#   (Make sure you know what you do)           :bb ,' 
 #                                              ~~~~
-#
-# Still have a gut to edit this?
-# Well, the warning has been given, your fate is now your own
 #
 #########################################################################
 import os, sys
@@ -63,6 +60,7 @@ sys.path.append(lib_path)
 from application import app
 from kokoropy.bottle import debug, run
 
+# run kokoropy with given parameters
 debug(DEBUG)
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", PORT))
