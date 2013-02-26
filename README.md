@@ -217,7 +217,7 @@ Using OOP style, you can use __app.route()__.
 One thing I like from CodeIgnniter is automatic routing. Not many python framework provide such a thing.
 Web2py also provide such a mechanism. In kokoropy, you are free to choose, wether to use manual routing or automatic one.
 To use automatic routing feature, you should use __Default_Controller__ as your controller class name.
-The automatic routing will produce such an url: __http://your_domain:your_port/your_application_directory/your_controller_file/published_function_name/parameter1/parameter2/etc
+The automatic routing will produce such an url: __http://your_domain:your_port/your_application_directory/your_controller_file/published_function_name/parameter1/parameter2__
 If your_application_directory and you_controller_file named "index", it can be omitted.
 Your published function should have __action__ prefix (e.g: action_index will be published as index, action_hello will be published as hello)
 
