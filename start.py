@@ -59,7 +59,7 @@ RELOADER            = False
 import os, inspect
 
 # import modules
-from application import app
+from application import app, error_handler
 from kokoropy.bottle import debug, run, static_file, TEMPLATE_PATH
 
 def sort_names(names=[], key=None):
@@ -142,7 +142,6 @@ def get_routes(directory, controller, function, parameters):
         routes.append(basic_route+'/')
         routes.append(basic_route+'/<re:.*>')
     # return routes
-    print routes
     return routes    
 
 
@@ -151,6 +150,8 @@ if __name__ == '__main__':
     debug(DEBUG)
     
     TEMPLATE_PATH.remove('./views/')
+    
+    app.error_handler = error_handler
     
     # init directories
     print 'INIT APPLICATION DIRECTORIES'   
@@ -164,14 +165,6 @@ if __name__ == '__main__':
         os.path.isdir(os.path.join('./application', directory, 'views')):
             directories.append(directory)
     directories = sort_names(directories)
-    
-    ###################################################################################################
-    # add template path
-    ###################################################################################################
-    for directory in directories:
-        print 'REGISTER TEMPLATE PATH : '+directory+'/views/'
-        TEMPLATE_PATH.append('./application/'+directory+'/views/')
-        
     
     ###################################################################################################
     # get directory controller modules
@@ -193,6 +186,16 @@ if __name__ == '__main__':
             if not directory in directory_controller_modules:
                 directory_controller_modules[directory] = []
             directory_controller_modules[directory].append(module_name)
+    
+    
+    ###################################################################################################
+    # Load everything inside controller modules
+    ###################################################################################################
+    for directory in directories:
+        for controller_module in directory_controller_modules[directory]:
+            # load everything inside the controllers
+            print 'LOAD CONTROLLER : '+controller_module
+            exec('from application.'+directory+'.controllers.'+controller_module+' import *')
                 
     ###################################################################################################
     # Load Default_Controller inside controller modules
@@ -229,18 +232,8 @@ if __name__ == '__main__':
                 routes = get_routes(directory, controller_module, method_published_name, parameters)
                 for route in routes:
                     app.route(route)(method_object)
+    
             
-    
-    ###################################################################################################
-    # Load everything inside controller modules (This will override default controller behaviour)
-    ###################################################################################################
-    for directory in directories:
-        for controller_module in directory_controller_modules[directory]:
-            # load everything inside the controllers
-            print 'LOAD CONTROLLER : '+controller_module
-            exec('from application.'+directory+'.controllers.'+controller_module+' import *')
-        
-    
     ###################################################################################################
     # serve application's static file
     ###################################################################################################
@@ -249,16 +242,33 @@ if __name__ == '__main__':
     @app.route('/<path:re:(favicon.ico|humans.txt)>')
     @app.route('/<path:re:(images|css|js|fonts)\/.+>')
     def application_static(path):
-        return static_file(path, root='application/static')
+        return static_file(path, root='application/static')  
     
     ###################################################################################################
-    # serve kokoropy module's static file
+    # serve index module's static file
+    ###################################################################################################
+    if 'index' in directories:
+        print 'ADD STATIC FILE ROUTE: "/images/*, /css/*, /js/*, /fonts/*'
+        @app.route('/<path:re:(images|css|js|fonts)\/.+>')
+        def application_static(path):
+            print static_file(path, root='application/index/static')
+            return static_file(path, root='application/index/static')
+    
+    ###################################################################################################
+    # serve other module's static file
     ###################################################################################################
     directory_pattern = '|'.join(directories)
     print 'ADD STATIC FILE ROUTE: "module/images/*, module/css/*, module/js/*, module/fonts/*'
     @app.route('/<module_path:re:('+directory_pattern+')>/<path:re:(images|css|js|fonts)\/.+>')
     def module_static(module_path, path):
         return static_file(path, root='application/'+module_path+'/static')
+    
+    ###################################################################################################
+    # add template path
+    ###################################################################################################
+    for directory in directories:
+        print 'REGISTER TEMPLATE PATH : '+directory+'/views/'
+        TEMPLATE_PATH.append('./application/'+directory+'/views/')
     
     ###################################################################################################
     # run app with given parameters

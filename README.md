@@ -87,7 +87,7 @@ Model should define what your application can do.
 Using OOP approach will make your model looks more elegant, but don't worry, procedural style is still okay.
 Unlike java, your class name can be different from your file name. Here you have freedom.
 
-kokoropy come with a basic example model located at /application/example/models/example_model.py
+kokoropy come with a basic example model located at /application/index/models/example_model.py
 
 ```python
     class Hello_Model(object):
@@ -111,101 +111,94 @@ Have a model, make your application able to do things, but have a controller let
 Controller is a gateway into your model. Of course, putting some logic here is possible.
 Just keep in mind to keep your controller as slim as possible.
 
-kokoropy come with a basic example controller located at /application/example/controllers/index.py
+kokoropy come with a basic example controller located at /application/index/controllers/index.py
 
 ```python
     from application import app
     from kokoropy.bottle import template, request
     
-    ##########################################################################################
+    ## APPROACH 1 (Simple but deadly works) ##################################################
+    #
     # A very simple procedural style example
-    # You can say hello world in just 3 lines
+    # Manually routed to http://localhost:8080/ with @app.route decorator
     ##########################################################################################
     
-    # http://localhost:8080/
-    @app.route('/', method='GET')
+    @app.route('/hello_world')
     def index():
-        return 'Hello world, I am alive !!!<br /><a href="/hello">See what I can do now</a>'
+        return 'Hello world, I am alive !!!<br /><a href="/">Now go back to work</a>'
     
     
-    ##########################################################################################
-    # An OOP Style with automatic routing example (just like CodeIgniter)
-    # To have an automatic routing, your controller class name should be 'Default_Controller'
-    # You cannot do automatic routing by using procedural approach
+    
+    ## APPROACH 2 (Automagically route) ######################################################
+    #
+    # An OOP Style with automatic routing example (just like CodeIgniter or FuelPHP)
+    # The routing will be done automatically.
+    # To use this feature:
+    #    * The controller file name can be anything, and will be used for routing
+    #    * Your controller class name should be "Default_Controller"
+    #    * Your published method should have "action" prefix
+    #    * The published URL would be 
+    #      http://localhost:8080/app_dir/controller_file/published_method/params
+    #    * If your app_dir, controller_file or published_method named "index", it can be
+    #      omitted
+    #    * For convention, this is the recommended way to do it
     ##########################################################################################
     
     class Default_Controller(object):
+        # load the model
+        def __init__(self):
+            from application.index.models.example_model import Hello_Model
+            self.model = Hello_Model()
         
-        # http://localhost:8080/example/
+        # automatically routed to http://localhost:8080/
         def action(self):
-            return 'This is the default action'
+            return template('example/hello', message='Automatic route working !!!')
         
-        # http://localhost:8080/example/index/auto
-        # http://localhost:8080/example/index/auto/parameter
-        # http://localhost:8080/example/auto
-        # http://localhost:8080/example/auto/parameter
-        def action_auto(self, param_1=None):
-            if param_1 is None:
-                param_1 = 'No value'
-            return 'You have enter a parameter : '+param_1
+        # automatically routed to: http://localhost:8080/auto/parameter
+        def action_auto(self, name=None):
+            message = self.model.say_hello(name)
+            return template('example/hello', message='Automatically say '+message)
         
+        # not routed
         def unpublished_function(self):
             return 'this is not published'
     
     
-    ##########################################################################################
+    
+    ## APPROACH 3 (Your route, your style, your freedom) #####################################
+    #
     # An OOP style with user defined routing example
-    # In case you don't like automatic routing, you are free to define your own.
+    # After declaring the controller class, you need to define manual routing
     ##########################################################################################
     
-    # Hello_Controller's class definition
     class Hello_Controller(object):
-        def __init__(self):
-            # import Hello_Model
-            from application.example.models.example_model import Hello_Model
-            # make an instance of Hello_Model, 
-            # make it as Hello_Controller's property        
-            self.model = Hello_Model()
         
-        # Routing will be defined later
-        # http://localhost:8080/hello/name
+        # load the model
+        def __init__(self):
+            from application.index.models.example_model import Hello_Model
+            self.model = Hello_Model()
+            
         def hello_param(self, name = None):
-            # get value returned by model.say_hello
             message = self.model.say_hello(name)
-            # render it by using example/hello.tpl template
             return template('example/hello', message=message)
         
-        # Routing will be defined later
-        # http://localhost:8080/hello
-        # http://localhost:8080/hello?name=Haruna
         def hello_get(self):
             ##################################################################################
-            # get URL query parameter                                                        #
-            # (e.g: http://localhost:8080/hello?name=Haruna)                                 #
-            # if you want to catch POST request, you can use request.POST                    #
-            # I also give PHP equivalent code as comment:                                    #
-            ##################################################################################
-            # Python                            # PHP                                        #
+            # Python                            #  equivalent PHP code                       #
             ##################################################################################
             name = None                         # $name = NULL;                              #
             if 'name' in request.GET:           # if(isset($_GET['name']))                   #
                 name = request.GET['name']      #    $name = $_GET['name'];                  #
             ##################################################################################
-            # get value returned by model.say_hello
             message = self.model.say_hello(name)
-            # render it by using example/hello.tpl template
             return template('example/hello', message=message)
         
-        # Routing will be defined later
-        # http://localhost:8080/pokemon
         def pokemon(self):
             pokemons = self.model.get_pokemon()
             return template('example/pokemon', pokemons=pokemons)
     
     # make a Hello_Controller instance
     my_controller = Hello_Controller()
-    
-    # route to class method
     app.route("/hello", method='GET')(my_controller.hello_get)
     app.route("/hello/<name>")(my_controller.hello_param)
     app.route("/pokemon")(my_controller.pokemon)
@@ -234,12 +227,12 @@ View
 It is wise to not put presentation logic in your controller. That's why we have view.
 
 You can separate your view into several template.
-Let's say you have a baste template at /application/example/views/base.tpl
+Let's say you have a baste template at /application/index/views/base.tpl
 
 ```html
     <html>
     <head>
-        <link rel="stylesheet" type="text/css" href="/example/css/style.css" />
+        <link rel="stylesheet" type="text/css" href="/index/css/style.css" />
         <title>{{ title or 'Kokoropy' }}</title>
     </head>
     <body>
@@ -259,7 +252,7 @@ Let's say you have a baste template at /application/example/views/base.tpl
     </html>
 ```
 
-and another template at /application/example/views/pokemon.tpl
+and another template at /application/index/views/pokemon.tpl
 
 ```html
     <strong>Pokemon list:</strong>
