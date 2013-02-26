@@ -35,6 +35,8 @@ First, you need to create a python package in application folder. The package sh
 * "views" directory
 * "static" directory
 
+__PS:__ To understand about package in python, please visit http://docs.python.org/2/tutorial/modules.html#packages
+
 Inside the controllers subpackage, create a python file (name is not important, it is not PHP)
 The routing is done via route directive.
 Create something like this:
@@ -115,17 +117,46 @@ kokoropy come with a basic example controller located at /application/example/co
     from application import app
     from kokoropy.bottle import template, request
     
-    #########################################################################
+    ##########################################################################################
     # A very simple procedural style example
-    #########################################################################
+    # You can say hello world in just 3 lines
+    ##########################################################################################
+    
+    # http://localhost:8080/
     @app.route('/', method='GET')
     def index():
         return 'Hello world, I am alive !!!<br /><a href="/hello">See what I can do now</a>'
     
     
-    #########################################################################
-    # An OOP style example
-    #########################################################################
+    ##########################################################################################
+    # An OOP Style with automatic routing example (just like CodeIgniter)
+    # To have an automatic routing, your controller class name should be 'Default_Controller'
+    # You cannot do automatic routing by using procedural approach
+    ##########################################################################################
+    
+    class Default_Controller(object):
+        
+        # http://localhost:8080/example/
+        def action(self):
+            return 'This is the default action'
+        
+        # http://localhost:8080/example/index/auto
+        # http://localhost:8080/example/index/auto/parameter
+        # http://localhost:8080/example/auto
+        # http://localhost:8080/example/auto/parameter
+        def action_auto(self, param_1=None):
+            if param_1 is None:
+                param_1 = 'No value'
+            return 'You have enter a parameter : '+param_1
+        
+        def unpublished_function(self):
+            return 'this is not published'
+    
+    
+    ##########################################################################################
+    # An OOP style with user defined routing example
+    # In case you don't like automatic routing, you are free to define your own.
+    ##########################################################################################
     
     # Hello_Controller's class definition
     class Hello_Controller(object):
@@ -135,31 +166,38 @@ kokoropy come with a basic example controller located at /application/example/co
             # make an instance of Hello_Model, 
             # make it as Hello_Controller's property        
             self.model = Hello_Model()
-            
-        def hello_normal(self, name = None):
+        
+        # Routing will be defined later
+        # http://localhost:8080/hello/name
+        def hello_param(self, name = None):
             # get value returned by model.say_hello
             message = self.model.say_hello(name)
             # render it by using example/hello.tpl template
             return template('example/hello', message=message)
         
+        # Routing will be defined later
+        # http://localhost:8080/hello
+        # http://localhost:8080/hello?name=Haruna
         def hello_get(self):
-            #######################################################################
-            # get URL query parameter                                             #
-            # (e.g: http://localhost:8080/hello?name=Haruna)                      #
-            # if you want to catch POST request, you can use request.POST         #
-            # I also give PHP equivalent code as comment:                         #
-            #######################################################################
-            # Python                            # PHP                             #
-            #######################################################################
-            name = None                         # $name = NULL;                   #
-            if 'name' in request.GET:           # if(isset($_GET['name']))        #
-                name = request.GET['name']      #    $name = $_GET['name'];       #
-            #######################################################################        
+            ##################################################################################
+            # get URL query parameter                                                        #
+            # (e.g: http://localhost:8080/hello?name=Haruna)                                 #
+            # if you want to catch POST request, you can use request.POST                    #
+            # I also give PHP equivalent code as comment:                                    #
+            ##################################################################################
+            # Python                            # PHP                                        #
+            ##################################################################################
+            name = None                         # $name = NULL;                              #
+            if 'name' in request.GET:           # if(isset($_GET['name']))                   #
+                name = request.GET['name']      #    $name = $_GET['name'];                  #
+            ##################################################################################
             # get value returned by model.say_hello
             message = self.model.say_hello(name)
             # render it by using example/hello.tpl template
             return template('example/hello', message=message)
         
+        # Routing will be defined later
+        # http://localhost:8080/pokemon
         def pokemon(self):
             pokemons = self.model.get_pokemon()
             return template('example/pokemon', pokemons=pokemons)
@@ -169,17 +207,28 @@ kokoropy come with a basic example controller located at /application/example/co
     
     # route to class method
     app.route("/hello", method='GET')(my_controller.hello_get)
-    app.route("/hello/<name>")(my_controller.hello_normal)
+    app.route("/hello/<name>")(my_controller.hello_param)
     app.route("/pokemon")(my_controller.pokemon)
 ```
 
-Using procedural style, you can define your routing with @app.route() decorator
+Using procedural style, you can define your routing with __@app.route()__ decorator.
+Using OOP style, you can use __app.route()__.
 
-Using OOP style, you can use app.route()
+One thing I like from CodeIgnniter is automatic routing. Not many python framework provide such a thing.
+Web2py also provide such a mechanism. In kokoropy, you are free to choose, wether to use manual routing or automatic one.
+To use automatic routing feature, you should use __Default_Controller__ as your controller class name.
+The automatic routing will produce such an url: __http://your_domain:your_port/your_application_directory/your_controller_file/published_function_name/parameter1/parameter2/etc
+If your_application_directory and you_controller_file named "index", it can be omitted.
+Your published function should have __action__ prefix (e.g: action_index will be published as index, action_hello will be published as hello)
+
+In kokoropy you can even use those 3 different approach in just one file.
+
+To know more about routing, please visit http://bottlepy.org/docs/dev/tutorial.html#request-routing .
+To know more about request, please visit http://bottlepy.org/docs/dev/tutorial.html#request-data
 
 View
 ----
-It is wise to not put presentation logic in your controller.
+It is wise to not put presentation logic in your controller. That's why we have view.
 
 You can separate your view into several template.
 Let's say you have a baste template at /application/example/views/base.tpl
@@ -219,6 +268,6 @@ and another template at /application/example/views/pokemon.tpl
     %rebase example/base title='Pokemon'
 ````
 
-pokemon.tpl will include base.tpl and override %include.
-
-As you see, you can also put some (limitted) python script in the template
+pokemon.tpl will be included in base.tpl and override %include.
+As you see, you can also put some (limitted) python script in the template.
+To know more about template, please visit http://bottlepy.org/docs/dev/stpl.html
