@@ -220,6 +220,7 @@ To use automatic routing feature, you should use __Default_Controller__ as your 
 Also Your published function should have __action__ prefix, just as FuelPHP way (e.g: action_index will be published as index, action_hello will be published as hello)
 
 The automatic routing will produce such an url: http://your_domain:your_port/your_application_directory/your_controller_file/published_function_name/parameter1/parameter2
+
 If your_application_directory and you_controller_file named "index", it can be omitted.
 
 
