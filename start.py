@@ -2,12 +2,75 @@
 # -*- coding: utf-8 -*-
 
 ########################################################################################################
+# import "standard" modules (Please leave it as is)
+########################################################################################################
+import os, inspect
+from application import app
+from kokoropy.bottle import debug, run, static_file, TEMPLATE_PATH, template
+custom_404, custom_403, custom_500 = None, None, None
+
+########################################################################################################
 # CONFIGURATION (Feel free to modify it)
 ########################################################################################################
 HOST                = 'localhost'
 PORT                = 8080
 DEBUG               = True
 RELOADER            = False
+
+# Custom error handlers. Yes you can modify it (with care)
+# But please let the function name as is
+
+def custom_404(error):
+    import random
+    error_messages = [
+        'Sorry, but there is no such a gray elephant in Atlantic ..',
+        'Are you sure that the page should be here? Well, in this case you are wrong',
+        'Has you correctly write the URL?',
+        'Go home you are drunk !!!',
+        'It is not here, not here, not here... How many time should I tell you?',
+        'Want the page to be exists? Hire us, and we will make one for you...',
+        'Why do you look for something never exists? Please be realistic',
+    ]
+    message_index = random.randrange(0,len(error_messages))
+    error_message = error_messages[message_index]
+    data = {
+       'error_title'  : '404, Page not found',
+       'error_message' : error_message
+    }
+    return template('example/error', data = data)
+
+def custom_403(error):
+    import random
+    error_messages = [
+        'You are not authorized to enter ladies rest room, go out....',
+        'You have landed at area 51. The MIB told us to not show the page',
+        'Try to hack our site? We have record your IP Address and everything else',
+        'What do you do here? Leave or die...',
+    ]
+    message_index = random.randrange(0,len(error_messages))
+    error_message = error_messages[message_index]
+    data = {
+       'error_title'  : '403, Forbidden',
+       'error_message' : error_message
+    }
+    return template('example/error', data = data)
+
+def custom_500(error):
+    import random
+    error_messages = [
+        'Right, right... It\'s not your fault it is our mistake',
+        'Ouch,.. you have burn our hardisks. Be careful with what you click',
+        'Do you notice that everytime you make our server error, a newborn baby will die...',
+        'No no no... Not again...',
+        'It is not our mistake, we have detect a bunch of ETI hacking our site',
+    ]
+    message_index = random.randrange(0,len(error_messages))
+    error_message = error_messages[message_index]
+    data = {
+       'error_title'  : '500, Internal Server Error',
+       'error_message' : error_message
+    }
+    return template('example/error', data = data)
 
 
 
@@ -47,55 +110,46 @@ RELOADER            = False
 #                 _.-~_.-~           /  /'                _.'~bb _.'
 #               ((((~~              / /'              _.'~bb.--~
 #                                  ((((          __.-~bb.-~
-#   (This dragon also guards "laravel" realms)  .'  b .~~
-#   (Make sure you know what you do)           :bb ,' 
-#                                              ~~~~
+#  ( This dragon also guards "laravel" realms ) .'  b .~~
+#  ( Make sure you know what you do )          :bb ,' 
+#  ( Or you will have a serious trouble )      ~~~~
 #
 ########################################################################################################
-#import os, sys
-#lib_path = os.path.abspath('..')
-#sys.path.append(lib_path)
-
-import os, inspect
-
-# import modules
-from application import app, error_handler
-from kokoropy.bottle import debug, run, static_file, TEMPLATE_PATH
 
 def sort_names(names=[], key=None):
-    index_exists = False
-    index_obj = None
-    empty_exists = False
-    empty_obj = None
+    index_exists, empty_exists  = False, False
+    index_obj, empty_obj        = None, None
+    index_identifier = ['index', 'action_index']
+    empty_identifier = ['', 'action', 'action_']
     # remove some special element
-    if not key is None:
-        for i in xrange(len(names)):
-            if names[i][key] == 'index':
-                index_obj = names[i][key]
-                index_exists = True
-                names.remove(i)
-            if names[i][key] == '':
-                empty_obj = names[i][key]
-                empty_exists = True
-                names.remove(i)
-            if index_exists and empty_exists:
-                break
-    else:
-        if 'index' in names:
-            index_obj = 'index'
+    for i in xrange(len(names)):
+        print i, names[i]
+        # get identifier
+        if key is None:
+            identifier = names[i]
+        else:
+            identifier = names[i][key]
+        # check identifier
+        if identifier in index_identifier:
+            index_obj = names[i]
             index_exists = True
-            names.remove('index')            
-        if '' in names:
-            empty_obj = ''
+        if identifier in empty_identifier:
+            empty_obj = names[i]
             empty_exists = True
-            names.remove('')        
+        # exit from loop
+        if index_exists and empty_exists:
+            break
+    if index_exists:
+        names.remove(index_obj)
+    if empty_exists:
+        names.remove(empty_obj)
     #sort the other normal elements
     names.sort(key = len, reverse=True)    
     # re add those removed special element
     if index_exists:
         names.append(index_obj)
     if empty_exists:
-        names.appenc(empty_obj)    
+        names.append(empty_obj)
     # return
     return names
 
@@ -137,10 +191,10 @@ def get_routes(directory, controller, function, parameters):
         for i in reversed(xrange(len(parameter_patterns))):
             parameter_segment = "/".join(parameter_patterns[:i+1])
             routes.append(basic_route+'/'+parameter_segment)
-            routes.append(basic_route+'/'+parameter_segment+'/<re:.*>')
         routes.append(basic_route)
         routes.append(basic_route+'/')
-        routes.append(basic_route+'/<re:.*>')
+    for route in routes:
+        print route
     # return routes
     return routes    
 
@@ -151,7 +205,17 @@ if __name__ == '__main__':
     
     TEMPLATE_PATH.remove('./views/')
     
-    app.error_handler = error_handler
+    ###################################################################################################
+    # Define custom error handler
+    ###################################################################################################
+    if inspect.isfunction(custom_404) and inspect.isfunction(custom_403) and \
+    inspect.isfunction(custom_500):
+        error_handler = {
+            404 : custom_404,
+            403 : custom_403,
+            500 : custom_500
+        }    
+        app.error_handler = error_handler
     
     # init directories
     print 'INIT APPLICATION DIRECTORIES'   

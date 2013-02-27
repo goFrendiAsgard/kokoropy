@@ -227,7 +227,7 @@ View
 It is wise to not put presentation logic in your controller. That's why we have view.
 
 You can separate your view into several template.
-Let's say you have a baste template at /application/index/views/base.tpl
+Let's say you have a baste template at /application/index/views/example/base.tpl
 
 ```html
     <html>
@@ -252,7 +252,7 @@ Let's say you have a baste template at /application/index/views/base.tpl
     </html>
 ```
 
-and another template at /application/index/views/pokemon.tpl
+and another template at /application/index/views/example/pokemon.tpl
 
 ```html
     <strong>Pokemon list:</strong>
