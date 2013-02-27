@@ -193,8 +193,6 @@ def get_routes(directory, controller, function, parameters):
             routes.append(basic_route+'/'+parameter_segment)
         routes.append(basic_route)
         routes.append(basic_route+'/')
-    for route in routes:
-        print route
     # return routes
     return routes    
 
@@ -315,7 +313,6 @@ if __name__ == '__main__':
         print 'ADD STATIC FILE ROUTE: "/images/*, /css/*, /js/*, /fonts/*'
         @app.route('/<path:re:(images|css|js|fonts)\/.+>')
         def application_static(path):
-            print static_file(path, root='application/index/static')
             return static_file(path, root='application/index/static')
     
     ###################################################################################################
