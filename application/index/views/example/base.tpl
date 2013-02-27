@@ -1,22 +1,135 @@
+<!DOCTYPE html>
 <html>
-<head>
-    <link rel="stylesheet" type="text/css" href="/css/style.css" />
-    <title>{{ title or 'Kokoropy' }}</title>
-</head>
-<body>
-    <h1>Kokoro py</h1>
-    <h2>A pythonic MVC Web Framework</h2>
-    <p id="links">
-        <a href="/hello_world">A simple hello world (without view)</a>
-        <a href="/auto">Another auto routing</a>
-        <a href="/hello">Manual routing</a>
-        <a href="/hello/Haruna">Another manual routing</a>
-        <a href="/hello?name=Rina">One more another manual routing</a>        
-        <a href="/pokemon">Pokemon</a>
-    </p>
-    <p id="content">
-        %include
-    </p>
-    <footer>GoFrendiAsgard &copy; 2013<footer>
-</body>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="">
+        <meta name="author" content="">
+        <link rel="stylesheet" type="text/css" href="/static_libraries/bootstrap/css/bootstrap.min.css" />
+        <style>
+            div#content-container {
+                margin-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+            }
+            div#layout-content {
+                min-height: 250px;
+                background-repeat: no-repeat;
+                background-image:url('/index/images/programmer.png');        
+                background-position: bottom right;
+            }
+            body{
+                color: white;
+                background-color:#555;
+            }
+            div#layout-banner{
+                background-color:#222;
+                border:none;
+            }
+            p#content{
+                font-size:20px;
+            }
+            div#note{
+                margin-top: 20px;
+                display:none;
+                background:white;
+                color:black;
+                max-width: 70%;
+                padding: 10px;
+                border-radius:10px;
+            }
+            span.method{
+                font-size:16px;
+            }
+        </style>    
+        <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+        <!--[if lt IE 9]>
+          <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+        <script type="text/javascript" src="/static_libraries/jquery.tools.min.js"></script>
+        <script type="text/javascript" src="/static_libraries/bootstrap/js/bootstrap.min.js"></script>
+        <script type="text/javascript">
+            $(document).ready(function(){
+                $('#btn-toggle-note').click(function(){
+                    $('div#note').toggle();
+                    if($('#btn-toggle-note').val() != 'Hide Note'){                        
+                        $('#btn-toggle-note').val('Hide Note');
+                    }else{
+                        $('#btn-toggle-note').val('Show Note');
+                    }
+                });                
+            });
+        </script>
+        <title>{{ title or 'Kokoropy' }}</title>
+    </head>
+    <body>
+        <div class="navbar navbar-inverse navbar-fixed-top">
+            <div class="navbar-inner">
+                <div class="container">
+                    <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                        <span class="icon-bar">&nbsp;</span>
+                        <span class="icon-bar">&nbsp;</span>
+                        <span class="icon-bar">&nbsp;</span>
+                    </button>
+                    <a class="brand" href="#">Kokoropy</a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav">
+                            <li><a href="/hello_world">hello_world</a></li>                    
+                            <li><a href="/auto">auto</a></li>
+                            <li><a href="/hello">hello</a></li>
+                            <li><a href="/hello/Haruna">hello/Haruna</a></li>
+                            <li><a href="/hello?name=Rina">hello?name=Rina</a> </li>       
+                            <li><a href="/pokemon">pokemon</a> </li>
+                        </ul>
+                    </div><!--/.nav-collapse -->
+                </div>
+            </div>
+        </div>
+        
+        <div id="content-container" class="container">
+            <div class="row-fluid">
+                <div id="layout-banner" class="well hidden-phone span12">
+                    <div class="span2">
+                        <img src ="/images/kokoropy.png" /> 
+                    </div>          
+                    <div class="span10">
+                        <h1>Kokoropy</h1>
+                        <p>心から Python MVC Web Framework</p>
+                    </div>                         
+                </div>      
+                <div id="layout-content" class="span12">
+                    <p id="content"><strong>
+                        %include
+                    </strong></p>
+                    <input id="btn-toggle-note" class="btn btn-primary" type="button" value="First timer, click this button !!!" />
+                    <div id="note">Welcome to kokoropy.<br />
+                        This page was generated by <code><strong>application.index.controllers.index</strong></code> 
+                        which is located at <code><strong>application/index/controllers/index.py</strong></code><br />
+                        Kokoropy has 3 types of page routing method:
+                        <ul>
+                            <li><span class="method">Procedural with manual routing</span> (use @app.route decorator)
+                                <ul>
+                                    <li><code><strong>/hello_world</strong></code> is mapped into <code><strong>application.index.controllers.index.index</strong></code></li>
+                                </ul>
+                            </li>
+                            <li><span class="method">OOP with default routing</span> (use <strong>Default_Controller</strong> class. The published function should has <strong>action</strong> prefix<br />
+                                <strong>PS: this is the recommended way</strong>) 
+                                <ul>
+                                    <li><code><strong>/</strong></code> is mapped into <code><strong>application.index.controllers.index.Default_Controller.action</strong></code></li>
+                                    <li><code><strong>/index</strong></code> is mapped into <code><strong>application.index.controllers.index.Default_Controller.action_index</strong></code></li>
+                                </ul>
+                            </li>
+                            <li><span class="method">OOP with manual routing</span> (use app.route function)
+                                <ul>
+                                    <li><code><strong>/hello?name=some_name</strong></code> is mapped into <code><strong>application.index.controllers.index.hello_controller.hello_get</strong></code></li>
+                                    <li><code><strong>/hello/some_name</strong></code> is mapped into <code><strong>application.index.controllers.index.hello_controller.hello_param</strong></code></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div><!--/#layout-content-->           
+            </div><!--/row-->
+            <hr>
+            <footer>GoFrendiAsgard &copy; 2013</footer>
+        </div><!--/.fluid-container-->
+        
+    </body>
 </html>

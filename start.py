@@ -116,6 +116,12 @@ def custom_500(error):
 #
 ########################################################################################################
 
+# python 3 hack for xrange
+try:
+    xrange
+except NameError:
+    xrange = range
+
 def sort_names(names=[], key=None):
     index_exists, empty_exists  = False, False
     index_obj, empty_obj        = None, None
@@ -215,7 +221,7 @@ if __name__ == '__main__':
         app.error_handler = error_handler
     
     # init directories
-    print 'INIT APPLICATION DIRECTORIES'   
+    print ('INIT APPLICATION DIRECTORIES')
     ###################################################################################################
     # get all kokoropy module directories
     ###################################################################################################
@@ -255,7 +261,7 @@ if __name__ == '__main__':
     for directory in directories:
         for controller_module in directory_controller_modules[directory]:
             # load everything inside the controllers
-            print 'LOAD CONTROLLER : '+controller_module
+            print('LOAD CONTROLLER : '+controller_module)
             exec('from application.'+directory+'.controllers.'+controller_module+' import *')
                 
     ###################################################################################################
@@ -298,27 +304,18 @@ if __name__ == '__main__':
     ###################################################################################################
     # serve application's static file
     ###################################################################################################
-    print 'ADD STATIC FILE ROUTE : /favicon.ico, /human.txt'
-    print 'ADD STATIC FILE ROUTE: "/images/*, /css/*, /js/*, /fonts/*'
+    print('ADD STATIC FILE ROUTE : /favicon.ico, /human.txt')
+    print('ADD STATIC FILE ROUTE: "/images/*, /css/*, /js/*, /fonts/*')
     @app.route('/<path:re:(favicon.ico|humans.txt)>')
-    @app.route('/<path:re:(images|css|js|fonts)\/.+>')
+    @app.route('/<path:re:(static_libraries|images|css|js|fonts)\/.+>')
     def application_static(path):
-        return static_file(path, root='application/static')  
+        return static_file(path, root='application/static')
     
     ###################################################################################################
-    # serve index module's static file
-    ###################################################################################################
-    if 'index' in directories:
-        print 'ADD STATIC FILE ROUTE: "/static_libraries/*, /images/*, /css/*, /js/*, /fonts/*'
-        @app.route('/<path:re:(static_libraries|images|css|js|fonts)\/.+>')
-        def application_static(path):
-            return static_file(path, root='application/index/static')
-    
-    ###################################################################################################
-    # serve other module's static file
+    # serve module's static file
     ###################################################################################################
     directory_pattern = '|'.join(directories)
-    print 'ADD STATIC FILE ROUTE: "module/static_libraries/*, module/images/*, module/css/*, module/js/*, module/fonts/*'
+    print('ADD STATIC FILE ROUTE: "module/static_libraries/*, module/images/*, module/css/*, module/js/*, module/fonts/*')
     @app.route('/<module_path:re:('+directory_pattern+')>/<path:re:(static_libraries|images|css|js|fonts)\/.+>')
     def module_static(module_path, path):
         return static_file(path, root='application/'+module_path+'/static')
@@ -327,7 +324,7 @@ if __name__ == '__main__':
     # add template path
     ###################################################################################################
     for directory in directories:
-        print 'REGISTER TEMPLATE PATH : '+directory+'/views/'
+        print('REGISTER TEMPLATE PATH : '+directory+'/views/')
         TEMPLATE_PATH.append('./application/'+directory+'/views/')
     
     ###################################################################################################

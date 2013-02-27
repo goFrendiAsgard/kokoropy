@@ -35,7 +35,7 @@ class Default_Controller(object):
     
     # automatically routed to http://localhost:8080/
     def action(self):
-        return template('example/hello', message='Automatic route working !!!')
+        return template('example/hello', message='Automatic route working !!!', first_time=True)
     
     # automatically routed to: http://localhost:8080/auto/parameter
     def action_auto(self, name=None):
@@ -82,7 +82,7 @@ class Hello_Controller(object):
         return template('example/pokemon', pokemons=pokemons)
 
 # make a Hello_Controller instance
-my_controller = Hello_Controller()
-app.route("/hello", method='GET')(my_controller.hello_get)
-app.route("/hello/<name>")(my_controller.hello_param)
-app.route("/pokemon")(my_controller.pokemon)
+hello_controller = Hello_Controller()
+app.route("/hello", method='GET')(hello_controller.hello_get)
+app.route("/hello/<name>")(hello_controller.hello_param)
+app.route("/pokemon")(hello_controller.pokemon)

@@ -1,2 +1,2 @@
-<strong>{{ message }}</strong>
+{{ message }}
 %rebase example/base title='Hello'
