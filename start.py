@@ -123,7 +123,6 @@ def sort_names(names=[], key=None):
     empty_identifier = ['', 'action', 'action_']
     # remove some special element
     for i in xrange(len(names)):
-        print i, names[i]
         # get identifier
         if key is None:
             identifier = names[i]
