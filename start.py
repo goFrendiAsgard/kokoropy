@@ -23,7 +23,7 @@ RELOADER            = False
 def custom_404(error):
     import random
     error_messages = [
-        'Sorry, but there is no such a gray elephant in Atlantic ..',
+        'Sorry, but there is no such a gray elephant in Atlantic...',
         'Are you sure that the page should be here? Well, in this case you are wrong',
         'Has you correctly write the URL?',
         'Go home you are drunk !!!',
@@ -309,8 +309,8 @@ if __name__ == '__main__':
     # serve index module's static file
     ###################################################################################################
     if 'index' in directories:
-        print 'ADD STATIC FILE ROUTE: "/images/*, /css/*, /js/*, /fonts/*'
-        @app.route('/<path:re:(images|css|js|fonts)\/.+>')
+        print 'ADD STATIC FILE ROUTE: "/static_libraries/*, /images/*, /css/*, /js/*, /fonts/*'
+        @app.route('/<path:re:(static_libraries|images|css|js|fonts)\/.+>')
         def application_static(path):
             return static_file(path, root='application/index/static')
     
@@ -318,8 +318,8 @@ if __name__ == '__main__':
     # serve other module's static file
     ###################################################################################################
     directory_pattern = '|'.join(directories)
-    print 'ADD STATIC FILE ROUTE: "module/images/*, module/css/*, module/js/*, module/fonts/*'
-    @app.route('/<module_path:re:('+directory_pattern+')>/<path:re:(images|css|js|fonts)\/.+>')
+    print 'ADD STATIC FILE ROUTE: "module/static_libraries/*, module/images/*, module/css/*, module/js/*, module/fonts/*'
+    @app.route('/<module_path:re:('+directory_pattern+')>/<path:re:(static_libraries|images|css|js|fonts)\/.+>')
     def module_static(module_path, path):
         return static_file(path, root='application/'+module_path+'/static')
     
