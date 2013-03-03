@@ -1,13 +1,12 @@
-from application import app
-from kokoropy.bottle import template, request
+from kokoropy.bottle import template, request, route
 
 ## APPROACH 1 (Simple but deadly works) ##################################################
 #
 # A very simple procedural style example
-# Manually routed to http://localhost:8080/ with @app.route decorator
+# Manually routed to http://localhost:8080/ with @route decorator
 ##########################################################################################
 
-@app.route('/hello_world')
+@route('/hello_world')
 def index():
     return 'Hello world, I am alive !!!<br /><a href="/">Now go back to work</a>'
 
@@ -83,6 +82,6 @@ class Hello_Controller(object):
 
 # make a Hello_Controller instance
 hello_controller = Hello_Controller()
-app.route("/hello", method='GET')(hello_controller.hello_get)
-app.route("/hello/<name>")(hello_controller.hello_param)
-app.route("/pokemon")(hello_controller.pokemon)
+route("/hello", method='GET')(hello_controller.hello_get)
+route("/hello/<name>")(hello_controller.hello_param)
+route("/pokemon")(hello_controller.pokemon)

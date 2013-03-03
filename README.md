@@ -18,7 +18,7 @@ Kokoropy is built based on my experiences with some framework. Here are some com
 
 * In kokoropy, controller name doesn't correspond to URL
 * kokoropy is explicit. There is no such a "magic" like in web2py
-* You can use route directive in bottle.py, since bottle.py is the core of kokoropy. 
+* You can use route directive in bottle.py, since bottle.py is the core of kokoropy.
 * kokoropy is built based on HMVC pattern, like laravel, fuelPHP and CodeIgniter+HMVC
 * kokoropy doesn't have any other dependencies. You can even run it without Apache or nginx
 * kokoropy has a funny dragon guarding important source codes, just as laravel :)
@@ -43,7 +43,7 @@ Create something like this:
 
 ```python
     from application import app
-    
+
     @app.route('/', method='GET')
     def index():
         return "Hello world"
@@ -68,7 +68,7 @@ Open your console, and do this:
 Open your browser, access the page
 
 ```
-   http://localhost:8080/ 
+   http://localhost:8080/
 ```
 
 Unlike PHP, you don't need to worry about error message. Every error message will be shown in console, not in browser
@@ -76,12 +76,12 @@ Unlike PHP, you don't need to worry about error message. Every error message wil
 MVC
 ===
 
-MVC stands for "Model-View-Controller". Almost all modern web framework use such a mechanism. 
+MVC stands for "Model-View-Controller". Almost all modern web framework use such a mechanism.
 In kokoropy, You can have several MVC triad located at /application
 
 Model
 -----
-Model is the heart of your application. 
+Model is the heart of your application.
 It is not necessarily required, but definitely recommended.
 Model should define what your application can do.
 Using OOP approach will make your model looks more elegant, but don't worry, procedural style is still okay.
@@ -91,13 +91,13 @@ kokoropy come with a basic example model located at /application/index/models/ex
 
 ```python
     class Hello_Model(object):
-        
+
         def say_hello(self, name=None):
             if name is None:
                 return "Hello Stranger"
             else:
                 return "Hello "+name
-        
+
         def get_pokemon(self):
             return ['bubasaur', 'charmender', 'squirtle', 'caterpie', 'pikachu']
 ```
@@ -114,21 +114,19 @@ Just keep in mind to keep your controller as slim as possible.
 kokoropy come with a basic example controller located at /application/index/controllers/index.py
 
 ```python
-    from application import app
-    from kokoropy.bottle import template, request
-    
+    from kokoropy.bottle import template, request, route
+
     ## APPROACH 1 (Simple but deadly works) ##################################################
     #
     # A very simple procedural style example
-    # Manually routed to http://localhost:8080/ with @app.route decorator
+    # Manually routed to http://localhost:8080/ with @route decorator
     ##########################################################################################
-    
-    @app.route('/hello_world')
+
+    @route('/hello_world')
     def index():
         return 'Hello world, I am alive !!!<br /><a href="/">Now go back to work</a>'
-    
-    
-    
+
+
     ## APPROACH 2 (Automagically route) ######################################################
     #
     # An OOP Style with automatic routing example (just like CodeIgniter or FuelPHP)
@@ -137,51 +135,52 @@ kokoropy come with a basic example controller located at /application/index/cont
     #    * The controller file name can be anything, and will be used for routing
     #    * Your controller class name should be "Default_Controller"
     #    * Your published method should have "action" prefix
-    #    * The published URL would be 
+    #    * The published URL would be
     #      http://localhost:8080/app_dir/controller_file/published_method/params
     #    * If your app_dir, controller_file or published_method named "index", it can be
     #      omitted
     #    * For convention, this is the recommended way to do it
     ##########################################################################################
-    
+
     class Default_Controller(object):
         # load the model
         def __init__(self):
             from application.index.models.example_model import Hello_Model
             self.model = Hello_Model()
-        
+
         # automatically routed to http://localhost:8080/
         def action(self):
-            return template('example/hello', message='Automatic route working !!!')
-        
+            return template('example/hello', message='Automatic route working !!!', first_time=True)
+
         # automatically routed to: http://localhost:8080/auto/parameter
         def action_auto(self, name=None):
             message = self.model.say_hello(name)
             return template('example/hello', message='Automatically say '+message)
-        
+
         # not routed
         def unpublished_function(self):
             return 'this is not published'
-    
-    
-    
+
+
+
     ## APPROACH 3 (Your route, your style, your freedom) #####################################
     #
     # An OOP style with user defined routing example
     # After declaring the controller class, you need to define manual routing
     ##########################################################################################
-    
+
     class Hello_Controller(object):
-        
+
         # load the model
         def __init__(self):
             from application.index.models.example_model import Hello_Model
             self.model = Hello_Model()
-            
+
+        # will be manually routed to http://localhost/hello
         def hello_param(self, name = None):
             message = self.model.say_hello(name)
             return template('example/hello', message=message)
-        
+
         def hello_get(self):
             ##################################################################################
             # Python                            #  equivalent PHP code                       #
@@ -192,16 +191,16 @@ kokoropy come with a basic example controller located at /application/index/cont
             ##################################################################################
             message = self.model.say_hello(name)
             return template('example/hello', message=message)
-        
+
         def pokemon(self):
             pokemons = self.model.get_pokemon()
             return template('example/pokemon', pokemons=pokemons)
-    
+
     # make a Hello_Controller instance
-    my_controller = Hello_Controller()
-    app.route("/hello", method='GET')(my_controller.hello_get)
-    app.route("/hello/<name>")(my_controller.hello_param)
-    app.route("/pokemon")(my_controller.pokemon)
+    hello_controller = Hello_Controller()
+    route("/hello", method='GET')(hello_controller.hello_get)
+    route("/hello/<name>")(hello_controller.hello_param)
+    route("/pokemon")(hello_controller.pokemon)
 ```
 
 Using procedural style, you can define your routing with __@app.route()__ decorator.
