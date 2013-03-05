@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os, inspect
-from kokoropy.bottle import default_app, debug, run, static_file, TEMPLATE_PATH, template, route, Bottle
+from kokoropy.bottle import default_app, debug, run, static_file, TEMPLATE_PATH, template, route, error, Bottle
 
 
 # python 3 hack for xrange
@@ -95,8 +95,12 @@ def module_static(module_path, path):
         return static_file(path, root='application/'+module_path+'/static')
 
 def kokoro_init(DEBUG, custom_error_handler):
-    app = default_app
-    app.error_handler = custom_error_handler
+    
+    ###################################################################################################
+    # Handling error
+    ###################################################################################################
+    for key in custom_error_handler:
+        error(key)(custom_error_handler[key])
     debug(DEBUG)
     
     TEMPLATE_PATH.remove('./views/')
