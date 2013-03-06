@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-import os, inspect
+import os, inspect, sys
 from kokoropy.bottle import default_app, debug, run, static_file, TEMPLATE_PATH, template, route, error, Bottle
 
 
 # python 3 hack for xrange
-try:
-    xrange
-except NameError:
+py   = sys.version_info
+py3k = py >= (3,0,0)
+if py3k:
     xrange = range
 
 def sort_names(names=[], key=None):
