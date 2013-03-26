@@ -203,8 +203,8 @@ kokoropy come with a basic example controller located at /application/index/cont
     route("/pokemon")(hello_controller.pokemon)
 ```
 
-Using procedural style, you can define your routing with __@app.route()__ decorator.
-Using OOP style, you can use __app.route()__.
+Using procedural style, you can define your routing with __@route()__ decorator.
+Using OOP style, you can use __route()__.
 
 One thing I like from CodeIgnniter is automatic routing. Not many python framework provide such a thing.
 Web2py also provide such a mechanism. In kokoropy, you are free to choose, wether to use manual routing or automatic one.

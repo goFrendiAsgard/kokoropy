@@ -8,9 +8,9 @@
             padding-left: 20px;
             padding-right: 20px;
         }
-        div#error-container{        
+        div#error-container{
             background-repeat: no-repeat;
-            background-image:url('/index/images/programmer.png');        
+            background-image:url('/example/images/programmer.png');
             background-position: bottom right;
             min-height: 70%;
             min-width: 100%;
@@ -37,14 +37,14 @@
             background-color:#222;
             border:none;
         }
-    </style>    
+    </style>
     <title>{{ data['error_title'] }}</title>
 </head>
 <body>
     <div id="error-container">
         <div id="layout-banner" class="well">
-            <h1 id="error-title">{{ data['error_title'] }}</h1>    
-        </div>        
+            <h1 id="error-title">{{ data['error_title'] }}</h1>
+        </div>
         <h2 id="error-message">{{ data['error_message'] }}</h2>
         <p id="goback-message">Nothing you can do here. So just <a class="btn btn-primary" href="/"><strong>go back</strong></a> and forget what you've see</p>
     </div>
