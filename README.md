@@ -25,6 +25,8 @@ Kokoropy is built based on my experiences with some framework. Here are some com
 
 __PS:__ This is my pet-project, and might be not stable. It is not ready for production purpose (yet)
 
+Kokoropy come with bottlepy 0.11 and sqlalchemy 0.8 included
+
 How to use
 ==========
 

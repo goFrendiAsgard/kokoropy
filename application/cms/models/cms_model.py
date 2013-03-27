@@ -1,7 +1,7 @@
-from sqlalchemy import create_engine, ForeignKey
-from sqlalchemy import Column, Date, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, backref
+from kokoropy.sqlalchemy import create_engine, ForeignKey
+from kokoropy.sqlalchemy import Column, Date, Integer, String
+from kokoropy.sqlalchemy.ext.declarative import declarative_base
+from kokoropy.sqlalchemy.orm import relationship, backref
  
 engine = create_engine('sqlite:///cms.db', echo=True)
 Base = declarative_base()

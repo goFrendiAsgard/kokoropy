@@ -1,4 +1,5 @@
 import sqlite3
+import kokoropy.sqlalchemy
 
 class DB_Model(object):
     
