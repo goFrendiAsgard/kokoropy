@@ -5,14 +5,11 @@
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
 """
-.. dialect:: firebird+kinterbasdb
-    :name: kinterbasdb
-    :dbapi: kinterbasdb
-    :connectstring: firebird+kinterbasdb://user:password@host:port/path/to/db[?key=value&key=value...]
-    :url: http://firebirdsql.org/index.php?op=devel&sub=python
+The most common way to connect to a Firebird engine is implemented by
+kinterbasdb__, currently maintained__ directly by the Firebird people.
 
-Arguments
-----------
+The connection URL is of the form
+``firebird[+kinterbasdb]://user:password@host:port/path/to/db[?key=value&key=value...]``.
 
 Kinterbasedb backend specific keyword arguments are:
 
@@ -48,10 +45,11 @@ __ http://kinterbasdb.sourceforge.net/dist_docs/usage.html#adv_param_conv_dynami
 __ http://kinterbasdb.sourceforge.net/dist_docs/usage.html#special_issue_concurrency
 """
 
-from .base import FBDialect, FBExecutionContext
-from ... import util, types as sqltypes
+from sqlalchemy.dialects.firebird.base import FBDialect, \
+                                    FBCompiler, FBExecutionContext
+from sqlalchemy import util, types as sqltypes
+from sqlalchemy.util.compat import decimal
 from re import match
-import decimal
 
 
 class _FBNumeric_kinterbasdb(sqltypes.Numeric):
@@ -63,7 +61,6 @@ class _FBNumeric_kinterbasdb(sqltypes.Numeric):
                 return value
         return process
 
-
 class FBExecutionContext_kinterbasdb(FBExecutionContext):
     @property
     def rowcount(self):
@@ -72,7 +69,6 @@ class FBExecutionContext_kinterbasdb(FBExecutionContext):
             return self.cursor.rowcount
         else:
             return -1
-
 
 class FBDialect_kinterbasdb(FBDialect):
     driver = 'kinterbasdb'
@@ -85,7 +81,7 @@ class FBDialect_kinterbasdb(FBDialect):
     colspecs = util.update_copy(
         FBDialect.colspecs,
         {
-            sqltypes.Numeric: _FBNumeric_kinterbasdb,
+            sqltypes.Numeric:_FBNumeric_kinterbasdb,
         }
 
     )
@@ -101,7 +97,8 @@ class FBDialect_kinterbasdb(FBDialect):
 
     @classmethod
     def dbapi(cls):
-        return __import__('kinterbasdb')
+        k = __import__('kinterbasdb')
+        return k
 
     def create_connect_args(self, url):
         opts = url.translate_connect_args(username='user')
@@ -120,8 +117,7 @@ class FBDialect_kinterbasdb(FBDialect):
             initialized = getattr(self.dbapi, 'initialized', None)
             if initialized is None:
                 # CVS rev 1.96 changed the name of the attribute:
-                # http://kinterbasdb.cvs.sourceforge.net/viewvc/kinterbasdb/
-                # Kinterbasdb-3.0/__init__.py?r1=1.95&r2=1.96
+                # http://kinterbasdb.cvs.sourceforge.net/viewvc/kinterbasdb/Kinterbasdb-3.0/__init__.py?r1=1.95&r2=1.96
                 initialized = getattr(self.dbapi, '_initialized', False)
             if not initialized:
                 self.dbapi.init(type_conv=type_conv,

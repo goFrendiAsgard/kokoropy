@@ -4,12 +4,13 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
-"""
-.. dialect:: oracle+zxjdbc
-    :name: zxJDBC for Jython
-    :dbapi: zxjdbc
-    :connectstring: oracle+zxjdbc://user:pass@host/dbname
-    :driverurl: http://www.oracle.com/technology/software/tech/java/sqlj_jdbc/index.html.
+"""Support for the Oracle database via the zxjdbc JDBC connector.
+
+JDBC Driver
+-----------
+
+The official Oracle JDBC driver is at
+http://www.oracle.com/technology/software/tech/java/sqlj_jdbc/index.html.
 
 """
 import decimal
@@ -18,12 +19,11 @@ import re
 from sqlalchemy import sql, types as sqltypes, util
 from sqlalchemy.connectors.zxJDBC import ZxJDBCConnector
 from sqlalchemy.dialects.oracle.base import OracleCompiler, OracleDialect, OracleExecutionContext
-from sqlalchemy.engine import result as _result
+from sqlalchemy.engine import base, default
 from sqlalchemy.sql import expression
 import collections
 
 SQLException = zxJDBC = None
-
 
 class _ZxJDBCDate(sqltypes.Date):
 
@@ -78,7 +78,7 @@ class OracleCompiler_zxjdbc(OracleCompiler):
             self.binds[bindparam.key] = bindparam
             binds.append(self.bindparam_string(self._truncate_bindparam(bindparam)))
 
-        return 'RETURNING ' + ', '.join(columns) + " INTO " + ", ".join(binds)
+        return 'RETURNING ' + ', '.join(columns) +  " INTO " + ", ".join(binds)
 
 
 class OracleExecutionContext_zxjdbc(OracleExecutionContext):
@@ -113,7 +113,7 @@ class OracleExecutionContext_zxjdbc(OracleExecutionContext):
                         pass
                 self.statement.close()
 
-        return _result.ResultProxy(self)
+        return base.ResultProxy(self)
 
     def create_cursor(self):
         cursor = self._dbapi_connection.cursor()
@@ -121,7 +121,7 @@ class OracleExecutionContext_zxjdbc(OracleExecutionContext):
         return cursor
 
 
-class ReturningResultProxy(_result.FullyBufferedResultProxy):
+class ReturningResultProxy(base.FullyBufferedResultProxy):
 
     """ResultProxy backed by the RETURNING ResultSet results."""
 
@@ -178,7 +178,7 @@ class OracleDialect_zxjdbc(ZxJDBCConnector, OracleDialect):
     colspecs = util.update_copy(
         OracleDialect.colspecs,
         {
-            sqltypes.Date: _ZxJDBCDate,
+            sqltypes.Date : _ZxJDBCDate,
             sqltypes.Numeric: _ZxJDBCNumeric
         }
     )
@@ -189,19 +189,17 @@ class OracleDialect_zxjdbc(ZxJDBCConnector, OracleDialect):
         from java.sql import SQLException
         from com.ziclix.python.sql import zxJDBC
         from com.ziclix.python.sql.handler import OracleDataHandler
-
         class OracleReturningDataHandler(OracleDataHandler):
+
             """zxJDBC DataHandler that specially handles ReturningParam."""
 
             def setJDBCObject(self, statement, index, object, dbtype=None):
                 if type(object) is ReturningParam:
                     statement.registerReturnParameter(index, object.type)
                 elif dbtype is None:
-                    OracleDataHandler.setJDBCObject(
-                        self, statement, index, object)
+                    OracleDataHandler.setJDBCObject(self, statement, index, object)
                 else:
-                    OracleDataHandler.setJDBCObject(
-                        self, statement, index, object, dbtype)
+                    OracleDataHandler.setJDBCObject(self, statement, index, object, dbtype)
         self.DataHandler = OracleReturningDataHandler
 
     def initialize(self, connection):

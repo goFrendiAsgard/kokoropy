@@ -1,15 +1,17 @@
 # sybase/pysybase.py
-# Copyright (C) 2010-2013 the SQLAlchemy authors and contributors <see AUTHORS file>
+# Copyright (C) 2010-2011 the SQLAlchemy authors and contributors <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
 """
-.. dialect:: sybase+pysybase
-    :name: Python-Sybase
-    :dbapi: Sybase
-    :connectstring: sybase+pysybase://<username>:<password>@<dsn>/[database name]
-    :url: http://python-sybase.sourceforge.net/
+Support for Sybase via the python-sybase driver.
+
+http://python-sybase.sourceforge.net/
+
+Connect strings are of the form::
+
+    sybase+pysybase://<username>:<password>@<dsn>/[database name]
 
 Unicode Support
 ---------------
@@ -30,7 +32,6 @@ class _SybNumeric(sqltypes.Numeric):
             return processors.to_float
         else:
             return sqltypes.Numeric.result_processor(self, dialect, type_)
-
 
 class SybaseExecutionContext_pysybase(SybaseExecutionContext):
 
@@ -54,15 +55,14 @@ class SybaseSQLCompiler_pysybase(SybaseSQLCompiler):
     def bindparam_string(self, name, **kw):
         return "@" + name
 
-
 class SybaseDialect_pysybase(SybaseDialect):
     driver = 'pysybase'
     execution_ctx_cls = SybaseExecutionContext_pysybase
     statement_compiler = SybaseSQLCompiler_pysybase
 
-    colspecs = {
-       sqltypes.Numeric: _SybNumeric,
-       sqltypes.Float: sqltypes.Float
+    colspecs={
+       sqltypes.Numeric:_SybNumeric,
+       sqltypes.Float:sqltypes.Float
     }
 
     @classmethod

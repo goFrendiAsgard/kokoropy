@@ -107,8 +107,8 @@ or some other integer, provide ``count_from=1``.
 
 
 """
-from ..orm.collections import collection
-from .. import util
+from sqlalchemy.orm.collections import collection
+from sqlalchemy import util
 
 __all__ = ['ordering_list']
 

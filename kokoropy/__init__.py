@@ -1,7 +1,9 @@
+'''
 import bottle
 import sqlalchemy
 import beaker
-__all__ = ['bottle', 'sqlalchemy', 'beaker']
+'''
+from . import bottle, sqlalchemy, beaker
 
 # -*- coding: utf-8 -*-
 import os, inspect, sys

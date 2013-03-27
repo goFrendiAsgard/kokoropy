@@ -4,10 +4,12 @@ from kokoropy.bottle import route, request
 
 @route('/')
 def index():
+    # test session
     if 'counter' in request.session:
         request.session['counter'] += 1
     else:
         request.session['counter'] = 1
+    # return string
     return '''
         <title>Kokoropy</title>
         <h1>It works</h1>

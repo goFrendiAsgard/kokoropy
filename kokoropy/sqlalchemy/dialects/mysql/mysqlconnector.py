@@ -4,22 +4,31 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
+"""Support for the MySQL database via the MySQL Connector/Python adapter.
+
+MySQL Connector/Python is available at:
+
+    https://launchpad.net/myconnpy
+
+Connecting
+-----------
+
+Connect string format::
+
+    mysql+mysqlconnector://<user>:<password>@<host>[:<port>]/<dbname>
+
 """
-.. dialect:: mysql+mysqlconnector
-    :name: MySQL Connector/Python
-    :dbapi: myconnpy
-    :connectstring: mysql+mysqlconnector://<user>:<password>@<host>[:<port>]/<dbname>
-    :url: https://launchpad.net/myconnpy
 
+import re
 
-"""
-
-from .base import (MySQLDialect,
+from sqlalchemy.dialects.mysql.base import (MySQLDialect,
     MySQLExecutionContext, MySQLCompiler, MySQLIdentifierPreparer,
     BIT)
 
-from ... import util
-
+from sqlalchemy.engine import base as engine_base, default
+from sqlalchemy.sql import operators as sql_operators
+from sqlalchemy import exc, log, schema, sql, types as sqltypes, util
+from sqlalchemy import processors
 
 class MySQLExecutionContext_mysqlconnector(MySQLExecutionContext):
 
@@ -28,13 +37,11 @@ class MySQLExecutionContext_mysqlconnector(MySQLExecutionContext):
 
 
 class MySQLCompiler_mysqlconnector(MySQLCompiler):
-    def visit_mod_binary(self, binary, operator, **kw):
-        return self.process(binary.left, **kw) + " %% " + \
-                        self.process(binary.right, **kw)
+    def visit_mod(self, binary, **kw):
+        return self.process(binary.left) + " %% " + self.process(binary.right)
 
     def post_process_text(self, text):
         return text.replace('%', '%%')
-
 
 class MySQLIdentifierPreparer_mysqlconnector(MySQLIdentifierPreparer):
 
@@ -42,13 +49,11 @@ class MySQLIdentifierPreparer_mysqlconnector(MySQLIdentifierPreparer):
         value = value.replace(self.escape_quote, self.escape_to_quote)
         return value.replace("%", "%%")
 
-
 class _myconnpyBIT(BIT):
     def result_processor(self, dialect, coltype):
         """MySQL-connector already converts mysql bits, so."""
 
         return None
-
 
 class MySQLDialect_mysqlconnector(MySQLDialect):
     driver = 'mysqlconnector'
@@ -111,7 +116,7 @@ class MySQLDialect_mysqlconnector(MySQLDialect):
 
     def is_disconnect(self, e, connection, cursor):
         errnos = (2006, 2013, 2014, 2045, 2055, 2048)
-        exceptions = (self.dbapi.OperationalError, self.dbapi.InterfaceError)
+        exceptions = (self.dbapi.OperationalError,self.dbapi.InterfaceError)
         if isinstance(e, exceptions):
             return e.errno in errnos
         else:

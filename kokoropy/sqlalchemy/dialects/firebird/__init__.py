@@ -4,7 +4,7 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
-from sqlalchemy.dialects.firebird import base, kinterbasdb, fdb
+from sqlalchemy.dialects.firebird import base, kinterbasdb
 
 base.dialect = kinterbasdb.dialect
 
@@ -18,3 +18,5 @@ __all__ = (
     'TEXT', 'NUMERIC', 'FLOAT', 'TIMESTAMP', 'VARCHAR', 'CHAR', 'BLOB',
     'dialect'
 )
+
+

@@ -4,8 +4,8 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
-from .. import event, util
-from .interfaces import EXT_CONTINUE
+from sqlalchemy import event, util
+from interfaces import EXT_CONTINUE
 
 
 class MapperExtension(object):
@@ -115,6 +115,7 @@ class MapperExtension(object):
                 else:
                     event.listen(self, "%s" % meth, ls_meth,
                                         raw=False, retval=True, propagate=True)
+
 
     def instrument_class(self, mapper, class_):
         """Receive a class when the mapper is first constructed, and has
@@ -373,7 +374,6 @@ class MapperExtension(object):
 
         return EXT_CONTINUE
 
-
 class SessionExtension(object):
 
     """Base implementation for :class:`.Session` event hooks.
@@ -385,7 +385,7 @@ class SessionExtension(object):
        :class:`.SessionEvents`.
 
     Subclasses may be installed into a :class:`.Session` (or
-    :class:`.sessionmaker`) using the ``extension`` keyword
+    :func:`.sessionmaker`) using the ``extension`` keyword
     argument::
 
         from sqlalchemy.orm.interfaces import SessionExtension
@@ -439,7 +439,7 @@ class SessionExtension(object):
         Note that this may not be per-flush if a longer running
         transaction is ongoing."""
 
-    def before_flush(self, session, flush_context, instances):
+    def before_flush( self, session, flush_context, instances):
         """Execute before flush process has started.
 
         `instances` is an optional list of objects which were passed to
@@ -462,7 +462,7 @@ class SessionExtension(object):
         occurred, depending on whether or not the flush started its own
         transaction or participated in a larger transaction. """
 
-    def after_begin(self, session, transaction, connection):
+    def after_begin( self, session, transaction, connection):
         """Execute after a transaction is begun on a connection
 
         `transaction` is the SessionTransaction. This method is called
@@ -473,7 +473,7 @@ class SessionExtension(object):
 
         This is called after an add, delete or merge. """
 
-    def after_bulk_update(self, session, query, query_context, result):
+    def after_bulk_update( self, session, query, query_context, result):
         """Execute after a bulk update operation to the session.
 
         This is called after a session.query(...).update()
@@ -483,7 +483,7 @@ class SessionExtension(object):
         `result` is the result object returned from the bulk operation.
         """
 
-    def after_bulk_delete(self, session, query, query_context, result):
+    def after_bulk_delete( self, session, query, query_context, result):
         """Execute after a bulk delete operation to the session.
 
         This is called after a session.query(...).delete()
@@ -586,3 +586,5 @@ class AttributeExtension(object):
 
         """
         return value
+
+

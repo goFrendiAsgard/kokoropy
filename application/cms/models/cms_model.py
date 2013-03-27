@@ -1,5 +1,5 @@
 from kokoropy.sqlalchemy import create_engine, ForeignKey
-from kokoropy.sqlalchemy import Column, Date, Integer, String
+from kokoropy.sqlalchemy import Column, Date, Integer, String, Boolean
 from kokoropy.sqlalchemy.ext.declarative import declarative_base
 from kokoropy.sqlalchemy.orm import relationship, backref
  
@@ -15,8 +15,8 @@ def encrypt_password(password):
 class Groups(Base):
     
     __tablename__ = 'groups'
-    group_id = Column('group_id', Integer, primary_key=True)
-    name = Column('name', String)
+    group_id = Column(Integer, primary_key=True)
+    name = Column(String)
     
     def __init__(self, name):
         self.name = name
@@ -27,11 +27,11 @@ class Groups(Base):
 class Users(Base):
     
     __tablename__ = 'users'
-    user_id = Column('user_id', Integer, primary_key=True)
-    user_name = Column('name', String)
-    encrypted_password = Column('encrypted_password', String)
-    real_name = Column('real_name', String)
-    email = Column('email', String)
+    user_id = Column(Integer, primary_key=True)
+    user_name = Column(String)
+    encrypted_password = Column(String)
+    real_name = Column(String)
+    email = Column(String)
     
     def __init__(self, user_name, password="", real_name="", email=""):
         self.user_name = user_name
@@ -49,10 +49,21 @@ class Users(Base):
 class Pages(Base):
     
     __tablename__ = 'pages'
-    page_id = Column('page_id', Integer, primary_key=True)
-    name = Column('name', String)
-    title = Column('name', String)
-    privilege = Column('privilege', Integer)
+    page_id = Column(Integer, primary_key=True)
+    name = Column(String)
+    title = Column(String)
+    is_static = Column(Boolean)
+    content = Column(String)
+    url = Column(String)
+    privilege = Column(Integer)
+    
+    def __init__(self, name, title, is_static=1, content='', url='', privilege=0):
+        self.name = name
+        self.title = title
+        self.is_static = is_static
+        self.content = content
+        self.url = url
+        self.privilege = privilege
     
     
 ####################################################################################
@@ -60,8 +71,21 @@ class Pages(Base):
 class Widgets(Base):
     
     __tablename__ = 'widgets'
-    page_id = Column('widget_id', Integer, primary_key=True)
-    name = Column('name', String)
+    widget_id = Column(Integer, primary_key=True)
+    name = Column(String)
+    title = Column(String)
+    is_static = Column(Boolean)
+    content = Column(String)
+    url = Column(String)
+    privilege = Column(Integer)
+    
+    def __init__(self, name, title, is_static=1, content='', url='', privilege=0):
+        self.name = name
+        self.title = title
+        self.is_static = is_static
+        self.content = content
+        self.url = url
+        self.privilege = privilege
     
 
 ####################################################################################
@@ -71,3 +95,6 @@ class CMS_Model(object):
     
     def __init__(self):
         pass
+    
+if __name__ == '__main__':
+    Base.metadata.create_all(engine)

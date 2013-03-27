@@ -24,14 +24,14 @@ http://techspot.zzzeek.org/2008/01/23/expression-transformations/
 """
 
 from collections import deque
-from .. import util
+import re
+from sqlalchemy import util
 import operator
 
 __all__ = ['VisitableType', 'Visitable', 'ClauseVisitor',
     'CloningVisitor', 'ReplacingCloningVisitor', 'iterate',
     'iterate_depthfirst', 'traverse_using', 'traverse',
     'cloned_traverse', 'replacement_traverse']
-
 
 class VisitableType(type):
     """Metaclass which assigns a `_compiler_dispatch` method to classes
@@ -43,8 +43,7 @@ class VisitableType(type):
         def _compiler_dispatch (self, visitor, **kw):
             '''Look for an attribute named "visit_" + self.__visit_name__
             on the visitor, and call it with the same kw params.'''
-            visit_attr = 'visit_%s' % self.__visit_name__
-            return getattr(visitor, visit_attr)(self, **kw)
+            return getattr(visitor, 'visit_%s' % self.__visit_name__)(self, **kw)
 
     Classes having no __visit_name__ attribute will remain unaffected.
     """
@@ -69,7 +68,6 @@ def _generate_dispatch(cls):
             # the string name of the class's __visit_name__ is known at
             # this early stage (import time) so it can be pre-constructed.
             getter = operator.attrgetter("visit_%s" % visit_name)
-
             def _compiler_dispatch(self, visitor, **kw):
                 return getter(visitor)(self, **kw)
         else:
@@ -77,15 +75,13 @@ def _generate_dispatch(cls):
             # __visit_name__ is not yet a string. As a result, the visit
             # string has to be recalculated with each compilation.
             def _compiler_dispatch(self, visitor, **kw):
-                visit_attr = 'visit_%s' % self.__visit_name__
-                return getattr(visitor, visit_attr)(self, **kw)
+                return getattr(visitor, 'visit_%s' % self.__visit_name__)(self, **kw)
 
-        _compiler_dispatch.__doc__ = \
+        _compiler_dispatch.__doc__  = \
           """Look for an attribute named "visit_" + self.__visit_name__
             on the visitor, and call it with the same kw params.
             """
         cls._compiler_dispatch = _compiler_dispatch
-
 
 class Visitable(object):
     """Base class for visitable objects, applies the
@@ -94,7 +90,6 @@ class Visitable(object):
     """
 
     __metaclass__ = VisitableType
-
 
 class ClauseVisitor(object):
     """Base class for visitor objects which can traverse using
@@ -111,10 +106,8 @@ class ClauseVisitor(object):
                 return meth(obj, **kw)
 
     def iterate(self, obj):
-        """traverse the given expression structure, returning an iterator
-        of all elements.
+        """traverse the given expression structure, returning an iterator of all elements."""
 
-        """
         return iterate(obj, self.__traverse_options__)
 
     def traverse(self, obj):
@@ -150,7 +143,6 @@ class ClauseVisitor(object):
         tail._next = visitor
         return self
 
-
 class CloningVisitor(ClauseVisitor):
     """Base class for visitor objects which can traverse using
     the cloned_traverse() function.
@@ -158,18 +150,14 @@ class CloningVisitor(ClauseVisitor):
     """
 
     def copy_and_process(self, list_):
-        """Apply cloned traversal to the given list of elements, and return
-        the new list.
+        """Apply cloned traversal to the given list of elements, and return the new list."""
 
-        """
         return [self.traverse(x) for x in list_]
 
     def traverse(self, obj):
         """traverse and visit the given expression structure."""
 
-        return cloned_traverse(
-            obj, self.__traverse_options__, self._visitor_dict)
-
+        return cloned_traverse(obj, self.__traverse_options__, self._visitor_dict)
 
 class ReplacingCloningVisitor(CloningVisitor):
     """Base class for visitor objects which can traverse using
@@ -196,7 +184,6 @@ class ReplacingCloningVisitor(CloningVisitor):
                     return e
         return replacement_traverse(obj, self.__traverse_options__, replace)
 
-
 def iterate(obj, opts):
     """traverse the given expression structure, returning an iterator.
 
@@ -209,7 +196,6 @@ def iterate(obj, opts):
         yield t
         for c in t.get_children(**opts):
             stack.append(c)
-
 
 def iterate_depthfirst(obj, opts):
     """traverse the given expression structure, returning an iterator.
@@ -226,34 +212,24 @@ def iterate_depthfirst(obj, opts):
             stack.append(c)
     return iter(traversal)
 
-
 def traverse_using(iterator, obj, visitors):
-    """visit the given expression structure using the given iterator of
-    objects.
+    """visit the given expression structure using the given iterator of objects."""
 
-    """
     for target in iterator:
         meth = visitors.get(target.__visit_name__, None)
         if meth:
             meth(target)
     return obj
 
-
 def traverse(obj, opts, visitors):
-    """traverse and visit the given expression structure using the default
-     iterator.
+    """traverse and visit the given expression structure using the default iterator."""
 
-    """
     return traverse_using(iterate(obj, opts), obj, visitors)
 
-
 def traverse_depthfirst(obj, opts, visitors):
-    """traverse and visit the given expression structure using the
-    depth-first iterator.
+    """traverse and visit the given expression structure using the depth-first iterator."""
 
-    """
     return traverse_using(iterate_depthfirst(obj, opts), obj, visitors)
-
 
 def cloned_traverse(obj, opts, visitors):
     """clone the given expression structure, allowing
@@ -266,13 +242,13 @@ def cloned_traverse(obj, opts, visitors):
         if elem in stop_on:
             return elem
         else:
-            if id(elem) not in cloned:
-                cloned[id(elem)] = newelem = elem._clone()
+            if elem not in cloned:
+                cloned[elem] = newelem = elem._clone()
                 newelem._copy_internals(clone=clone)
                 meth = visitors.get(newelem.__visit_name__, None)
                 if meth:
                     meth(newelem)
-            return cloned[id(elem)]
+            return cloned[elem]
 
     if obj is not None:
         obj = clone(obj)
@@ -284,16 +260,16 @@ def replacement_traverse(obj, opts, replace):
     replacement by a given replacement function."""
 
     cloned = util.column_dict()
-    stop_on = util.column_set([id(x) for x in opts.get('stop_on', [])])
+    stop_on = util.column_set(opts.get('stop_on', []))
 
     def clone(elem, **kw):
-        if id(elem) in stop_on or \
+        if elem in stop_on or \
             'no_replacement_traverse' in elem._annotations:
             return elem
         else:
             newelem = replace(elem)
             if newelem is not None:
-                stop_on.add(id(newelem))
+                stop_on.add(newelem)
                 return newelem
             else:
                 if elem not in cloned:

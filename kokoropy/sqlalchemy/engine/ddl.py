@@ -1,27 +1,24 @@
 # engine/ddl.py
-# Copyright (C) 2009-2013 the SQLAlchemy authors and contributors <see AUTHORS file>
+# Copyright (C) 2009-2011 the SQLAlchemy authors and contributors <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
 """Routines to handle CREATE/DROP workflow."""
 
-from .. import schema
-from ..sql import util as sql_util
+from sqlalchemy import engine, schema
+from sqlalchemy.sql import util as sql_util
 
 
 class DDLBase(schema.SchemaVisitor):
     def __init__(self, connection):
         self.connection = connection
 
-
 class SchemaGenerator(DDLBase):
-
-    def __init__(self, dialect, connection, checkfirst=False,
-                 tables=None, **kwargs):
+    def __init__(self, dialect, connection, checkfirst=False, tables=None, **kwargs):
         super(SchemaGenerator, self).__init__(connection, **kwargs)
         self.checkfirst = checkfirst
-        self.tables = tables
+        self.tables = tables and set(tables) or None
         self.preparer = dialect.identifier_preparer
         self.dialect = dialect
         self.memo = {}
@@ -39,17 +36,17 @@ class SchemaGenerator(DDLBase):
             (
                 (not self.dialect.sequences_optional or
                  not sequence.optional) and
-                    (
-                        not self.checkfirst or
-                        not self.dialect.has_sequence(
-                                self.connection,
-                                sequence.name,
-                                schema=sequence.schema)
-                     )
+                 (
+                 not self.checkfirst or
+                 not self.dialect.has_sequence(
+                            self.connection,
+                            sequence.name,
+                            schema=sequence.schema)
+                 )
             )
 
     def visit_metadata(self, metadata):
-        if self.tables is not None:
+        if self.tables:
             tables = self.tables
         else:
             tables = metadata.tables.values()
@@ -106,9 +103,7 @@ class SchemaGenerator(DDLBase):
 
 
 class SchemaDropper(DDLBase):
-
-    def __init__(self, dialect, connection, checkfirst=False,
-                 tables=None, **kwargs):
+    def __init__(self, dialect, connection, checkfirst=False, tables=None, **kwargs):
         super(SchemaDropper, self).__init__(connection, **kwargs)
         self.checkfirst = checkfirst
         self.tables = tables
@@ -117,26 +112,19 @@ class SchemaDropper(DDLBase):
         self.memo = {}
 
     def visit_metadata(self, metadata):
-        if self.tables is not None:
+        if self.tables:
             tables = self.tables
         else:
             tables = metadata.tables.values()
+        collection = [t for t in reversed(sql_util.sort_tables(tables))
+                                if self._can_drop_table(t)]
+        seq_coll = [s for s in metadata._sequences.values()
+                                if s.column is None and self._can_drop_sequence(s)]
 
-        collection = [
-            t
-            for t in reversed(sql_util.sort_tables(tables))
-            if self._can_drop_table(t)
-        ]
-
-        seq_coll = [
-            s
-            for s in metadata._sequences.values()
-            if s.column is None and self._can_drop_sequence(s)
-        ]
-
-        metadata.dispatch.before_drop(
-            metadata, self.connection, tables=collection,
-            checkfirst=self.checkfirst, _ddl_runner=self)
+        metadata.dispatch.before_drop(metadata, self.connection,
+                                            tables=collection,
+                                            checkfirst=self.checkfirst,
+                                            _ddl_runner=self)
 
         for table in collection:
             self.traverse_single(table, drop_ok=True)
@@ -144,9 +132,10 @@ class SchemaDropper(DDLBase):
         for seq in seq_coll:
             self.traverse_single(seq, drop_ok=True)
 
-        metadata.dispatch.after_drop(
-            metadata, self.connection, tables=collection,
-            checkfirst=self.checkfirst, _ddl_runner=self)
+        metadata.dispatch.after_drop(metadata, self.connection,
+                                            tables=collection,
+                                            checkfirst=self.checkfirst,
+                                            _ddl_runner=self)
 
     def _can_drop_table(self, table):
         self.dialect.validate_identifier(table.name)
@@ -160,7 +149,7 @@ class SchemaDropper(DDLBase):
             ((not self.dialect.sequences_optional or
                  not sequence.optional) and
                 (not self.checkfirst or
-                self.dialect.has_sequence(
+                 self.dialect.has_sequence(
                                 self.connection,
                                 sequence.name,
                                 schema=sequence.schema))

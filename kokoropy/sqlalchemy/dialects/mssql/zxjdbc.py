@@ -4,19 +4,29 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
+"""Support for the Microsoft SQL Server database via the zxjdbc JDBC
+connector.
+
+JDBC Driver
+-----------
+
+Requires the jTDS driver, available from: http://jtds.sourceforge.net/
+
+Connecting
+----------
+
+URLs are of the standard form of
+``mssql+zxjdbc://user:pass@host:port/dbname[?key=value&key=value...]``.
+
+Additional arguments which may be specified either as query string
+arguments on the URL, or as keyword arguments to
+:func:`~sqlalchemy.create_engine()` will be passed as Connection
+properties to the underlying JDBC driver.
+
 """
-.. dialect:: mssql+zxjdbc
-    :name: zxJDBC for Jython
-    :dbapi: zxjdbc
-    :connectstring: mssql+zxjdbc://user:pass@host:port/dbname[?key=value&key=value...]
-    :driverurl: http://jtds.sourceforge.net/
-
-
-"""
-from ...connectors.zxJDBC import ZxJDBCConnector
-from .base import MSDialect, MSExecutionContext
-from ... import engine
-
+from sqlalchemy.connectors.zxJDBC import ZxJDBCConnector
+from sqlalchemy.dialects.mssql.base import MSDialect, MSExecutionContext
+from sqlalchemy.engine import base
 
 class MSExecutionContext_zxjdbc(MSExecutionContext):
 
@@ -36,13 +46,13 @@ class MSExecutionContext_zxjdbc(MSExecutionContext):
                 try:
                     row = self.cursor.fetchall()[0]
                     break
-                except self.dialect.dbapi.Error:
+                except self.dialect.dbapi.Error, e:
                     self.cursor.nextset()
             self._lastrowid = int(row[0])
 
         if (self.isinsert or self.isupdate or self.isdelete) and \
             self.compiled.returning:
-            self._result_proxy = engine.FullyBufferedResultProxy(self)
+            self._result_proxy = base.FullyBufferedResultProxy(self)
 
         if self._enable_identity_insert:
             table = self.dialect.identifier_preparer.format_table(

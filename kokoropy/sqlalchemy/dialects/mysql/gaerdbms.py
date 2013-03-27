@@ -3,18 +3,24 @@
 #
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
-"""
-.. dialect:: mysql+gaerdbms
-    :name: Google Cloud SQL
-    :dbapi: rdbms
-    :connectstring: mysql+gaerdbms:///<dbname>?instance=<instancename>
-    :url: https://developers.google.com/appengine/docs/python/cloud-sql/developers-guide
+"""Support for Google Cloud SQL on Google App Engine.
 
-    This dialect is based primarily on the :mod:`.mysql.mysqldb` dialect with minimal
-    changes.
+This dialect is based primarily on the :mod:`.mysql.mysqldb` dialect with minimal
+changes.
 
-    .. versionadded:: 0.7.8
+.. versionadded:: 0.7.8
 
+Connecting
+----------
+
+Connect string format::
+
+    mysql+gaerdbms:///<dbname>
+
+E.g.::
+
+  create_engine('mysql+gaerdbms:///mydb',
+                 connect_args={"instance":"instancename"})
 
 Pooling
 -------
@@ -26,8 +32,8 @@ default.
 
 """
 
-from .mysqldb import MySQLDialect_mysqldb
-from ...pool import NullPool
+from sqlalchemy.dialects.mysql.mysqldb import MySQLDialect_mysqldb
+from sqlalchemy.pool import NullPool
 import re
 
 
@@ -68,7 +74,10 @@ class MySQLDialect_gaerdbms(MySQLDialect_mysqldb):
         match = re.compile(r"^(\d+):").match(str(exception))
         # The rdbms api will wrap then re-raise some types of errors
         # making this regex return no matches.
-        code = match.group(1) if match else None
+        if match:
+            code = match.group(1)
+        else:
+            code = None
         if code:
             return int(code)
 

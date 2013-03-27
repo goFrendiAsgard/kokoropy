@@ -4,26 +4,21 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
-from .. import exc, schema, util, sql
-from ..util import topological
-from . import expression, operators, visitors
+from sqlalchemy import exc, schema, util, sql, types as sqltypes
+from sqlalchemy.util import topological
+from sqlalchemy.sql import expression, operators, visitors
 from itertools import chain
 from collections import deque
 
 """Utility functions that build upon SQL and Schema constructs."""
 
-
-def sort_tables(tables, skip_fn=None):
-    """sort a collection of Table objects in order of
-                their foreign-key dependency."""
+def sort_tables(tables):
+    """sort a collection of Table objects in order of their foreign-key dependency."""
 
     tables = list(tables)
     tuples = []
-
     def visit_foreign_key(fkey):
         if fkey.use_alter:
-            return
-        elif skip_fn and skip_fn(fkey):
             return
         parent_table = fkey.column.table
         if parent_table in tables:
@@ -33,15 +28,14 @@ def sort_tables(tables, skip_fn=None):
 
     for table in tables:
         visitors.traverse(table,
-                            {'schema_visitor': True},
-                            {'foreign_key': visit_foreign_key})
+                            {'schema_visitor':True},
+                            {'foreign_key':visit_foreign_key})
 
         tuples.extend(
             [parent, table] for parent in table._extra_dependencies
         )
 
     return list(topological.sort(tuples, tables))
-
 
 def find_join_source(clauses, join_to):
     """Given a list of FROM clauses and a selectable,
@@ -68,67 +62,6 @@ def find_join_source(clauses, join_to):
     else:
         return None, None
 
-
-def visit_binary_product(fn, expr):
-    """Produce a traversal of the given expression, delivering
-    column comparisons to the given function.
-
-    The function is of the form::
-
-        def my_fn(binary, left, right)
-
-    For each binary expression located which has a
-    comparison operator, the product of "left" and
-    "right" will be delivered to that function,
-    in terms of that binary.
-
-    Hence an expression like::
-
-        and_(
-            (a + b) == q + func.sum(e + f),
-            j == r
-        )
-
-    would have the traversal::
-
-        a <eq> q
-        a <eq> e
-        a <eq> f
-        b <eq> q
-        b <eq> e
-        b <eq> f
-        j <eq> r
-
-    That is, every combination of "left" and
-    "right" that doesn't further contain
-    a binary comparison is passed as pairs.
-
-    """
-    stack = []
-
-    def visit(element):
-        if isinstance(element, (expression.ScalarSelect)):
-            # we dont want to dig into correlated subqueries,
-            # those are just column elements by themselves
-            yield element
-        elif element.__visit_name__ == 'binary' and \
-            operators.is_comparison(element.operator):
-            stack.insert(0, element)
-            for l in visit(element.left):
-                for r in visit(element.right):
-                    fn(stack[0], l, r)
-            stack.pop(0)
-            for elem in element.get_children():
-                visit(elem)
-        else:
-            if isinstance(element, expression.ColumnClause):
-                yield element
-            for elem in element.get_children():
-                for e in visit(elem):
-                    yield e
-    list(visit(expr))
-
-
 def find_tables(clause, check_columns=False,
                 include_aliases=False, include_joins=False,
                 include_selects=False, include_crud=False):
@@ -144,7 +77,7 @@ def find_tables(clause, check_columns=False,
         _visitors['join'] = tables.append
 
     if include_aliases:
-        _visitors['alias'] = tables.append
+        _visitors['alias']  = tables.append
 
     if include_crud:
         _visitors['insert'] = _visitors['update'] = \
@@ -157,17 +90,15 @@ def find_tables(clause, check_columns=False,
 
     _visitors['table'] = tables.append
 
-    visitors.traverse(clause, {'column_collections': False}, _visitors)
+    visitors.traverse(clause, {'column_collections':False}, _visitors)
     return tables
-
 
 def find_columns(clause):
     """locate Column objects within the given expression."""
 
     cols = util.column_set()
-    visitors.traverse(clause, {}, {'column': cols.add})
+    visitors.traverse(clause, {}, {'column':cols.add})
     return cols
-
 
 def unwrap_order_by(clause):
     """Break up an 'order by' expression into individual column-expressions,
@@ -179,7 +110,7 @@ def unwrap_order_by(clause):
         t = stack.popleft()
         if isinstance(t, expression.ColumnElement) and \
             (
-                not isinstance(t, expression.UnaryExpression) or \
+                not isinstance(t, expression._UnaryExpression) or \
                 not operators.is_ordering_modifier(t.modifier)
             ):
             cols.add(t)
@@ -187,7 +118,6 @@ def unwrap_order_by(clause):
             for c in t.get_children():
                 stack.append(c)
     return cols
-
 
 def clause_is_present(clause, search):
     """Given a target clause and a second to search within, return True
@@ -221,13 +151,11 @@ def bind_values(clause):
     """
 
     v = []
-
     def visit_bindparam(bind):
         v.append(bind.effective_value)
 
-    visitors.traverse(clause, {}, {'bindparam': visit_bindparam})
+    visitors.traverse(clause, {}, {'bindparam':visit_bindparam})
     return v
-
 
 def _quote_ddl_expr(element):
     if isinstance(element, basestring):
@@ -235,7 +163,6 @@ def _quote_ddl_expr(element):
         return "'%s'" % element
     else:
         return repr(element)
-
 
 class _repr_params(object):
     """A string view of bound parameters, truncating
@@ -250,10 +177,9 @@ class _repr_params(object):
         if isinstance(self.params, (list, tuple)) and \
             len(self.params) > self.batches and \
             isinstance(self.params[0], (list, dict, tuple)):
-            msg = " ... displaying %i of %i total bound parameter sets ... "
             return ' '.join((
                         repr(self.params[:self.batches - 2])[0:-1],
-                        msg % (self.batches, len(self.params)),
+                        " ... displaying %i of %i total bound parameter sets ... " % (self.batches, len(self.params)),
                         repr(self.params[-2:])[1:]
                     ))
         else:
@@ -270,7 +196,7 @@ def expression_as_ddl(clause):
 
     """
     def repl(element):
-        if isinstance(element, expression.BindParameter):
+        if isinstance(element, expression._BindParamClause):
             return expression.literal_column(_quote_ddl_expr(element.value))
         elif isinstance(element, expression.ColumnClause) and \
                 element.table is not None:
@@ -280,33 +206,26 @@ def expression_as_ddl(clause):
 
     return visitors.replacement_traverse(clause, {}, repl)
 
-
 def adapt_criterion_to_null(crit, nulls):
-    """given criterion containing bind params, convert selected elements
-    to IS NULL.
-
-    """
+    """given criterion containing bind params, convert selected elements to IS NULL."""
 
     def visit_binary(binary):
-        if isinstance(binary.left, expression.BindParameter) \
+        if isinstance(binary.left, expression._BindParamClause) \
             and binary.left._identifying_key in nulls:
             # reverse order if the NULL is on the left side
             binary.left = binary.right
             binary.right = expression.null()
             binary.operator = operators.is_
             binary.negate = operators.isnot
-        elif isinstance(binary.right, expression.BindParameter) \
+        elif isinstance(binary.right, expression._BindParamClause) \
             and binary.right._identifying_key in nulls:
             binary.right = expression.null()
             binary.operator = operators.is_
             binary.negate = operators.isnot
 
-    return visitors.cloned_traverse(crit, {}, {'binary': visit_binary})
+    return visitors.cloned_traverse(crit, {}, {'binary':visit_binary})
 
-
-def join_condition(a, b, ignore_nonexistent_tables=False,
-                            a_subset=None,
-                            consider_as_foreign_keys=None):
+def join_condition(a, b, ignore_nonexistent_tables=False, a_subset=None):
     """create a join condition between two tables or selectables.
 
     e.g.::
@@ -341,10 +260,7 @@ def join_condition(a, b, ignore_nonexistent_tables=False,
             continue
         for fk in sorted(
                     b.foreign_keys,
-                    key=lambda fk: fk.parent._creation_order):
-            if consider_as_foreign_keys is not None and \
-                fk.parent not in consider_as_foreign_keys:
-                continue
+                    key=lambda fk:fk.parent._creation_order):
             try:
                 col = fk.get_referent(left)
             except exc.NoReferenceError, nrte:
@@ -359,10 +275,7 @@ def join_condition(a, b, ignore_nonexistent_tables=False,
         if left is not b:
             for fk in sorted(
                         left.foreign_keys,
-                        key=lambda fk: fk.parent._creation_order):
-                if consider_as_foreign_keys is not None and \
-                    fk.parent not in consider_as_foreign_keys:
-                    continue
+                        key=lambda fk:fk.parent._creation_order):
                 try:
                     col = fk.get_referent(b)
                 except exc.NoReferenceError, nrte:
@@ -380,16 +293,16 @@ def join_condition(a, b, ignore_nonexistent_tables=False,
             break
 
     if len(crit) == 0:
-        if isinstance(b, expression.FromGrouping):
+        if isinstance(b, expression._FromGrouping):
             hint = " Perhaps you meant to convert the right side to a "\
                                 "subquery using alias()?"
         else:
             hint = ""
-        raise exc.NoForeignKeysError(
+        raise exc.ArgumentError(
             "Can't find any foreign key relationships "
             "between '%s' and '%s'.%s" % (a.description, b.description, hint))
     elif len(constraints) > 1:
-        raise exc.AmbiguousForeignKeysError(
+        raise exc.ArgumentError(
             "Can't determine join between '%s' and '%s'; "
             "tables have more than one foreign key "
             "constraint relationship between them. "
@@ -427,7 +340,7 @@ class Annotated(object):
             except KeyError:
                 cls = annotated_classes[element.__class__] = type.__new__(type,
                         "Annotated%s" % element.__class__.__name__,
-                        (cls, element.__class__), {})
+                        (Annotated, element.__class__), {})
             return object.__new__(cls)
 
     def __init__(self, element, values):
@@ -437,30 +350,19 @@ class Annotated(object):
             element.c
 
         self.__dict__ = element.__dict__.copy()
-        expression.ColumnElement.comparator._reset(self)
         self.__element = element
         self._annotations = values
 
     def _annotate(self, values):
         _values = self._annotations.copy()
         _values.update(values)
-        return self._with_annotations(_values)
-
-    def _with_annotations(self, values):
         clone = self.__class__.__new__(self.__class__)
         clone.__dict__ = self.__dict__.copy()
-        expression.ColumnElement.comparator._reset(clone)
-        clone._annotations = values
+        clone._annotations = _values
         return clone
 
-    def _deannotate(self, values=None, clone=True):
-        if values is None:
-            return self.__element
-        else:
-            _values = self._annotations.copy()
-            for v in values:
-                _values.pop(v, None)
-            return self._with_annotations(_values)
+    def _deannotate(self):
+        return self.__element
 
     def _compiler_dispatch(self, visitor, **kw):
         return self.__element.__class__._compiler_dispatch(self, visitor, **kw)
@@ -478,7 +380,7 @@ class Annotated(object):
             # update the clone with any changes that have occurred
             # to this object's __dict__.
             clone.__dict__.update(self.__dict__)
-            return self.__class__(clone, self._annotations)
+            return Annotated(clone, self._annotations)
 
     def __hash__(self):
         return hash(self.__element)
@@ -490,27 +392,6 @@ class Annotated(object):
             return hash(other) == hash(self)
 
 
-class AnnotatedColumnElement(Annotated):
-    def __init__(self, element, values):
-        Annotated.__init__(self, element, values)
-        for attr in ('name', 'key'):
-            if self.__dict__.get(attr, False) is None:
-                self.__dict__.pop(attr)
-
-    @util.memoized_property
-    def name(self):
-        """pull 'name' from parent, if not present"""
-        return self._Annotated__element.name
-
-    @util.memoized_property
-    def key(self):
-        """pull 'key' from parent, if not present"""
-        return self._Annotated__element.key
-
-    @util.memoized_property
-    def info(self):
-        return self._Annotated__element.info
-
 # hard-generate Annotated subclasses.  this technique
 # is used instead of on-the-fly types (i.e. type.__new__())
 # so that the resulting objects are pickleable.
@@ -518,14 +399,9 @@ annotated_classes = {}
 
 for cls in expression.__dict__.values() + [schema.Column, schema.Table]:
     if isinstance(cls, type) and issubclass(cls, expression.ClauseElement):
-        if issubclass(cls, expression.ColumnElement):
-            annotation_cls = "AnnotatedColumnElement"
-        else:
-            annotation_cls = "Annotated"
-        exec "class Annotated%s(%s, cls):\n" \
-             "    pass" % (cls.__name__, annotation_cls) in locals()
-        exec "annotated_classes[cls] = Annotated%s" % (cls.__name__,)
-
+        exec "class Annotated%s(Annotated, cls):\n" \
+             "    pass" % (cls.__name__, ) in locals()
+        exec "annotated_classes[cls] = Annotated%s" % (cls.__name__)
 
 def _deep_annotate(element, annotations, exclude=None):
     """Deep copy the given ClauseElement, annotating each element
@@ -534,8 +410,14 @@ def _deep_annotate(element, annotations, exclude=None):
     Elements within the exclude collection will be cloned but not annotated.
 
     """
+    cloned = util.column_dict()
+
     def clone(elem):
-        if exclude and \
+        # check if element is present in the exclude list.
+        # take into account proxying relationships.
+        if elem in cloned:
+            return cloned[elem]
+        elif exclude and \
                     hasattr(elem, 'proxy_set') and \
                     elem.proxy_set.intersection(exclude):
             newelem = elem._clone()
@@ -544,38 +426,28 @@ def _deep_annotate(element, annotations, exclude=None):
         else:
             newelem = elem
         newelem._copy_internals(clone=clone)
+        cloned[elem] = newelem
         return newelem
 
     if element is not None:
         element = clone(element)
     return element
 
-
-def _deep_deannotate(element, values=None):
-    """Deep copy the given element, removing annotations."""
+def _deep_deannotate(element):
+    """Deep copy the given element, removing all annotations."""
 
     cloned = util.column_dict()
 
     def clone(elem):
-        # if a values dict is given,
-        # the elem must be cloned each time it appears,
-        # as there may be different annotations in source
-        # elements that are remaining.  if totally
-        # removing all annotations, can assume the same
-        # slate...
-        if values or elem not in cloned:
-            newelem = elem._deannotate(values=values, clone=True)
+        if elem not in cloned:
+            newelem = elem._deannotate()
             newelem._copy_internals(clone=clone)
-            if not values:
-                cloned[elem] = newelem
-            return newelem
-        else:
-            return cloned[elem]
+            cloned[elem] = newelem
+        return cloned[elem]
 
     if element is not None:
         element = clone(element)
     return element
-
 
 def _shallow_annotate(element, annotations):
     """Annotate the given ClauseElement and copy its internals so that
@@ -588,7 +460,6 @@ def _shallow_annotate(element, annotations):
     element = element._annotate(annotations)
     element._copy_internals()
     return element
-
 
 def splice_joins(left, right, stop_on=None):
     if left is None:
@@ -614,21 +485,18 @@ def splice_joins(left, right, stop_on=None):
 
     return ret
 
-
 def reduce_columns(columns, *clauses, **kw):
-    """given a list of columns, return a 'reduced' set based on natural
-    equivalents.
+    """given a list of columns, return a 'reduced' set based on natural equivalents.
 
     the set is reduced to the smallest list of columns which have no natural
-    equivalent present in the list.  A "natural equivalent" means that two
-    columns will ultimately represent the same value because they are related
-    by a foreign key.
+    equivalent present in the list.  A "natural equivalent" means that two columns
+    will ultimately represent the same value because they are related by a foreign key.
 
     \*clauses is an optional list of join clauses which will be traversed
     to further identify columns that are "equivalent".
 
     \**kw may specify 'ignore_nonexistent_tables' to ignore foreign keys
-    whose tables are not yet configured, or columns that aren't yet present.
+    whose tables are not yet configured.
 
     This function is primarily used to determine the most minimal "primary key"
     from a selectable, by reducing the set of primary key columns present
@@ -636,7 +504,6 @@ def reduce_columns(columns, *clauses, **kw):
 
     """
     ignore_nonexistent_tables = kw.pop('ignore_nonexistent_tables', False)
-    only_synonyms = kw.pop('only_synonyms', False)
 
     columns = util.ordered_column_set(columns)
 
@@ -648,44 +515,28 @@ def reduce_columns(columns, *clauses, **kw):
                     continue
                 try:
                     fk_col = fk.column
-                except exc.NoReferencedColumnError:
-                    # TODO: add specific coverage here
-                    # to test/sql/test_selectable ReduceTest
-                    if ignore_nonexistent_tables:
-                        continue
-                    else:
-                        raise
                 except exc.NoReferencedTableError:
-                    # TODO: add specific coverage here
-                    # to test/sql/test_selectable ReduceTest
                     if ignore_nonexistent_tables:
                         continue
                     else:
                         raise
-                if fk_col.shares_lineage(c) and \
-                    (not only_synonyms or \
-                    c.name == col.name):
+                if fk_col.shares_lineage(c):
                     omit.add(col)
                     break
 
     if clauses:
         def visit_binary(binary):
             if binary.operator == operators.eq:
-                cols = util.column_set(chain(*[c.proxy_set
-                            for c in columns.difference(omit)]))
+                cols = util.column_set(chain(*[c.proxy_set for c in columns.difference(omit)]))
                 if binary.left in cols and binary.right in cols:
-                    for c in reversed(columns):
-                        if c.shares_lineage(binary.right) and \
-                            (not only_synonyms or \
-                            c.name == binary.left.name):
+                    for c in columns:
+                        if c.shares_lineage(binary.right):
                             omit.add(c)
                             break
         for clause in clauses:
-            if clause is not None:
-                visitors.traverse(clause, {}, {'binary': visit_binary})
+            visitors.traverse(clause, {}, {'binary':visit_binary})
 
     return expression.ColumnSet(columns.difference(omit))
-
 
 def criterion_as_pairs(expression, consider_as_foreign_keys=None,
                         consider_as_referenced_keys=None, any_operator=False):
@@ -696,10 +547,6 @@ def criterion_as_pairs(expression, consider_as_foreign_keys=None,
                                 "'consider_as_foreign_keys' or "
                                 "'consider_as_referenced_keys'")
 
-    def col_is(a, b):
-        #return a is b
-        return a.compare(b)
-
     def visit_binary(binary):
         if not any_operator and binary.operator is not operators.eq:
             return
@@ -709,20 +556,20 @@ def criterion_as_pairs(expression, consider_as_foreign_keys=None,
 
         if consider_as_foreign_keys:
             if binary.left in consider_as_foreign_keys and \
-                        (col_is(binary.right, binary.left) or
+                        (binary.right is binary.left or
                         binary.right not in consider_as_foreign_keys):
                 pairs.append((binary.right, binary.left))
             elif binary.right in consider_as_foreign_keys and \
-                        (col_is(binary.left, binary.right) or
+                        (binary.left is binary.right or
                         binary.left not in consider_as_foreign_keys):
                 pairs.append((binary.left, binary.right))
         elif consider_as_referenced_keys:
             if binary.left in consider_as_referenced_keys and \
-                        (col_is(binary.right, binary.left) or
+                        (binary.right is binary.left or
                         binary.right not in consider_as_referenced_keys):
                 pairs.append((binary.left, binary.right))
             elif binary.right in consider_as_referenced_keys and \
-                        (col_is(binary.left, binary.right) or
+                        (binary.left is binary.right or
                         binary.left not in consider_as_referenced_keys):
                 pairs.append((binary.right, binary.left))
         else:
@@ -733,9 +580,51 @@ def criterion_as_pairs(expression, consider_as_foreign_keys=None,
                 elif binary.right.references(binary.left):
                     pairs.append((binary.left, binary.right))
     pairs = []
-    visitors.traverse(expression, {}, {'binary': visit_binary})
+    visitors.traverse(expression, {}, {'binary':visit_binary})
     return pairs
 
+def folded_equivalents(join, equivs=None):
+    """Return a list of uniquely named columns.
+
+    The column list of the given Join will be narrowed
+    down to a list of all equivalently-named,
+    equated columns folded into one column, where 'equated' means they are
+    equated to each other in the ON clause of this join.
+
+    This function is used by Join.select(fold_equivalents=True).
+
+    Deprecated.   This function is used for a certain kind of
+    "polymorphic_union" which is designed to achieve joined
+    table inheritance where the base table has no "discriminator"
+    column; [ticket:1131] will provide a better way to
+    achieve this.
+
+    """
+    if equivs is None:
+        equivs = set()
+    def visit_binary(binary):
+        if binary.operator == operators.eq and binary.left.name == binary.right.name:
+            equivs.add(binary.right)
+            equivs.add(binary.left)
+    visitors.traverse(join.onclause, {}, {'binary':visit_binary})
+    collist = []
+    if isinstance(join.left, expression.Join):
+        left = folded_equivalents(join.left, equivs)
+    else:
+        left = list(join.left.columns)
+    if isinstance(join.right, expression.Join):
+        right = folded_equivalents(join.right, equivs)
+    else:
+        right = list(join.right.columns)
+    used = set()
+    for c in left + right:
+        if c in equivs:
+            if c.name not in used:
+                collist.append(c)
+                used.add(c.name)
+        else:
+            collist.append(c)
+    return collist
 
 class AliasedRow(object):
     """Wrap a RowProxy with a translation map.
@@ -792,27 +681,15 @@ class ClauseAdapter(visitors.ReplacingCloningVisitor):
       s.c.col1 == table2.c.col1
 
     """
-    def __init__(self, selectable, equivalents=None,
-                        include=None, exclude=None,
-                        include_fn=None, exclude_fn=None,
-                        adapt_on_names=False):
-        self.__traverse_options__ = {'stop_on': [selectable]}
+    def __init__(self, selectable, equivalents=None, include=None, exclude=None, adapt_on_names=False):
+        self.__traverse_options__ = {'stop_on':[selectable]}
         self.selectable = selectable
-        if include:
-            assert not include_fn
-            self.include_fn = lambda e: e in include
-        else:
-            self.include_fn = include_fn
-        if exclude:
-            assert not exclude_fn
-            self.exclude_fn = lambda e: e in exclude
-        else:
-            self.exclude_fn = exclude_fn
+        self.include = include
+        self.exclude = exclude
         self.equivalents = util.column_dict(equivalents or {})
         self.adapt_on_names = adapt_on_names
 
-    def _corresponding_column(self, col, require_embedded,
-                              _seen=util.EMPTY_SET):
+    def _corresponding_column(self, col, require_embedded, _seen=util.EMPTY_SET):
         newcol = self.selectable.corresponding_column(
                                     col,
                                     require_embedded=require_embedded)
@@ -828,18 +705,19 @@ class ClauseAdapter(visitors.ReplacingCloningVisitor):
         return newcol
 
     def replace(self, col):
-        if isinstance(col, expression.FromClause) and \
-            self.selectable.is_derived_from(col):
+        if isinstance(col, expression.FromClause):
+            if self.selectable.is_derived_from(col):
                 return self.selectable
-        elif not isinstance(col, expression.ColumnElement):
-            return None
-        elif self.include_fn and not self.include_fn(col):
-            return None
-        elif self.exclude_fn and self.exclude_fn(col):
-            return None
-        else:
-            return self._corresponding_column(col, True)
 
+        if not isinstance(col, expression.ColumnElement):
+            return None
+
+        if self.include and col not in self.include:
+            return None
+        elif self.exclude and col in self.exclude:
+            return None
+
+        return self._corresponding_column(col, True)
 
 class ColumnAdapter(ClauseAdapter):
     """Extends ClauseAdapter with extra utility functions.
@@ -883,7 +761,7 @@ class ColumnAdapter(ClauseAdapter):
             c = self.adapt_clause(col)
 
             # anonymize labels in case they have a hardcoded name
-            if isinstance(c, expression.Label):
+            if isinstance(c, expression._Label):
                 c = c.label(None)
 
         # adapt_required indicates that if we got the same column

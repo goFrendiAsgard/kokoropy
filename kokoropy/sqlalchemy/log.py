@@ -1,5 +1,5 @@
 # sqlalchemy/log.py
-# Copyright (C) 2006-2013 the SQLAlchemy authors and contributors <see AUTHORS file>
+# Copyright (C) 2006-2011 the SQLAlchemy authors and contributors <see AUTHORS file>
 # Includes alterations by Vinay Sajip vinay_sajip@yahoo.co.uk
 #
 # This module is part of SQLAlchemy and is released under
@@ -19,6 +19,7 @@ instance only.
 
 import logging
 import sys
+from sqlalchemy import util
 
 # set initial level to WARN.  This so that
 # log statements don't occur in the absense of explicit
@@ -27,17 +28,13 @@ rootlogger = logging.getLogger('sqlalchemy')
 if rootlogger.level == logging.NOTSET:
     rootlogger.setLevel(logging.WARN)
 
-
 def _add_default_handler(logger):
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(logging.Formatter(
         '%(asctime)s %(levelname)s %(name)s %(message)s'))
     logger.addHandler(handler)
 
-
 _logged_classes = set()
-
-
 def class_logger(cls, enable=False):
     logger = logging.getLogger(cls.__module__ + "." + cls.__name__)
     if enable == 'debug':
@@ -58,7 +55,6 @@ class Identified(object):
 
     def _should_log_info(self):
         return self.logger.isEnabledFor(logging.INFO)
-
 
 class InstanceLogger(object):
     """A logger adapter (wrapper) for :class:`.Identified` subclasses.
@@ -171,7 +167,6 @@ class InstanceLogger(object):
             level = self.logger.getEffectiveLevel()
         return level
 
-
 def instance_logger(instance, echoflag=None):
     """create a logger for an instance that implements :class:`.Identified`."""
 
@@ -195,7 +190,6 @@ def instance_logger(instance, echoflag=None):
         logger = InstanceLogger(echoflag, name)
 
     instance.logger = logger
-
 
 class echo_property(object):
     __doc__ = """\

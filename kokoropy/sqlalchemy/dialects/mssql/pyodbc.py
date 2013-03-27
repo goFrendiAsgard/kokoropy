@@ -5,14 +5,14 @@
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
 """
-.. dialect:: mssql+pyodbc
-    :name: PyODBC
-    :dbapi: pyodbc
-    :connectstring: mssql+pyodbc://<username>:<password>@<dsnname>
-    :url: http://pypi.python.org/pypi/pyodbc/
+Support for MS-SQL via pyodbc.
 
-Additional Connection Examples
--------------------------------
+pyodbc is available at:
+
+    http://pypi.python.org/pypi/pyodbc/
+
+Connecting
+^^^^^^^^^^
 
 Examples of pyodbc connection string URLs:
 
@@ -81,7 +81,7 @@ the python shell. For example::
     'dsn%3Dmydsn%3BDatabase%3Ddb'
 
 Unicode Binds
--------------
+^^^^^^^^^^^^^
 
 The current state of PyODBC on a unix backend with FreeTDS and/or
 EasySoft is poor regarding unicode; different OS platforms and versions of UnixODBC
@@ -111,17 +111,17 @@ for unix + PyODBC.
 
 """
 
-from .base import MSExecutionContext, MSDialect
-from ...connectors.pyodbc import PyODBCConnector
-from ... import types as sqltypes, util
+from sqlalchemy.dialects.mssql.base import MSExecutionContext, MSDialect
+from sqlalchemy.connectors.pyodbc import PyODBCConnector
+from sqlalchemy import types as sqltypes, util
 import decimal
-
 
 class _MSNumeric_pyodbc(sqltypes.Numeric):
     """Turns Decimals with adjusted() < 0 or > 7 into strings.
 
-    The routines here are needed for older pyodbc versions
-    as well as current mxODBC versions.
+    This is the only method that is proven to work with Pyodbc+MSSQL
+    without crashing (floats can be used but seem to cause sporadic
+    crashes).
 
     """
 
@@ -164,7 +164,7 @@ class _MSNumeric_pyodbc(sqltypes.Numeric):
             result = "%s%s%s" % (
                     (value < 0 and '-' or ''),
                     "".join([str(s) for s in _int]),
-                    "0" * (value.adjusted() - (len(_int) - 1)))
+                    "0" * (value.adjusted() - (len(_int)-1)))
         else:
             if (len(_int) - 1) > value.adjusted():
                 result = "%s%s.%s" % (
@@ -238,11 +238,11 @@ class MSDialect_pyodbc(PyODBCConnector, MSDialect):
     colspecs = util.update_copy(
         MSDialect.colspecs,
         {
-            sqltypes.Numeric: _MSNumeric_pyodbc
+            sqltypes.Numeric:_MSNumeric_pyodbc
         }
     )
 
-    def __init__(self, description_encoding=None, **params):
+    def __init__(self, description_encoding='latin-1', **params):
         super(MSDialect_pyodbc, self).__init__(**params)
         self.description_encoding = description_encoding
         self.use_scope_identity = self.use_scope_identity and \

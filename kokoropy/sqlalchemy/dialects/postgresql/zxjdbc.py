@@ -4,18 +4,16 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
+"""Support for the PostgreSQL database via the zxjdbc JDBC connector.
+
+JDBC Driver
+-----------
+
+The official Postgresql JDBC driver is at http://jdbc.postgresql.org/.
+
 """
-.. dialect:: postgresql+zxjdbc
-    :name: zxJDBC for Jython
-    :dbapi: zxjdbc
-    :connectstring: postgresql+zxjdbc://scott:tiger@localhost/db
-    :driverurl: http://jdbc.postgresql.org/
-
-
-"""
-from ...connectors.zxJDBC import ZxJDBCConnector
-from .base import PGDialect, PGExecutionContext
-
+from sqlalchemy.connectors.zxJDBC import ZxJDBCConnector
+from sqlalchemy.dialects.postgresql.base import PGDialect, PGExecutionContext
 
 class PGExecutionContext_zxjdbc(PGExecutionContext):
 
@@ -39,7 +37,6 @@ class PGDialect_zxjdbc(ZxJDBCConnector, PGDialect):
         self.DataHandler = PostgresqlDataHandler
 
     def _get_server_version_info(self, connection):
-        parts = connection.connection.dbversion.split('.')
-        return tuple(int(x) for x in parts)
+        return tuple(int(x) for x in connection.connection.dbversion.split('.'))
 
 dialect = PGDialect_zxjdbc

@@ -1,4 +1,4 @@
-# ext/declarative/__init__.py
+# ext/declarative.py
 # Copyright (C) 2005-2013 the SQLAlchemy authors and contributors <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
@@ -30,7 +30,8 @@ As a simple example::
 
 Above, the :func:`declarative_base` callable returns a new base class from
 which all mapped classes should inherit. When the class definition is
-completed, a new :class:`.Table` and :func:`.mapper` will have been generated.
+completed, a new :class:`.Table` and
+:func:`.mapper` will have been generated.
 
 The resulting table and mapper are accessible via
 ``__table__`` and ``__mapper__`` attributes on the
@@ -51,8 +52,7 @@ assigned.
 
 To name columns explicitly with a name distinct from their mapped attribute,
 just give the column a name.  Below, column "some_table_id" is mapped to the
-"id" attribute of `SomeClass`, but in SQL will be represented as
-"some_table_id"::
+"id" attribute of `SomeClass`, but in SQL will be represented as "some_table_id"::
 
     class SomeClass(Base):
         __tablename__ = 'some_table'
@@ -60,13 +60,13 @@ just give the column a name.  Below, column "some_table_id" is mapped to the
 
 Attributes may be added to the class after its construction, and they will be
 added to the underlying :class:`.Table` and
-:func:`.mapper` definitions as appropriate::
+:func:`.mapper()` definitions as appropriate::
 
     SomeClass.data = Column('data', Unicode)
     SomeClass.related = relationship(RelatedInfo)
 
 Classes which are constructed using declarative can interact freely
-with classes that are mapped explicitly with :func:`.mapper`.
+with classes that are mapped explicitly with :func:`mapper`.
 
 It is recommended, though not required, that all tables
 share the same underlying :class:`~sqlalchemy.schema.MetaData` object,
@@ -146,51 +146,12 @@ expression functions like :func:`~sqlalchemy.sql.expression.desc` and
                              order_by="desc(Address.email)",
                              primaryjoin="Address.user_id==User.id")
 
-For the case where more than one module contains a class of the same name,
-string class names can also be specified as module-qualified paths
-within any of these string expressions::
-
-    class User(Base):
-        # ....
-        addresses = relationship("myapp.model.address.Address",
-                             order_by="desc(myapp.model.address.Address.email)",
-                             primaryjoin="myapp.model.address.Address.user_id=="
-                                            "myapp.model.user.User.id")
-
-The qualified path can be any partial path that removes ambiguity between
-the names.  For example, to disambiguate between
-``myapp.model.address.Address`` and ``myapp.model.lookup.Address``,
-we can specify ``address.Address`` or ``lookup.Address``::
-
-    class User(Base):
-        # ....
-        addresses = relationship("address.Address",
-                             order_by="desc(address.Address.email)",
-                             primaryjoin="address.Address.user_id=="
-                                            "User.id")
-
-.. versionadded:: 0.8
-   module-qualified paths can be used when specifying string arguments
-   with Declarative, in order to specify specific modules.
-
-Two alternatives also exist to using string-based attributes.  A lambda
-can also be used, which will be evaluated after all mappers have been
-configured::
-
-    class User(Base):
-        # ...
-        addresses = relationship(lambda: Address,
-                             order_by=lambda: desc(Address.email),
-                             primaryjoin=lambda: Address.user_id==User.id)
-
-Or, the relationship can be added to the class explicitly after the classes
-are available::
+As an alternative to string-based attributes, attributes may also be
+defined after all classes have been created.  Just add them to the target
+class after the fact::
 
     User.addresses = relationship(Address,
                               primaryjoin=Address.user_id==User.id)
-
-
-
 
 Configuring Many-to-Many Relationships
 ======================================
@@ -214,9 +175,9 @@ the :class:`.MetaData` object used by the declarative base::
         id = Column(Integer, primary_key=True)
         keywords = relationship("Keyword", secondary=keywords)
 
-Like other :func:`~sqlalchemy.orm.relationship` arguments, a string is accepted
-as well, passing the string name of the table as defined in the
-``Base.metadata.tables`` collection::
+Like other :func:`.relationship` arguments, a string is accepted as well,
+passing the string name of the table as defined in the ``Base.metadata.tables``
+collection::
 
     class Author(Base):
         __tablename__ = 'authors'
@@ -225,7 +186,7 @@ as well, passing the string name of the table as defined in the
 
 As with traditional mapping, its generally not a good idea to use
 a :class:`.Table` as the "secondary" argument which is also mapped to
-a class, unless the :func:`.relationship` is declared with ``viewonly=True``.
+a class, unless the :class:`.relationship` is declared with ``viewonly=True``.
 Otherwise, the unit-of-work system may attempt duplicate INSERT and
 DELETE statements against the underlying table.
 
@@ -313,8 +274,7 @@ such as those which already take advantage of the data-driven nature of
 Note that when the ``__table__`` approach is used, the object is immediately
 usable as a plain :class:`.Table` within the class declaration body itself,
 as a Python class is only another syntactical block.  Below this is illustrated
-by using the ``id`` column in the ``primaryjoin`` condition of a
-:func:`.relationship`::
+by using the ``id`` column in the ``primaryjoin`` condition of a :func:`.relationship`::
 
     class MyClass(Base):
         __table__ = Table('my_table', Base.metadata,
@@ -326,8 +286,8 @@ by using the ``id`` column in the ``primaryjoin`` condition of a
                     primaryjoin=Widget.myclass_id==__table__.c.id)
 
 Similarly, mapped attributes which refer to ``__table__`` can be placed inline,
-as below where we assign the ``name`` column to the attribute ``_name``,
-generating a synonym for ``name``::
+as below where we assign the ``name`` column to the attribute ``_name``, generating
+a synonym for ``name``::
 
     from sqlalchemy.ext.declarative import synonym_for
 
@@ -355,13 +315,12 @@ in conjunction with a mapped class::
 
 However, one improvement that can be made here is to not
 require the :class:`.Engine` to be available when classes are
-being first declared.   To achieve this, use the
-:class:`.DeferredReflection` mixin, which sets up mappings
-only after a special ``prepare(engine)`` step is called::
+being first declared.   To achieve this, use the example
+described at :ref:`examples_declarative_reflection` to build a
+declarative base that sets up mappings only after a special
+``prepare(engine)`` step is called::
 
-    from sqlalchemy.ext.declarative import declarative_base, DeferredReflection
-
-    Base = declarative_base(cls=DeferredReflection)
+    Base = declarative_base(cls=DeclarativeReflectedBase)
 
     class Foo(Base):
         __tablename__ = 'foo'
@@ -377,17 +336,15 @@ only after a special ``prepare(engine)`` step is called::
 
     Base.prepare(e)
 
-.. versionadded:: 0.8
-   Added :class:`.DeferredReflection`.
 
 Mapper Configuration
 ====================
 
 Declarative makes use of the :func:`~.orm.mapper` function internally
 when it creates the mapping to the declared table.   The options
-for :func:`~.orm.mapper` are passed directly through via the
-``__mapper_args__`` class attribute.  As always, arguments which reference
-locally mapped columns can reference them directly from within the
+for :func:`~.orm.mapper` are passed directly through via the ``__mapper_args__``
+class attribute.  As always, arguments which reference locally
+mapped columns can reference them directly from within the
 class declaration::
 
     from datetime import datetime
@@ -450,8 +407,6 @@ only the ``engineers.id`` column, give it a different attribute name::
    column over that of the superclass, such as querying above
    for ``Engineer.id``.  Prior to 0.7 this was the reverse.
 
-.. _declarative_single_table:
-
 Single Table Inheritance
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -489,115 +444,6 @@ The attribute exclusion logic is provided by the
 ``exclude_properties`` mapper argument, and declarative's default
 behavior can be disabled by passing an explicit ``exclude_properties``
 collection (empty or otherwise) to the ``__mapper_args__``.
-
-Resolving Column Conflicts
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Note above that the ``primary_language`` and ``golf_swing`` columns
-are "moved up" to be applied to ``Person.__table__``, as a result of their
-declaration on a subclass that has no table of its own.   A tricky case
-comes up when two subclasses want to specify *the same* column, as below::
-
-    class Person(Base):
-        __tablename__ = 'people'
-        id = Column(Integer, primary_key=True)
-        discriminator = Column('type', String(50))
-        __mapper_args__ = {'polymorphic_on': discriminator}
-
-    class Engineer(Person):
-        __mapper_args__ = {'polymorphic_identity': 'engineer'}
-        start_date = Column(DateTime)
-
-    class Manager(Person):
-        __mapper_args__ = {'polymorphic_identity': 'manager'}
-        start_date = Column(DateTime)
-
-Above, the ``start_date`` column declared on both ``Engineer`` and ``Manager``
-will result in an error::
-
-    sqlalchemy.exc.ArgumentError: Column 'start_date' on class
-    <class '__main__.Manager'> conflicts with existing
-    column 'people.start_date'
-
-In a situation like this, Declarative can't be sure
-of the intent, especially if the ``start_date`` columns had, for example,
-different types.   A situation like this can be resolved by using
-:class:`.declared_attr` to define the :class:`.Column` conditionally, taking
-care to return the **existing column** via the parent ``__table__`` if it
-already exists::
-
-    from sqlalchemy.ext.declarative import declared_attr
-
-    class Person(Base):
-        __tablename__ = 'people'
-        id = Column(Integer, primary_key=True)
-        discriminator = Column('type', String(50))
-        __mapper_args__ = {'polymorphic_on': discriminator}
-
-    class Engineer(Person):
-        __mapper_args__ = {'polymorphic_identity': 'engineer'}
-
-        @declared_attr
-        def start_date(cls):
-            "Start date column, if not present already."
-            return Person.__table__.c.get('start_date', Column(DateTime))
-
-    class Manager(Person):
-        __mapper_args__ = {'polymorphic_identity': 'manager'}
-
-        @declared_attr
-        def start_date(cls):
-            "Start date column, if not present already."
-            return Person.__table__.c.get('start_date', Column(DateTime))
-
-Above, when ``Manager`` is mapped, the ``start_date`` column is
-already present on the ``Person`` class.  Declarative lets us return
-that :class:`.Column` as a result in this case, where it knows to skip
-re-assigning the same column. If the mapping is mis-configured such
-that the ``start_date`` column is accidentally re-assigned to a
-different table (such as, if we changed ``Manager`` to be joined
-inheritance without fixing ``start_date``), an error is raised which
-indicates an existing :class:`.Column` is trying to be re-assigned to
-a different owning :class:`.Table`.
-
-.. versionadded:: 0.8 :class:`.declared_attr` can be used on a non-mixin
-   class, and the returned :class:`.Column` or other mapped attribute
-   will be applied to the mapping as any other attribute.  Previously,
-   the resulting attribute would be ignored, and also result in a warning
-   being emitted when a subclass was created.
-
-.. versionadded:: 0.8 :class:`.declared_attr`, when used either with a
-   mixin or non-mixin declarative class, can return an existing
-   :class:`.Column` already assigned to the parent :class:`.Table`,
-   to indicate that the re-assignment of the :class:`.Column` should be
-   skipped, however should still be mapped on the target class,
-   in order to resolve duplicate column conflicts.
-
-The same concept can be used with mixin classes (see
-:ref:`declarative_mixins`)::
-
-    class Person(Base):
-        __tablename__ = 'people'
-        id = Column(Integer, primary_key=True)
-        discriminator = Column('type', String(50))
-        __mapper_args__ = {'polymorphic_on': discriminator}
-
-    class HasStartDate(object):
-        @declared_attr
-        def start_date(cls):
-            return cls.__table__.c.get('start_date', Column(DateTime))
-
-    class Engineer(HasStartDate, Person):
-        __mapper_args__ = {'polymorphic_identity': 'engineer'}
-
-    class Manager(HasStartDate, Person):
-        __mapper_args__ = {'polymorphic_identity': 'manager'}
-
-The above mixin checks the local ``__table__`` attribute for the column.
-Because we're using single table inheritance, we're sure that in this case,
-``cls.__table__`` refers to ``People.__table__``.  If we were mixing joined-
-and single-table inheritance, we might want our mixin to check more carefully
-if ``cls.__table__`` is really the :class:`.Table` we're looking for.
 
 Concrete Table Inheritance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -656,13 +502,12 @@ Using the Concrete Helpers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Helper classes provides a simpler pattern for concrete inheritance.
-With these objects, the ``__declare_last__`` helper is used to configure the
-"polymorphic" loader for the mapper after all subclasses have been declared.
+With these objects, the ``__declare_last__`` helper is used to configure the "polymorphic"
+loader for the mapper after all subclasses have been declared.
 
 .. versionadded:: 0.7.3
 
-An abstract base can be declared using the
-:class:`.AbstractConcreteBase` class::
+An abstract base can be declared using the :class:`.AbstractConcreteBase` class::
 
     from sqlalchemy.ext.declarative import AbstractConcreteBase
 
@@ -760,8 +605,8 @@ Augmenting the Base
 
 In addition to using a pure mixin, most of the techniques in this
 section can also be applied to the base class itself, for patterns that
-should apply to all classes derived from a particular base.  This is achieved
-using the ``cls`` argument of the :func:`.declarative_base` function::
+should apply to all classes derived from a particular base.  This
+is achieved using the ``cls`` argument of the :func:`.declarative_base` function::
 
     from sqlalchemy.ext.declarative import declared_attr
 
@@ -781,9 +626,9 @@ using the ``cls`` argument of the :func:`.declarative_base` function::
     class MyModel(Base):
         name = Column(String(1000))
 
-Where above, ``MyModel`` and all other classes that derive from ``Base`` will
-have a table name derived from the class name, an ``id`` primary key column,
-as well as the "InnoDB" engine for MySQL.
+Where above, ``MyModel`` and all other classes that derive from ``Base`` will have
+a table name derived from the class name, an ``id`` primary key column, as well as
+the "InnoDB" engine for MySQL.
 
 Mixing in Columns
 ~~~~~~~~~~~~~~~~~
@@ -823,7 +668,7 @@ keys, as a :class:`.ForeignKey` itself contains references to columns
 which can't be properly recreated at this level.  For columns that
 have foreign keys, as well as for the variety of mapper-level constructs
 that require destination-explicit context, the
-:class:`~.declared_attr` decorator is provided so that
+:func:`~.declared_attr` decorator is provided so that
 patterns common to many classes can be defined as callables::
 
     from sqlalchemy.ext.declarative import declared_attr
@@ -843,10 +688,9 @@ extension can use the resulting :class:`.Column` object as returned by
 the method without the need to copy it.
 
 .. versionchanged:: > 0.6.5
-    Rename 0.6.5 ``sqlalchemy.util.classproperty``
-    into :class:`~.declared_attr`.
+    Rename 0.6.5 ``sqlalchemy.util.classproperty`` into :func:`~.declared_attr`.
 
-Columns generated by :class:`~.declared_attr` can also be
+Columns generated by :func:`~.declared_attr` can also be
 referenced by ``__mapper_args__`` to a limited degree, currently
 by ``polymorphic_on`` and ``version_id_col``, by specifying the
 classdecorator itself into the dictionary - the declarative extension
@@ -862,8 +706,6 @@ will resolve them at class construction time::
     class MyModel(MyMixin, Base):
         __tablename__='test'
         id =  Column(Integer, primary_key=True)
-
-
 
 Mixing in Relationships
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -914,8 +756,8 @@ to get its name::
                 primaryjoin="Target.id==%s.target_id" % cls.__name__
             )
 
-Mixing in deferred(), column_property(), and other MapperProperty classes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mixing in deferred(), column_property(), etc.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Like :func:`~sqlalchemy.orm.relationship`, all
 :class:`~sqlalchemy.orm.interfaces.MapperProperty` subclasses such as
@@ -932,85 +774,6 @@ requirement so that no reliance on copying is needed::
 
     class Something(SomethingMixin, Base):
         __tablename__ = "something"
-
-Mixing in Association Proxy and Other Attributes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Mixins can specify user-defined attributes as well as other extension
-units such as :func:`.association_proxy`.   The usage of
-:class:`.declared_attr` is required in those cases where the attribute must
-be tailored specifically to the target subclass.   An example is when
-constructing multiple :func:`.association_proxy` attributes which each
-target a different type of child object.  Below is an
-:func:`.association_proxy` / mixin example which provides a scalar list of
-string values to an implementing class::
-
-    from sqlalchemy import Column, Integer, ForeignKey, String
-    from sqlalchemy.orm import relationship
-    from sqlalchemy.ext.associationproxy import association_proxy
-    from sqlalchemy.ext.declarative import declarative_base, declared_attr
-
-    Base = declarative_base()
-
-    class HasStringCollection(object):
-        @declared_attr
-        def _strings(cls):
-            class StringAttribute(Base):
-                __tablename__ = cls.string_table_name
-                id = Column(Integer, primary_key=True)
-                value = Column(String(50), nullable=False)
-                parent_id = Column(Integer,
-                                ForeignKey('%s.id' % cls.__tablename__),
-                                nullable=False)
-                def __init__(self, value):
-                    self.value = value
-
-            return relationship(StringAttribute)
-
-        @declared_attr
-        def strings(cls):
-            return association_proxy('_strings', 'value')
-
-    class TypeA(HasStringCollection, Base):
-        __tablename__ = 'type_a'
-        string_table_name = 'type_a_strings'
-        id = Column(Integer(), primary_key=True)
-
-    class TypeB(HasStringCollection, Base):
-        __tablename__ = 'type_b'
-        string_table_name = 'type_b_strings'
-        id = Column(Integer(), primary_key=True)
-
-Above, the ``HasStringCollection`` mixin produces a :func:`.relationship`
-which refers to a newly generated class called ``StringAttribute``.  The
-``StringAttribute`` class is generated with it's own :class:`.Table`
-definition which is local to the parent class making usage of the
-``HasStringCollection`` mixin.  It also produces an :func:`.association_proxy`
-object which proxies references to the ``strings`` attribute onto the ``value``
-attribute of each ``StringAttribute`` instance.
-
-``TypeA`` or ``TypeB`` can be instantiated given the constructor
-argument ``strings``, a list of strings::
-
-    ta = TypeA(strings=['foo', 'bar'])
-    tb = TypeA(strings=['bat', 'bar'])
-
-This list will generate a collection
-of ``StringAttribute`` objects, which are persisted into a table that's
-local to either the ``type_a_strings`` or ``type_b_strings`` table::
-
-    >>> print ta._strings
-    [<__main__.StringAttribute object at 0x10151cd90>,
-        <__main__.StringAttribute object at 0x10151ce10>]
-
-When constructing the :func:`.association_proxy`, the
-:class:`.declared_attr` decorator must be used so that a distinct
-:func:`.association_proxy` object is created for each of the ``TypeA``
-and ``TypeB`` classes.
-
-.. versionadded:: 0.8 :class:`.declared_attr` is usable with non-mapped
-   attributes, including user-defined attributes as well as
-   :func:`.association_proxy`.
 
 
 Controlling table inheritance with mixins
@@ -1143,8 +906,8 @@ Creating Indexes with Mixins
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To define a named, potentially multicolumn :class:`.Index` that applies to all
-tables derived from a mixin, use the "inline" form of :class:`.Index` and
-establish it as part of ``__table_args__``::
+tables derived from a mixin, use the "inline" form of :class:`.Index` and establish
+it as part of ``__table_args__``::
 
     class MyMixin(object):
         a =  Column(Integer)
@@ -1165,9 +928,9 @@ Special Directives
 ~~~~~~~~~~~~~~~~~~~~~~
 
 The ``__declare_last__()`` hook allows definition of
-a class level function that is automatically called by the
-:meth:`.MapperEvents.after_configured` event, which occurs after mappings are
-assumed to be completed and the 'configure' step has finished::
+a class level function that is automatically called by the :meth:`.MapperEvents.after_configured`
+event, which occurs after mappings are assumed to be completed and the 'configure' step
+has finished::
 
     class MyClass(Base):
         @classmethod
@@ -1183,9 +946,9 @@ assumed to be completed and the 'configure' step has finished::
 ~~~~~~~~~~~~~~~~~~~
 
 ``__abstract__`` causes declarative to skip the production
-of a table or mapper for the class entirely.  A class can be added within a
-hierarchy in the same way as mixin (see :ref:`declarative_mixins`), allowing
-subclasses to extend just from the special class::
+of a table or mapper for the class entirely.  A class can be added within a hierarchy
+in the same way as mixin (see :ref:`declarative_mixins`), allowing subclasses to extend
+just from the special class::
 
     class SomeAbstractBase(Base):
         __abstract__ = True
@@ -1200,8 +963,8 @@ subclasses to extend just from the special class::
     class MyMappedClass(SomeAbstractBase):
         ""
 
-One possible use of ``__abstract__`` is to use a distinct
-:class:`.MetaData` for different bases::
+One possible use of ``__abstract__`` is to use a distinct :class:`.MetaData` for different
+bases::
 
     Base = declarative_base()
 
@@ -1213,10 +976,9 @@ One possible use of ``__abstract__`` is to use a distinct
         __abstract__ = True
         metadata = MetaData()
 
-Above, classes which inherit from ``DefaultBase`` will use one
-:class:`.MetaData` as the registry of tables, and those which inherit from
-``OtherBase`` will use a different one. The tables themselves can then be
-created perhaps within distinct databases::
+Above, classes which inherit from ``DefaultBase`` will use one :class:`.MetaData` as the
+registry of tables, and those which inherit from ``OtherBase`` will use a different one.
+The tables themselves can then be created perhaps within distinct databases::
 
     DefaultBase.metadata.create_all(some_engine)
     OtherBase.metadata_create_all(some_other_engine)
@@ -1238,7 +1000,7 @@ Sessions
 Note that ``declarative`` does nothing special with sessions, and is
 only intended as an easier way to configure mappers and
 :class:`~sqlalchemy.schema.Table` objects.  A typical application
-setup using :class:`~sqlalchemy.orm.scoped_session` might look like::
+setup using :func:`~sqlalchemy.orm.scoped_session` might look like::
 
     engine = create_engine('postgresql://scott:tiger@localhost/test')
     Session = scoped_session(sessionmaker(autocommit=False,
@@ -1251,13 +1013,749 @@ Mapped instances then make usage of
 
 """
 
-from .api import declarative_base, synonym_for, comparable_using, \
-    instrument_declarative, ConcreteBase, AbstractConcreteBase, \
-    DeclarativeMeta, DeferredReflection, has_inherited_table,\
-    declared_attr
+from sqlalchemy.schema import Table, Column, MetaData, _get_table_key
+from sqlalchemy.orm import synonym as _orm_synonym, mapper,\
+                                comparable_property, class_mapper
+from sqlalchemy.orm.interfaces import MapperProperty
+from sqlalchemy.orm.properties import RelationshipProperty, ColumnProperty, CompositeProperty
+from sqlalchemy.orm.util import _is_mapped_class
+from sqlalchemy import util, exc
+from sqlalchemy.sql import util as sql_util, expression
+from sqlalchemy import event
+from sqlalchemy.orm.util import polymorphic_union, _mapper_or_none
 
 
-__all__ = ['declarative_base', 'synonym_for', 'has_inherited_table',
-            'comparable_using', 'instrument_declarative', 'declared_attr',
-            'ConcreteBase', 'AbstractConcreteBase', 'DeclarativeMeta',
-            'DeferredReflection']
+__all__ = 'declarative_base', 'synonym_for', \
+            'comparable_using', 'instrument_declarative'
+
+def instrument_declarative(cls, registry, metadata):
+    """Given a class, configure the class declaratively,
+    using the given registry, which can be any dictionary, and
+    MetaData object.
+
+    """
+    if '_decl_class_registry' in cls.__dict__:
+        raise exc.InvalidRequestError(
+                            "Class %r already has been "
+                            "instrumented declaratively" % cls)
+    cls._decl_class_registry = registry
+    cls.metadata = metadata
+    _as_declarative(cls, cls.__name__, cls.__dict__)
+
+def has_inherited_table(cls):
+    """Given a class, return True if any of the classes it inherits from has a
+    mapped table, otherwise return False.
+    """
+    for class_ in cls.__mro__:
+        if getattr(class_,'__table__',None) is not None:
+            return True
+    return False
+
+def _as_declarative(cls, classname, dict_):
+
+    # dict_ will be a dictproxy, which we can't write to, and we need to!
+    dict_ = dict(dict_)
+
+    column_copies = {}
+    potential_columns = {}
+
+    mapper_args = {}
+    table_args = inherited_table_args = None
+    tablename = None
+    parent_columns = ()
+
+    declarative_props = (declared_attr, util.classproperty)
+
+    for base in cls.__mro__:
+        _is_declarative_inherits = hasattr(base, '_decl_class_registry')
+
+        if '__declare_last__' in base.__dict__:
+            @event.listens_for(mapper, "after_configured")
+            def go():
+                cls.__declare_last__()
+        if '__abstract__' in base.__dict__:
+            if (base is cls or
+                (base in cls.__bases__ and not _is_declarative_inherits)
+            ):
+                return
+
+        class_mapped = _is_mapped_class(base)
+        if class_mapped:
+            parent_columns = base.__table__.c.keys()
+
+        for name,obj in vars(base).items():
+            if name == '__mapper_args__':
+                if not mapper_args and (
+                                        not class_mapped or
+                                        isinstance(obj, declarative_props)
+                                    ):
+                    mapper_args = cls.__mapper_args__
+            elif name == '__tablename__':
+                if not tablename and (
+                                        not class_mapped or
+                                        isinstance(obj, declarative_props)
+                                    ):
+                    tablename = cls.__tablename__
+            elif name == '__table_args__':
+                if not table_args and (
+                                        not class_mapped or
+                                        isinstance(obj, declarative_props)
+                                    ):
+                    table_args = cls.__table_args__
+                    if not isinstance(table_args, (tuple, dict, type(None))):
+                        raise exc.ArgumentError(
+                                "__table_args__ value must be a tuple, "
+                                "dict, or None")
+                    if base is not cls:
+                        inherited_table_args = True
+            elif class_mapped:
+                if isinstance(obj, declarative_props):
+                    util.warn("Regular (i.e. not __special__) "
+                            "attribute '%s.%s' uses @declared_attr, "
+                            "but owning class %s is mapped - "
+                            "not applying to subclass %s."
+                            % (base.__name__, name, base, cls))
+                continue
+            elif base is not cls:
+                # we're a mixin.
+                if isinstance(obj, Column):
+                    if obj.foreign_keys:
+                        raise exc.InvalidRequestError(
+                        "Columns with foreign keys to other columns "
+                        "must be declared as @declared_attr callables "
+                        "on declarative mixin classes. ")
+                    if name not in dict_ and not (
+                            '__table__' in dict_ and
+                            (obj.name or name) in dict_['__table__'].c
+                            ) and name not in potential_columns:
+                        potential_columns[name] = \
+                                column_copies[obj] = \
+                                obj.copy()
+                        column_copies[obj]._creation_order = \
+                                obj._creation_order
+                elif isinstance(obj, MapperProperty):
+                    raise exc.InvalidRequestError(
+                        "Mapper properties (i.e. deferred,"
+                        "column_property(), relationship(), etc.) must "
+                        "be declared as @declared_attr callables "
+                        "on declarative mixin classes.")
+                elif isinstance(obj, declarative_props):
+                    dict_[name] = ret = \
+                            column_copies[obj] = getattr(cls, name)
+                    if isinstance(ret, (Column, MapperProperty)) and \
+                        ret.doc is None:
+                        ret.doc = obj.__doc__
+
+    # apply inherited columns as we should
+    for k, v in potential_columns.items():
+        if tablename or (v.name or k) not in parent_columns:
+            dict_[k] = v
+
+    if inherited_table_args and not tablename:
+        table_args = None
+
+    # make sure that column copies are used rather
+    # than the original columns from any mixins
+    for k in ('version_id_col', 'polymorphic_on',):
+        if k in mapper_args:
+            v = mapper_args[k]
+            mapper_args[k] = column_copies.get(v,v)
+
+    if classname in cls._decl_class_registry:
+        util.warn("The classname %r is already in the registry of this"
+                  " declarative base, mapped to %r" % (
+                classname,
+                cls._decl_class_registry[classname]
+                ))
+    cls._decl_class_registry[classname] = cls
+    our_stuff = util.OrderedDict()
+
+    for k in dict_:
+        value = dict_[k]
+        if isinstance(value, declarative_props):
+            value = getattr(cls, k)
+
+        if (isinstance(value, tuple) and len(value) == 1 and
+            isinstance(value[0], (Column, MapperProperty))):
+            util.warn("Ignoring declarative-like tuple value of attribute "
+                      "%s: possibly a copy-and-paste error with a comma "
+                      "left at the end of the line?" % k)
+            continue
+        if not isinstance(value, (Column, MapperProperty)):
+            continue
+        if k == 'metadata':
+            raise exc.InvalidRequestError(
+                "Attribute name 'metadata' is reserved "
+                "for the MetaData instance when using a "
+                "declarative base class."
+            )
+        prop = _deferred_relationship(cls, value)
+        our_stuff[k] = prop
+
+    # set up attributes in the order they were created
+    our_stuff.sort(key=lambda key: our_stuff[key]._creation_order)
+
+    # extract columns from the class dict
+    cols = set()
+    for key, c in our_stuff.iteritems():
+        if isinstance(c, (ColumnProperty, CompositeProperty)):
+            for col in c.columns:
+                if isinstance(col, Column) and \
+                    col.table is None:
+                    _undefer_column_name(key, col)
+                    cols.add(col)
+        elif isinstance(c, Column):
+            _undefer_column_name(key, c)
+            cols.add(c)
+            # if the column is the same name as the key,
+            # remove it from the explicit properties dict.
+            # the normal rules for assigning column-based properties
+            # will take over, including precedence of columns
+            # in multi-column ColumnProperties.
+            if key == c.key:
+                del our_stuff[key]
+    cols = sorted(cols, key=lambda c:c._creation_order)
+    table = None
+
+    if hasattr(cls, '__table_cls__'):
+        table_cls = util.unbound_method_to_callable(cls.__table_cls__)
+    else:
+        table_cls = Table
+
+    if '__table__' not in dict_:
+        if tablename is not None:
+
+            args, table_kw = (), {}
+            if table_args:
+                if isinstance(table_args, dict):
+                    table_kw = table_args
+                elif isinstance(table_args, tuple):
+                    if isinstance(table_args[-1], dict):
+                        args, table_kw = table_args[0:-1], table_args[-1]
+                    else:
+                        args = table_args
+
+            autoload = dict_.get('__autoload__')
+            if autoload:
+                table_kw['autoload'] = True
+
+            cls.__table__ = table = table_cls(tablename, cls.metadata,
+                                          *(tuple(cols) + tuple(args)),
+                                           **table_kw)
+    else:
+        table = cls.__table__
+        if cols:
+            for c in cols:
+                if not table.c.contains_column(c):
+                    raise exc.ArgumentError(
+                        "Can't add additional column %r when "
+                        "specifying __table__" % c.key
+                    )
+
+    if 'inherits' not in mapper_args:
+        for c in cls.__bases__:
+            if _is_mapped_class(c):
+                mapper_args['inherits'] = c
+                break
+
+    if hasattr(cls, '__mapper_cls__'):
+        mapper_cls = util.unbound_method_to_callable(cls.__mapper_cls__)
+    else:
+        mapper_cls = mapper
+
+    if table is None and 'inherits' not in mapper_args:
+        raise exc.InvalidRequestError(
+            "Class %r does not have a __table__ or __tablename__ "
+            "specified and does not inherit from an existing "
+            "table-mapped class." % cls
+            )
+
+    elif 'inherits' in mapper_args and not mapper_args.get('concrete', False):
+        inherited_mapper = class_mapper(mapper_args['inherits'],
+                                            compile=False)
+        inherited_table = inherited_mapper.local_table
+
+        if table is None:
+            # single table inheritance.
+            # ensure no table args
+            if table_args:
+                raise exc.ArgumentError(
+                    "Can't place __table_args__ on an inherited class "
+                    "with no table."
+                    )
+
+            # add any columns declared here to the inherited table.
+            for c in cols:
+                if c.primary_key:
+                    raise exc.ArgumentError(
+                        "Can't place primary key columns on an inherited "
+                        "class with no table."
+                        )
+                if c.name in inherited_table.c:
+                    raise exc.ArgumentError(
+                        "Column '%s' on class %s conflicts with "
+                        "existing column '%s'" %
+                        (c, cls, inherited_table.c[c.name])
+                    )
+                inherited_table.append_column(c)
+
+        # single or joined inheritance
+        # exclude any cols on the inherited table which are not mapped on the
+        # parent class, to avoid
+        # mapping columns specific to sibling/nephew classes
+        inherited_mapper = class_mapper(mapper_args['inherits'],
+                                            compile=False)
+        inherited_table = inherited_mapper.local_table
+
+        if 'exclude_properties' not in mapper_args:
+            mapper_args['exclude_properties'] = exclude_properties = \
+                set([c.key for c in inherited_table.c
+                     if c not in inherited_mapper._columntoproperty])
+            exclude_properties.difference_update([c.key for c in cols])
+
+        # look through columns in the current mapper that
+        # are keyed to a propname different than the colname
+        # (if names were the same, we'd have popped it out above,
+        # in which case the mapper makes this combination).
+        # See if the superclass has a similar column property.
+        # If so, join them together.
+        for k, col in our_stuff.items():
+            if not isinstance(col, expression.ColumnElement):
+                continue
+            if k in inherited_mapper._props:
+                p = inherited_mapper._props[k]
+                if isinstance(p, ColumnProperty):
+                    # note here we place the subclass column
+                    # first.  See [ticket:1892] for background.
+                    our_stuff[k] = [col] + p.columns
+
+
+    cls.__mapper__ = mapper_cls(cls,
+                                table,
+                                properties=our_stuff,
+                                **mapper_args)
+
+class DeclarativeMeta(type):
+    def __init__(cls, classname, bases, dict_):
+        if '_decl_class_registry' not in cls.__dict__:
+            _as_declarative(cls, classname, cls.__dict__)
+        type.__init__(cls, classname, bases, dict_)
+
+    def __setattr__(cls, key, value):
+        if '__mapper__' in cls.__dict__:
+            if isinstance(value, Column):
+                _undefer_column_name(key, value)
+                cls.__table__.append_column(value)
+                cls.__mapper__.add_property(key, value)
+            elif isinstance(value, ColumnProperty):
+                for col in value.columns:
+                    if isinstance(col, Column) and col.table is None:
+                        _undefer_column_name(key, col)
+                        cls.__table__.append_column(col)
+                cls.__mapper__.add_property(key, value)
+            elif isinstance(value, MapperProperty):
+                cls.__mapper__.add_property(
+                                        key,
+                                        _deferred_relationship(cls, value)
+                                )
+            else:
+                type.__setattr__(cls, key, value)
+        else:
+            type.__setattr__(cls, key, value)
+
+
+class _GetColumns(object):
+    def __init__(self, cls):
+        self.cls = cls
+
+    def __getattr__(self, key):
+        mapper = class_mapper(self.cls, compile=False)
+        if mapper:
+            if not mapper.has_property(key):
+                raise exc.InvalidRequestError(
+                            "Class %r does not have a mapped column named %r"
+                            % (self.cls, key))
+
+            prop = mapper.get_property(key)
+            if not isinstance(prop, ColumnProperty):
+                raise exc.InvalidRequestError(
+                            "Property %r is not an instance of"
+                            " ColumnProperty (i.e. does not correspond"
+                            " directly to a Column)." % key)
+        return getattr(self.cls, key)
+
+class _GetTable(object):
+    def __init__(self, key, metadata):
+        self.key = key
+        self.metadata = metadata
+
+    def __getattr__(self, key):
+        return self.metadata.tables[
+                _get_table_key(key, self.key)
+            ]
+
+def _deferred_relationship(cls, prop):
+    def resolve_arg(arg):
+        import sqlalchemy
+
+        def access_cls(key):
+            if key in cls._decl_class_registry:
+                return _GetColumns(cls._decl_class_registry[key])
+            elif key in cls.metadata.tables:
+                return cls.metadata.tables[key]
+            elif key in cls.metadata._schemas:
+                return _GetTable(key, cls.metadata)
+            else:
+                return sqlalchemy.__dict__[key]
+
+        d = util.PopulateDict(access_cls)
+        def return_cls():
+            try:
+                x = eval(arg, globals(), d)
+
+                if isinstance(x, _GetColumns):
+                    return x.cls
+                else:
+                    return x
+            except NameError, n:
+                raise exc.InvalidRequestError(
+                    "When initializing mapper %s, expression %r failed to "
+                    "locate a name (%r). If this is a class name, consider "
+                    "adding this relationship() to the %r class after "
+                    "both dependent classes have been defined." %
+                    (prop.parent, arg, n.args[0], cls)
+                )
+        return return_cls
+
+    if isinstance(prop, RelationshipProperty):
+        for attr in ('argument', 'order_by', 'primaryjoin', 'secondaryjoin',
+                     'secondary', '_user_defined_foreign_keys', 'remote_side'):
+            v = getattr(prop, attr)
+            if isinstance(v, basestring):
+                setattr(prop, attr, resolve_arg(v))
+
+        if prop.backref and isinstance(prop.backref, tuple):
+            key, kwargs = prop.backref
+            for attr in ('primaryjoin', 'secondaryjoin', 'secondary',
+                         'foreign_keys', 'remote_side', 'order_by'):
+               if attr in kwargs and isinstance(kwargs[attr], basestring):
+                   kwargs[attr] = resolve_arg(kwargs[attr])
+
+
+    return prop
+
+def synonym_for(name, map_column=False):
+    """Decorator, make a Python @property a query synonym for a column.
+
+    A decorator version of :func:`~sqlalchemy.orm.synonym`. The function being
+    decorated is the 'descriptor', otherwise passes its arguments through to
+    synonym()::
+
+      @synonym_for('col')
+      @property
+      def prop(self):
+          return 'special sauce'
+
+    The regular ``synonym()`` is also usable directly in a declarative setting
+    and may be convenient for read/write properties::
+
+      prop = synonym('col', descriptor=property(_read_prop, _write_prop))
+
+    """
+    def decorate(fn):
+        return _orm_synonym(name, map_column=map_column, descriptor=fn)
+    return decorate
+
+def comparable_using(comparator_factory):
+    """Decorator, allow a Python @property to be used in query criteria.
+
+    This is a  decorator front end to
+    :func:`~sqlalchemy.orm.comparable_property` that passes
+    through the comparator_factory and the function being decorated::
+
+      @comparable_using(MyComparatorType)
+      @property
+      def prop(self):
+          return 'special sauce'
+
+    The regular ``comparable_property()`` is also usable directly in a
+    declarative setting and may be convenient for read/write properties::
+
+      prop = comparable_property(MyComparatorType)
+
+    """
+    def decorate(fn):
+        return comparable_property(comparator_factory, fn)
+    return decorate
+
+class declared_attr(property):
+    """Mark a class-level method as representing the definition of
+    a mapped property or special declarative member name.
+
+    .. versionchanged:: 0.6.{2,3,4}
+        ``@declared_attr`` is available as
+        ``sqlalchemy.util.classproperty`` for SQLAlchemy versions
+        0.6.2, 0.6.3, 0.6.4.
+
+    @declared_attr turns the attribute into a scalar-like
+    property that can be invoked from the uninstantiated class.
+    Declarative treats attributes specifically marked with
+    @declared_attr as returning a construct that is specific
+    to mapping or declarative table configuration.  The name
+    of the attribute is that of what the non-dynamic version
+    of the attribute would be.
+
+    @declared_attr is more often than not applicable to mixins,
+    to define relationships that are to be applied to different
+    implementors of the class::
+
+        class ProvidesUser(object):
+            "A mixin that adds a 'user' relationship to classes."
+
+            @declared_attr
+            def user(self):
+                return relationship("User")
+
+    It also can be applied to mapped classes, such as to provide
+    a "polymorphic" scheme for inheritance::
+
+        class Employee(Base):
+            id = Column(Integer, primary_key=True)
+            type = Column(String(50), nullable=False)
+
+            @declared_attr
+            def __tablename__(cls):
+                return cls.__name__.lower()
+
+            @declared_attr
+            def __mapper_args__(cls):
+                if cls.__name__ == 'Employee':
+                    return {
+                            "polymorphic_on":cls.type,
+                            "polymorphic_identity":"Employee"
+                    }
+                else:
+                    return {"polymorphic_identity":cls.__name__}
+
+    """
+
+    def __init__(self, fget, *arg, **kw):
+        super(declared_attr, self).__init__(fget, *arg, **kw)
+        self.__doc__ = fget.__doc__
+
+    def __get__(desc, self, cls):
+        return desc.fget(cls)
+
+def _declarative_constructor(self, **kwargs):
+    """A simple constructor that allows initialization from kwargs.
+
+    Sets attributes on the constructed instance using the names and
+    values in ``kwargs``.
+
+    Only keys that are present as
+    attributes of the instance's class are allowed. These could be,
+    for example, any mapped columns or relationships.
+    """
+    cls_ = type(self)
+    for k in kwargs:
+        if not hasattr(cls_, k):
+            raise TypeError(
+                "%r is an invalid keyword argument for %s" %
+                (k, cls_.__name__))
+        setattr(self, k, kwargs[k])
+_declarative_constructor.__name__ = '__init__'
+
+def declarative_base(bind=None, metadata=None, mapper=None, cls=object,
+                     name='Base', constructor=_declarative_constructor,
+                     class_registry=None,
+                     metaclass=DeclarativeMeta):
+    """Construct a base class for declarative class definitions.
+
+    The new base class will be given a metaclass that produces
+    appropriate :class:`~sqlalchemy.schema.Table` objects and makes
+    the appropriate :func:`~sqlalchemy.orm.mapper` calls based on the
+    information provided declaratively in the class and any subclasses
+    of the class.
+
+    :param bind: An optional
+      :class:`~sqlalchemy.engine.base.Connectable`, will be assigned
+      the ``bind`` attribute on the :class:`~sqlalchemy.MetaData`
+      instance.
+
+    :param metadata:
+      An optional :class:`~sqlalchemy.MetaData` instance.  All
+      :class:`~sqlalchemy.schema.Table` objects implicitly declared by
+      subclasses of the base will share this MetaData.  A MetaData instance
+      will be created if none is provided.  The
+      :class:`~sqlalchemy.MetaData` instance will be available via the
+      `metadata` attribute of the generated declarative base class.
+
+    :param mapper:
+      An optional callable, defaults to :func:`~sqlalchemy.orm.mapper`. Will
+      be used to map subclasses to their Tables.
+
+    :param cls:
+      Defaults to :class:`object`. A type to use as the base for the generated
+      declarative base class. May be a class or tuple of classes.
+
+    :param name:
+      Defaults to ``Base``.  The display name for the generated
+      class.  Customizing this is not required, but can improve clarity in
+      tracebacks and debugging.
+
+    :param constructor:
+      Defaults to
+      :func:`~sqlalchemy.ext.declarative._declarative_constructor`, an
+      __init__ implementation that assigns \**kwargs for declared
+      fields and relationships to an instance.  If ``None`` is supplied,
+      no __init__ will be provided and construction will fall back to
+      cls.__init__ by way of the normal Python semantics.
+
+    :param class_registry: optional dictionary that will serve as the
+      registry of class names-> mapped classes when string names
+      are used to identify classes inside of :func:`.relationship`
+      and others.  Allows two or more declarative base classes
+      to share the same registry of class names for simplified
+      inter-base relationships.
+
+    :param metaclass:
+      Defaults to :class:`.DeclarativeMeta`.  A metaclass or __metaclass__
+      compatible callable to use as the meta type of the generated
+      declarative base class.
+
+    """
+    lcl_metadata = metadata or MetaData()
+    if bind:
+        lcl_metadata.bind = bind
+
+    if class_registry is None:
+        class_registry = {}
+
+    bases = not isinstance(cls, tuple) and (cls,) or cls
+    class_dict = dict(_decl_class_registry=class_registry,
+                      metadata=lcl_metadata)
+
+    if constructor:
+        class_dict['__init__'] = constructor
+    if mapper:
+        class_dict['__mapper_cls__'] = mapper
+
+    return metaclass(name, bases, class_dict)
+
+def _undefer_column_name(key, column):
+    if column.key is None:
+        column.key = key
+    if column.name is None:
+        column.name = key
+
+class ConcreteBase(object):
+    """A helper class for 'concrete' declarative mappings.
+
+    :class:`.ConcreteBase` will use the :func:`.polymorphic_union`
+    function automatically, against all tables mapped as a subclass
+    to this class.   The function is called via the
+    ``__declare_last__()`` function, which is essentially
+    a hook for the :func:`.MapperEvents.after_configured` event.
+
+    :class:`.ConcreteBase` produces a mapped
+    table for the class itself.  Compare to :class:`.AbstractConcreteBase`,
+    which does not.
+
+    Example::
+
+        from sqlalchemy.ext.declarative import ConcreteBase
+
+        class Employee(ConcreteBase, Base):
+            __tablename__ = 'employee'
+            employee_id = Column(Integer, primary_key=True)
+            name = Column(String(50))
+            __mapper_args__ = {
+                            'polymorphic_identity':'employee',
+                            'concrete':True}
+
+        class Manager(Employee):
+            __tablename__ = 'manager'
+            employee_id = Column(Integer, primary_key=True)
+            name = Column(String(50))
+            manager_data = Column(String(40))
+            __mapper_args__ = {
+                            'polymorphic_identity':'manager',
+                            'concrete':True}
+
+    """
+
+    @classmethod
+    def _create_polymorphic_union(cls, mappers):
+        return polymorphic_union(dict(
+            (mapper.polymorphic_identity, mapper.local_table)
+            for mapper in mappers
+         ), 'type', 'pjoin')
+
+    @classmethod
+    def __declare_last__(cls):
+        m = cls.__mapper__
+        if m.with_polymorphic:
+            return
+
+        mappers = list(m.self_and_descendants)
+        pjoin = cls._create_polymorphic_union(mappers)
+        m._set_with_polymorphic(("*",pjoin))
+        m._set_polymorphic_on(pjoin.c.type)
+
+class AbstractConcreteBase(ConcreteBase):
+    """A helper class for 'concrete' declarative mappings.
+
+    :class:`.AbstractConcreteBase` will use the :func:`.polymorphic_union`
+    function automatically, against all tables mapped as a subclass
+    to this class.   The function is called via the
+    ``__declare_last__()`` function, which is essentially
+    a hook for the :func:`.MapperEvents.after_configured` event.
+
+    :class:`.AbstractConcreteBase` does not produce a mapped
+    table for the class itself.  Compare to :class:`.ConcreteBase`,
+    which does.
+
+    Example::
+
+        from sqlalchemy.ext.declarative import ConcreteBase
+
+        class Employee(AbstractConcreteBase, Base):
+            pass
+
+        class Manager(Employee):
+            __tablename__ = 'manager'
+            employee_id = Column(Integer, primary_key=True)
+            name = Column(String(50))
+            manager_data = Column(String(40))
+            __mapper_args__ = {
+                            'polymorphic_identity':'manager',
+                            'concrete':True}
+
+    """
+
+    __abstract__ = True
+
+    @classmethod
+    def __declare_last__(cls):
+        if hasattr(cls, '__mapper__'):
+            return
+
+        # can't rely on 'self_and_descendants' here
+        # since technically an immediate subclass
+        # might not be mapped, but a subclass
+        # may be.
+        mappers = []
+        stack = list(cls.__subclasses__())
+        while stack:
+            klass = stack.pop()
+            stack.extend(klass.__subclasses__())
+            mn = _mapper_or_none(klass)
+            if mn is not None:
+                mappers.append(mn)
+        pjoin = cls._create_polymorphic_union(mappers)
+        cls.__mapper__ = m = mapper(cls, pjoin, polymorphic_on=pjoin.c.type)
+
+        for scls in cls.__subclasses__():
+            sm = _mapper_or_none(scls)
+            if sm.concrete and cls in scls.__bases__:
+                sm._set_concrete_base(m)

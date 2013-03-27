@@ -4,14 +4,14 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
-from . import base, mysqldb, oursql, \
+from sqlalchemy.dialects.mysql import base, mysqldb, oursql, \
                                 pyodbc, zxjdbc, mysqlconnector, pymysql,\
-                                gaerdbms, cymysql
+                                gaerdbms
 
 # default dialect
 base.dialect = mysqldb.dialect
 
-from .base import \
+from sqlalchemy.dialects.mysql.base import \
     BIGINT, BINARY, BIT, BLOB, BOOLEAN, CHAR, DATE, DATETIME, \
     DECIMAL, DOUBLE, ENUM, DECIMAL,\
     FLOAT, INTEGER, INTEGER, LONGBLOB, LONGTEXT, MEDIUMBLOB, \

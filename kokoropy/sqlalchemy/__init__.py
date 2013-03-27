@@ -4,10 +4,12 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
-import inspect as _inspect
+import inspect
 import sys
 
-from .sql import (
+import sqlalchemy.exc as exceptions
+
+from sqlalchemy.sql import (
     alias,
     and_,
     asc,
@@ -47,7 +49,7 @@ from .sql import (
     update,
     )
 
-from .types import (
+from sqlalchemy.types import (
     BIGINT,
     BINARY,
     BLOB,
@@ -92,7 +94,7 @@ from .types import (
     )
 
 
-from .schema import (
+from sqlalchemy.schema import (
     CheckConstraint,
     Column,
     ColumnDefault,
@@ -112,17 +114,15 @@ from .schema import (
     UniqueConstraint,
     )
 
-from .inspection import inspect
-
-from .engine import create_engine, engine_from_config
+from sqlalchemy.engine import create_engine, engine_from_config
 
 
 __all__ = sorted(name for name, obj in locals().items()
-                 if not (name.startswith('_') or _inspect.ismodule(obj)))
+                 if not (name.startswith('_') or inspect.ismodule(obj)))
 
-__version__ = '0.8.0'
+__version__ = '0.7.11'
 
-del _inspect, sys
+del inspect, sys
 
-from . import util as _sa_util
+from sqlalchemy import util as _sa_util
 _sa_util.importlater.resolve_all()

@@ -6,11 +6,11 @@
 
 """Topological sorting algorithms."""
 
-from ..exc import CircularDependencyError
-from .. import util
+from sqlalchemy.exc import CircularDependencyError
+from sqlalchemy import util
+
 
 __all__ = ['sort', 'sort_as_subsets', 'find_cycles']
-
 
 def sort_as_subsets(tuples, allitems):
 
@@ -36,7 +36,6 @@ def sort_as_subsets(tuples, allitems):
         todo.difference_update(output)
         yield output
 
-
 def sort(tuples, allitems):
     """sort the given list of items by dependency.
 
@@ -47,10 +46,8 @@ def sort(tuples, allitems):
         for s in set_:
             yield s
 
-
 def find_cycles(tuples, allitems):
-    # adapted from:
-    # http://neopythonic.blogspot.com/2009/01/detecting-cycles-in-directed-graph.html
+    # straight from gvr with some mods
 
     edges = util.defaultdict(set)
     for parent, child in tuples:
@@ -86,7 +83,6 @@ def find_cycles(tuples, allitems):
             else:
                 node = stack.pop()
     return output
-
 
 def _gen_edges(edges):
     return set([

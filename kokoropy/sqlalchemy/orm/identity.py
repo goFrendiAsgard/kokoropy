@@ -5,11 +5,12 @@
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
 import weakref
-from . import attributes
+from sqlalchemy.orm import attributes
 
 
 class IdentityMap(dict):
     def __init__(self):
+        self._mutable_attrs = set()
         self._modified = set()
         self._wr = weakref.ref(self)
 
@@ -30,20 +31,28 @@ class IdentityMap(dict):
 
         if state.modified:
             self._modified.add(state)
+        if state.manager.mutable_attributes:
+            self._mutable_attrs.add(state)
 
     def _manage_removed_state(self, state):
         del state._instance_dict
+        self._mutable_attrs.discard(state)
         self._modified.discard(state)
 
     def _dirty_states(self):
-        return self._modified
+        return self._modified.union(s for s in self._mutable_attrs.copy()
+                                    if s.modified)
 
     def check_modified(self):
-        """return True if any InstanceStates present have been marked
-        as 'modified'.
+        """return True if any InstanceStates present have been marked as 'modified'."""
 
-        """
-        return bool(self._modified)
+        if self._modified:
+            return True
+        else:
+            for state in self._mutable_attrs.copy():
+                if state.modified:
+                    return True
+        return False
 
     def has_key(self, key):
         return key in self
@@ -66,7 +75,6 @@ class IdentityMap(dict):
     def __delitem__(self, key):
         raise NotImplementedError("IdentityMap uses remove() to remove data")
 
-
 class WeakInstanceDict(IdentityMap):
     def __init__(self):
         IdentityMap.__init__(self)
@@ -74,6 +82,8 @@ class WeakInstanceDict(IdentityMap):
     def __getitem__(self, key):
         state = dict.__getitem__(self, key)
         o = state.obj()
+        if o is None:
+            o = state._is_really_none()
         if o is None:
             raise KeyError, key
         return o
@@ -83,6 +93,8 @@ class WeakInstanceDict(IdentityMap):
             if dict.__contains__(self, key):
                 state = dict.__getitem__(self, key)
                 o = state.obj()
+                if o is None:
+                    o = state._is_really_none()
             else:
                 return False
         except KeyError:
@@ -112,11 +124,12 @@ class WeakInstanceDict(IdentityMap):
                 existing_state = dict.__getitem__(self, key)
                 if existing_state is not state:
                     o = existing_state.obj()
+                    if o is None:
+                        o = existing_state._is_really_none()
                     if o is not None:
-                        raise AssertionError(
-                            "A conflicting state is already "
-                            "present in the identity map for key %r"
-                            % (key, ))
+                        raise AssertionError("A conflicting state is already "
+                                        "present in the identity map for key %r"
+                                        % (key, ))
                 else:
                     return
             except KeyError:
@@ -130,7 +143,9 @@ class WeakInstanceDict(IdentityMap):
             return default
         o = state.obj()
         if o is None:
-            return default
+            o = state._is_really_none()
+            if o is None:
+                return default
         return o
 
     def _items(self):
@@ -160,12 +175,10 @@ class WeakInstanceDict(IdentityMap):
     #    return iter(self._values())
     # Py2K
     items = _items
-
     def iteritems(self):
         return iter(self.items())
 
     values = _values
-
     def itervalues(self):
         return iter(self.values())
     # end Py2K
@@ -186,15 +199,12 @@ class WeakInstanceDict(IdentityMap):
     def prune(self):
         return 0
 
-
 class StrongInstanceDict(IdentityMap):
     def all_states(self):
         return [attributes.instance_state(o) for o in self.itervalues()]
 
     def contains_state(self, state):
-        return (
-            state.key in self and
-            attributes.instance_state(self[state.key]) is state)
+        return state.key in self and attributes.instance_state(self[state.key]) is state
 
     def replace(self, state):
         if dict.__contains__(self, state.key):
@@ -241,3 +251,4 @@ class StrongInstanceDict(IdentityMap):
         dict.update(self, keepers)
         self.modified = bool(dirty)
         return ref_count - len(self)
+

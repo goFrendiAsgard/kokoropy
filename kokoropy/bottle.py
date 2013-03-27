@@ -16,7 +16,7 @@ License: MIT (see LICENSE for details)
 from __future__ import with_statement
 
 __author__ = 'Marcel Hellkamp'
-__version__ = '0.12-dev'
+__version__ = '0.11.6'
 __license__ = 'MIT'
 
 # The gevent server adapter needs to patch some modules before they are imported
@@ -561,14 +561,15 @@ class Bottle(object):
         def mountpoint_wrapper():
             try:
                 request.path_shift(path_depth)
-                rs = BaseResponse([], 200)
-                def start_response(status, header):
+                rs = HTTPResponse([])
+                def start_response(status, headerlist):
                     rs.status = status
-                    for name, value in header: rs.add_header(name, value)
+                    for name, value in headerlist: rs.add_header(name, value)
                     return rs.body.append
                 body = app(request.environ, start_response)
-                body = itertools.chain(rs.body, body)
-                return HTTPResponse(body, rs.status_code, rs.headers)
+                if body and rs.body: body = itertools.chain(rs.body, body)
+                rs.body = body or rs.body
+                return rs
             finally:
                 request.path_shift(-path_depth)
 
@@ -1285,7 +1286,7 @@ class BaseResponse(object):
 
     def __init__(self, body='', status=None, **headers):
         self._cookies = None
-        self._headers = {'Content-Type': [self.default_content_type]}
+        self._headers = {}
         self.body = body
         self.status = status or self.default_status
         if headers:
@@ -1379,7 +1380,9 @@ class BaseResponse(object):
     def headerlist(self):
         ''' WSGI conform list of (header, value) tuples. '''
         out = []
-        headers = self._headers.items()
+        headers = list(self._headers.items())
+        if 'Content-Type' not in self._headers:
+            headers.append(('Content-Type', [self.default_content_type]))
         if self._status_code in self.bad_headers:
             bad_headers = self.bad_headers[self._status_code]
             headers = [h for h in headers if h[0] not in bad_headers]
@@ -2044,7 +2047,10 @@ def redirect(url, code=None):
     if code is None:
         code = 303 if request.get('SERVER_PROTOCOL') == "HTTP/1.1" else 302
     location = urljoin(request.url, url)
-    raise HTTPResponse("", status=code, Location=location)
+    res = HTTPResponse("", status=code, Location=location)
+    if response._cookies:
+        res._cookies = response._cookies
+    raise res
 
 
 def _file_iter_range(fp, offset, bytes, maxread=1024*1024):
@@ -3096,7 +3102,7 @@ def template(*args, **kwargs):
     adapter = kwargs.pop('template_adapter', SimpleTemplate)
     lookup = kwargs.pop('template_lookup', TEMPLATE_PATH)
     tplid = (id(lookup), tpl)
-    if tpl not in TEMPLATES or DEBUG:
+    if tplid not in TEMPLATES or DEBUG:
         settings = kwargs.pop('template_settings', {})
         if isinstance(tpl, adapter):
             TEMPLATES[tplid] = tpl

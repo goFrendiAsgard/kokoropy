@@ -15,14 +15,17 @@ Other than the deprecated extensions, this module and the
 classes within should be considered mostly private.
 
 """
-from __future__ import absolute_import
 
-from .. import exc as sa_exc, util, inspect
-from ..sql import operators
-from collections import deque
+from itertools import chain
 
-orm_util = util.importlater('sqlalchemy.orm', 'util')
-collections = util.importlater('sqlalchemy.orm', 'collections')
+from sqlalchemy import exc as sa_exc
+from sqlalchemy import util
+from sqlalchemy.sql import operators
+deque = __import__('collections').deque
+
+mapperutil = util.importlater('sqlalchemy.orm', 'util')
+
+collections = None
 
 __all__ = (
     'AttributeExtension',
@@ -39,6 +42,7 @@ __all__ = (
     'SessionExtension',
     'StrategizedOption',
     'StrategizedProperty',
+    'build_path',
     )
 
 EXT_CONTINUE = util.symbol('EXT_CONTINUE')
@@ -48,93 +52,11 @@ ONETOMANY = util.symbol('ONETOMANY')
 MANYTOONE = util.symbol('MANYTOONE')
 MANYTOMANY = util.symbol('MANYTOMANY')
 
-from .deprecated_interfaces import AttributeExtension, \
-    SessionExtension, \
+from deprecated_interfaces import AttributeExtension, SessionExtension, \
     MapperExtension
 
 
-NOT_EXTENSION = util.symbol('NOT_EXTENSION')
-"""Symbol indicating an :class:`_InspectionAttr` that's
-   not part of sqlalchemy.ext.
-
-   Is assigned to the :attr:`._InspectionAttr.extension_type`
-   attibute.
-
-"""
-
-class _InspectionAttr(object):
-    """A base class applied to all ORM objects that can be returned
-    by the :func:`.inspect` function.
-
-    The attributes defined here allow the usage of simple boolean
-    checks to test basic facts about the object returned.
-
-    While the boolean checks here are basically the same as using
-    the Python isinstance() function, the flags here can be used without
-    the need to import all of these classes, and also such that
-    the SQLAlchemy class system can change while leaving the flags
-    here intact for forwards-compatibility.
-
-    """
-
-    is_selectable = False
-    """Return True if this object is an instance of :class:`.Selectable`."""
-
-    is_aliased_class = False
-    """True if this object is an instance of :class:`.AliasedClass`."""
-
-    is_instance = False
-    """True if this object is an instance of :class:`.InstanceState`."""
-
-    is_mapper = False
-    """True if this object is an instance of :class:`.Mapper`."""
-
-    is_property = False
-    """True if this object is an instance of :class:`.MapperProperty`."""
-
-    is_attribute = False
-    """True if this object is a Python :term:`descriptor`.
-
-    This can refer to one of many types.   Usually a
-    :class:`.QueryableAttribute` which handles attributes events on behalf
-    of a :class:`.MapperProperty`.   But can also be an extension type
-    such as :class:`.AssociationProxy` or :class:`.hybrid_property`.
-    The :attr:`._InspectionAttr.extension_type` will refer to a constant
-    identifying the specific subtype.
-
-    .. seealso::
-
-        :attr:`.Mapper.all_orm_descriptors`
-
-    """
-
-    is_clause_element = False
-    """True if this object is an instance of :class:`.ClauseElement`."""
-
-    extension_type = NOT_EXTENSION
-    """The extension type, if any.
-    Defaults to :data:`.interfaces.NOT_EXTENSION`
-
-    .. versionadded:: 0.8.0
-
-    .. seealso::
-
-        :data:`.HYBRID_METHOD`
-
-        :data:`.HYBRID_PROPERTY`
-
-        :data:`.ASSOCIATION_PROXY`
-
-    """
-
-class _MappedAttribute(object):
-    """Mixin for attributes which should be replaced by mapper-assigned
-    attributes.
-
-    """
-
-
-class MapperProperty(_MappedAttribute, _InspectionAttr):
+class MapperProperty(object):
     """Manage the relationship of a ``Mapper`` to a single class
     attribute, as well as that attribute as it appears on individual
     instances of the class, including attribute instrumentation,
@@ -144,21 +66,18 @@ class MapperProperty(_MappedAttribute, _InspectionAttr):
     mapped :class:`.Column`, which is represented in a mapping as
     an instance of :class:`.ColumnProperty`,
     and a reference to another class produced by :func:`.relationship`,
-    represented in the mapping as an instance of
-    :class:`.RelationshipProperty`.
+    represented in the mapping as an instance of :class:`.RelationshipProperty`.
 
     """
 
-    cascade = frozenset()
+    cascade = ()
     """The set of 'cascade' attribute names.
 
     This collection is checked before the 'cascade_iterator' method is called.
 
     """
 
-    is_property = True
-
-    def setup(self, context, entity, path, adapter, **kwargs):
+    def setup(self, context, entity, path, reduced_path, adapter, **kwargs):
         """Called by Query for the purposes of constructing a SQL statement.
 
         Each MapperProperty associated with the target mapper processes the
@@ -168,7 +87,7 @@ class MapperProperty(_MappedAttribute, _InspectionAttr):
 
         pass
 
-    def create_row_processor(self, context, path,
+    def create_row_processor(self, context, path, reduced_path,
                                             mapper, row, adapter):
         """Return a 3-tuple consisting of three row processing functions.
 
@@ -193,33 +112,11 @@ class MapperProperty(_MappedAttribute, _InspectionAttr):
     def set_parent(self, parent, init):
         self.parent = parent
 
-    def instrument_class(self, mapper):  # pragma: no-coverage
+    def instrument_class(self, mapper):
         raise NotImplementedError()
 
-    @util.memoized_property
-    def info(self):
-        """Info dictionary associated with the object, allowing user-defined
-        data to be associated with this :class:`.MapperProperty`.
-
-        The dictionary is generated when first accessed.  Alternatively,
-        it can be specified as a constructor argument to the
-        :func:`.column_property`, :func:`.relationship`, or :func:`.composite`
-        functions.
-
-        .. versionadded:: 0.8  Added support for .info to all
-           :class:`.MapperProperty` subclasses.
-
-        .. seealso::
-
-            :attr:`.QueryableAttribute.info`
-
-            :attr:`.SchemaItem.info`
-
-        """
-        return {}
-
-    _configure_started = False
-    _configure_finished = False
+    _compile_started = False
+    _compile_finished = False
 
     def init(self):
         """Called after all mappers are created to assemble
@@ -227,9 +124,9 @@ class MapperProperty(_MappedAttribute, _InspectionAttr):
         initialization steps.
 
         """
-        self._configure_started = True
+        self._compile_started = True
         self.do_init()
-        self._configure_finished = True
+        self._compile_finished = True
 
     @property
     def class_attribute(self):
@@ -254,6 +151,9 @@ class MapperProperty(_MappedAttribute, _InspectionAttr):
         after init() has completed.
 
         """
+        pass
+
+    def per_property_preprocessors(self, uow):
         pass
 
     def is_primary(self):
@@ -286,38 +186,15 @@ class MapperProperty(_MappedAttribute, _InspectionAttr):
 
         return operator(self.comparator, value)
 
-    def __repr__(self):
-        return '<%s at 0x%x; %s>' % (
-            self.__class__.__name__,
-            id(self), self.key)
-
 class PropComparator(operators.ColumnOperators):
-    """Defines boolean, comparison, and other operators for
-    :class:`.MapperProperty` objects.
-
-    SQLAlchemy allows for operators to
-    be redefined at both the Core and ORM level.  :class:`.PropComparator`
-    is the base class of operator redefinition for ORM-level operations,
-    including those of :class:`.ColumnProperty`,
-    :class:`.RelationshipProperty`, and :class:`.CompositeProperty`.
-
-    .. note:: With the advent of Hybrid properties introduced in SQLAlchemy
-       0.7, as well as Core-level operator redefinition in
-       SQLAlchemy 0.8, the use case for user-defined :class:`.PropComparator`
-       instances is extremely rare.  See :ref:`hybrids_toplevel` as well
-       as :ref:`types_operators`.
+    """Defines comparison operations for MapperProperty objects.
 
     User-defined subclasses of :class:`.PropComparator` may be created. The
     built-in Python comparison and math operator methods, such as
-    :meth:`.operators.ColumnOperators.__eq__`,
-    :meth:`.operators.ColumnOperators.__lt__`, and
-    :meth:`.operators.ColumnOperators.__add__`, can be overridden to provide
+    ``__eq__()``, ``__lt__()``, ``__add__()``, can be overridden to provide
     new operator behavior. The custom :class:`.PropComparator` is passed to
-    the :class:`.MapperProperty` instance via the ``comparator_factory``
-    argument. In each case,
+    the mapper property via the ``comparator_factory`` argument. In each case,
     the appropriate subclass of :class:`.PropComparator` should be used::
-
-        # definition of custom PropComparator subclasses
 
         from sqlalchemy.orm.properties import \\
                                 ColumnProperty,\\
@@ -325,64 +202,19 @@ class PropComparator(operators.ColumnOperators):
                                 RelationshipProperty
 
         class MyColumnComparator(ColumnProperty.Comparator):
-            def __eq__(self, other):
-                return self.__clause_element__() == other
-
-        class MyRelationshipComparator(RelationshipProperty.Comparator):
-            def any(self, expression):
-                "define the 'any' operation"
-                # ...
+            pass
 
         class MyCompositeComparator(CompositeProperty.Comparator):
-            def __gt__(self, other):
-                "redefine the 'greater than' operation"
+            pass
 
-                return sql.and_(*[a>b for a, b in
-                                  zip(self.__clause_element__().clauses,
-                                      other.__composite_values__())])
-
-
-        # application of custom PropComparator subclasses
-
-        from sqlalchemy.orm import column_property, relationship, composite
-        from sqlalchemy import Column, String
-
-        class SomeMappedClass(Base):
-            some_column = column_property(Column("some_column", String),
-                                comparator_factory=MyColumnComparator)
-
-            some_relationship = relationship(SomeOtherClass,
-                                comparator_factory=MyRelationshipComparator)
-
-            some_composite = composite(
-                    Column("a", String), Column("b", String),
-                    comparator_factory=MyCompositeComparator
-                )
-
-    Note that for column-level operator redefinition, it's usually
-    simpler to define the operators at the Core level, using the
-    :attr:`.TypeEngine.comparator_factory` attribute.  See
-    :ref:`types_operators` for more detail.
-
-    See also:
-
-    :class:`.ColumnProperty.Comparator`
-
-    :class:`.RelationshipProperty.Comparator`
-
-    :class:`.CompositeProperty.Comparator`
-
-    :class:`.ColumnOperators`
-
-    :ref:`types_operators`
-
-    :attr:`.TypeEngine.comparator_factory`
+        class MyRelationshipComparator(RelationshipProperty.Comparator):
+            pass
 
     """
 
-    def __init__(self, prop, parentmapper, adapter=None):
+    def __init__(self, prop, mapper, adapter=None):
         self.prop = self.property = prop
-        self._parentmapper = parentmapper
+        self.mapper = mapper
         self.adapter = adapter
 
     def __clause_element__(self):
@@ -394,11 +226,7 @@ class PropComparator(operators.ColumnOperators):
 
         """
 
-        return self.__class__(self.prop, self._parentmapper, adapter)
-
-    @util.memoized_property
-    def info(self):
-        return self.property.info
+        return self.__class__(self.prop, self.mapper, adapter)
 
     @staticmethod
     def any_op(a, b, **kwargs):
@@ -423,8 +251,8 @@ class PropComparator(operators.ColumnOperators):
             query.join(Company.employees.of_type(Engineer)).\\
                filter(Engineer.name=='foo')
 
-        :param \class_: a class or mapper indicating that criterion will be
-            against this specific subclass.
+        :param \class_: a class or mapper indicating that criterion will be against
+            this specific subclass.
 
 
         """
@@ -441,9 +269,9 @@ class PropComparator(operators.ColumnOperators):
         :param criterion: an optional ClauseElement formulated against the
           member class' table or attributes.
 
-        :param \**kwargs: key/value pairs corresponding to member class
-          attribute names which will be compared via equality to the
-          corresponding values.
+        :param \**kwargs: key/value pairs corresponding to member class attribute
+          names which will be compared via equality to the corresponding
+          values.
 
         """
 
@@ -459,9 +287,9 @@ class PropComparator(operators.ColumnOperators):
         :param criterion: an optional ClauseElement formulated against the
           member class' table or attributes.
 
-        :param \**kwargs: key/value pairs corresponding to member class
-          attribute names which will be compared via equality to the
-          corresponding values.
+        :param \**kwargs: key/value pairs corresponding to member class attribute
+          names which will be compared via equality to the corresponding
+          values.
 
         """
 
@@ -480,26 +308,21 @@ class StrategizedProperty(MapperProperty):
 
     strategy_wildcard_key = None
 
-    @util.memoized_property
-    def _wildcard_path(self):
-        if self.strategy_wildcard_key:
-            return ('loaderstrategy', (self.strategy_wildcard_key,))
-        else:
-            return None
+    def _get_context_strategy(self, context, reduced_path):
+        key = ('loaderstrategy', reduced_path)
+        cls = None
+        if key in context.attributes:
+            cls = context.attributes[key]
+        elif self.strategy_wildcard_key:
+            key = ('loaderstrategy', (self.strategy_wildcard_key,))
+            if key in context.attributes:
+                cls = context.attributes[key]
 
-    def _get_context_strategy(self, context, path):
-        strategy_cls = path._inlined_get_for(self, context, 'loaderstrategy')
-
-        if not strategy_cls:
-            wc_key = self._wildcard_path
-            if wc_key and wc_key in context.attributes:
-                strategy_cls = context.attributes[wc_key]
-
-        if strategy_cls:
+        if cls:
             try:
-                return self._strategies[strategy_cls]
+                return self._strategies[cls]
             except KeyError:
-                return self.__init_strategy(strategy_cls)
+                return self.__init_strategy(cls)
         return self.strategy
 
     def _get_strategy(self, cls):
@@ -512,15 +335,15 @@ class StrategizedProperty(MapperProperty):
         self._strategies[cls] = strategy = cls(self)
         return strategy
 
-    def setup(self, context, entity, path, adapter, **kwargs):
-        self._get_context_strategy(context, path).\
+    def setup(self, context, entity, path, reduced_path, adapter, **kwargs):
+        self._get_context_strategy(context, reduced_path + (self.key,)).\
                     setup_query(context, entity, path,
-                                    adapter, **kwargs)
+                                    reduced_path, adapter, **kwargs)
 
-    def create_row_processor(self, context, path, mapper, row, adapter):
-        return self._get_context_strategy(context, path).\
+    def create_row_processor(self, context, path, reduced_path, mapper, row, adapter):
+        return self._get_context_strategy(context, reduced_path + (self.key,)).\
                     create_row_processor(context, path,
-                                    mapper, row, adapter)
+                                    reduced_path, mapper, row, adapter)
 
     def do_init(self):
         self._strategies = {}
@@ -531,6 +354,29 @@ class StrategizedProperty(MapperProperty):
             not mapper.class_manager._attr_has_impl(self.key):
             self.strategy.init_class_attribute(mapper)
 
+def build_path(entity, key, prev=None):
+    if prev:
+        return prev + (entity, key)
+    else:
+        return (entity, key)
+
+def serialize_path(path):
+    if path is None:
+        return None
+
+    return zip(
+        [m.class_ for m in [path[i] for i in range(0, len(path), 2)]],
+        [path[i] for i in range(1, len(path), 2)] + [None]
+    )
+
+def deserialize_path(path):
+    if path is None:
+        return None
+
+    p = tuple(chain(*[(mapperutil.class_mapper(cls), key) for cls, key in path]))
+    if p and p[-1] is None:
+        p = p[0:-1]
+    return p
 
 class MapperOption(object):
     """Describe a modification to a Query."""
@@ -552,7 +398,6 @@ class MapperOption(object):
 
         self.process_query(query)
 
-
 class PropertyOption(MapperOption):
     """A MapperOption that is applied to a property off the mapper or
     one of its child mappers, identified by a dot-separated key
@@ -569,11 +414,11 @@ class PropertyOption(MapperOption):
         self._process(query, False)
 
     def _process(self, query, raiseerr):
-        paths = self._process_paths(query, raiseerr)
+        paths, mappers = self._get_paths(query, raiseerr)
         if paths:
-            self.process_query_property(query, paths)
+            self.process_query_property(query, paths, mappers)
 
-    def process_query_property(self, query, paths):
+    def process_query_property(self, query, paths, mappers):
         pass
 
     def __getstate__(self):
@@ -581,7 +426,7 @@ class PropertyOption(MapperOption):
         d['key'] = ret = []
         for token in util.to_list(self.key):
             if isinstance(token, PropComparator):
-                ret.append((token._parentmapper.class_, token.key))
+                ret.append((token.mapper.class_, token.key))
             else:
                 ret.append(token)
         return d
@@ -598,12 +443,15 @@ class PropertyOption(MapperOption):
         self.__dict__ = state
 
     def _find_entity_prop_comparator(self, query, token, mapper, raiseerr):
-        if orm_util._is_aliased_class(mapper):
+        if mapperutil._is_aliased_class(mapper):
             searchfor = mapper
+            isa = False
         else:
-            searchfor = orm_util._class_to_mapper(mapper)
+            searchfor = mapperutil._class_to_mapper(mapper)
+            isa = True
         for ent in query._mapper_entities:
-            if ent.corresponds_to(searchfor):
+            if searchfor is ent.path_entity or isa \
+                and searchfor.common_parent(ent.path_entity):
                 return ent
         else:
             if raiseerr:
@@ -640,21 +488,15 @@ class PropertyOption(MapperOption):
             else:
                 return None
 
-    def _process_paths(self, query, raiseerr):
-        """reconcile the 'key' for this PropertyOption with
-        the current path and entities of the query.
-
-        Return a list of affected paths.
-
-        """
-        path = orm_util.PathRegistry.root
+    def _get_paths(self, query, raiseerr):
+        path = None
         entity = None
-        paths = []
-        no_result = []
+        l = []
+        mappers = []
 
         # _current_path implies we're in a
         # secondary load with an existing path
-        current_path = list(query._current_path.path)
+        current_path = list(query._current_path)
 
         tokens = deque(self.key)
         while tokens:
@@ -662,7 +504,7 @@ class PropertyOption(MapperOption):
             if isinstance(token, basestring):
                 # wildcard token
                 if token.endswith(':*'):
-                    return [path.token(token)]
+                    return [(token,)], []
                 sub_tokens = token.split(".", 1)
                 token = sub_tokens[0]
                 tokens.extendleft(sub_tokens[1:])
@@ -670,11 +512,11 @@ class PropertyOption(MapperOption):
                 # exhaust current_path before
                 # matching tokens to entities
                 if current_path:
-                    if current_path[1].key == token:
+                    if current_path[1] == token:
                         current_path = current_path[2:]
                         continue
                     else:
-                        return no_result
+                        return [], []
 
                 if not entity:
                     entity = self._find_entity_basestring(
@@ -682,10 +524,10 @@ class PropertyOption(MapperOption):
                                         token,
                                         raiseerr)
                     if entity is None:
-                        return no_result
-                    path_element = entity.entity_zero
+                        return [], []
+                    path_element = entity.path_entity
                     mapper = entity.mapper
-
+                mappers.append(mapper)
                 if hasattr(mapper.class_, token):
                     prop = getattr(mapper.class_, token).property
                 else:
@@ -696,7 +538,7 @@ class PropertyOption(MapperOption):
                                 token, mapper)
                         )
                     else:
-                        return no_result
+                        return [], []
             elif isinstance(token, PropComparator):
                 prop = token.property
 
@@ -704,23 +546,23 @@ class PropertyOption(MapperOption):
                 # matching tokens to entities
                 if current_path:
                     if current_path[0:2] == \
-                            [token._parententity, prop]:
+                            [token.parententity, prop.key]:
                         current_path = current_path[2:]
                         continue
                     else:
-                        return no_result
+                        return [], []
 
                 if not entity:
                     entity = self._find_entity_prop_comparator(
                                             query,
                                             prop.key,
-                                            token._parententity,
+                                            token.parententity,
                                             raiseerr)
                     if not entity:
-                        return no_result
-
-                    path_element = entity.entity_zero
+                        return [], []
+                    path_element = entity.path_entity
                     mapper = entity.mapper
+                mappers.append(prop.parent)
             else:
                 raise sa_exc.ArgumentError(
                         "mapper option expects "
@@ -730,21 +572,11 @@ class PropertyOption(MapperOption):
                 raise sa_exc.ArgumentError("Attribute '%s' does not "
                             "link from element '%s'" % (token, path_element))
 
-            path = path[path_element][prop]
+            path = build_path(path_element, prop.key, path)
 
-            paths.append(path)
-
+            l.append(path)
             if getattr(token, '_of_type', None):
-                ac = token._of_type
-                ext_info = inspect(ac)
-                path_element = mapper = ext_info.mapper
-                if not ext_info.is_aliased_class:
-                    ac = orm_util.with_polymorphic(
-                                ext_info.mapper.base_mapper,
-                                ext_info.mapper, aliased=True,
-                                _use_mapper_path=True)
-                    ext_info = inspect(ac)
-                path.set(query, "path_with_polymorphic", ext_info)
+                path_element = mapper = token._of_type
             else:
                 path_element = mapper = getattr(prop, 'mapper', None)
                 if mapper is None and tokens:
@@ -758,10 +590,9 @@ class PropertyOption(MapperOption):
             # ran out of tokens before
             # current_path was exhausted.
             assert not tokens
-            return no_result
+            return [], []
 
-        return paths
-
+        return l, mappers
 
 class StrategizedOption(PropertyOption):
     """A MapperOption that affects which LoaderStrategy will be used
@@ -770,25 +601,39 @@ class StrategizedOption(PropertyOption):
 
     chained = False
 
-    def process_query_property(self, query, paths):
-        strategy = self.get_strategy_class()
+    def process_query_property(self, query, paths, mappers):
+
+        # _get_context_strategy may receive the path in terms of a base
+        # mapper - e.g.  options(eagerload_all(Company.employees,
+        # Engineer.machines)) in the polymorphic tests leads to
+        # "(Person, 'machines')" in the path due to the mechanics of how
+        # the eager strategy builds up the path
+
         if self.chained:
             for path in paths:
-                path.set(
-                    query,
-                    "loaderstrategy",
-                    strategy
-                )
+                query._attributes[('loaderstrategy',
+                                  _reduce_path(path))] = \
+                    self.get_strategy_class()
         else:
-            paths[-1].set(
-                query,
-                "loaderstrategy",
-                strategy
-            )
+            query._attributes[('loaderstrategy',
+                              _reduce_path(paths[-1]))] = \
+                self.get_strategy_class()
 
     def get_strategy_class(self):
         raise NotImplementedError()
 
+def _reduce_path(path):
+    """Convert a (mapper, path) path to use base mappers.
+
+    This is used to allow more open ended selection of loader strategies, i.e.
+    Mapper -> prop1 -> Subclass -> prop2, where Subclass is a sub-mapper
+    of the mapper referenced by Mapper.prop1.
+
+    """
+    return tuple([i % 2 != 0 and
+                    element or
+                    getattr(element, 'base_mapper', element)
+                    for i, element in enumerate(path)])
 
 class LoaderStrategy(object):
     """Describe the loading behavior of a StrategizedProperty object.
@@ -818,14 +663,22 @@ class LoaderStrategy(object):
         self.is_class_level = False
         self.parent = self.parent_property.parent
         self.key = self.parent_property.key
+        # TODO: there's no particular reason we need
+        # the separate .init() method at this point.
+        # It's possible someone has written their
+        # own LS object.
+        self.init()
+
+    def init(self):
+        raise NotImplementedError("LoaderStrategy")
 
     def init_class_attribute(self, mapper):
         pass
 
-    def setup_query(self, context, entity, path, adapter, **kwargs):
+    def setup_query(self, context, entity, path, reduced_path, adapter, **kwargs):
         pass
 
-    def create_row_processor(self, context, path, mapper,
+    def create_row_processor(self, context, path, reduced_path, mapper,
                                 row, adapter):
         """Return row processing functions which fulfill the contract
         specified by MapperProperty.create_row_processor.
@@ -837,3 +690,94 @@ class LoaderStrategy(object):
 
     def __str__(self):
         return str(self.parent_property)
+
+    def debug_callable(self, fn, logger, announcement, logfn):
+        if announcement:
+            logger.debug(announcement)
+        if logfn:
+            def call(*args, **kwargs):
+                logger.debug(logfn(*args, **kwargs))
+                return fn(*args, **kwargs)
+            return call
+        else:
+            return fn
+
+class InstrumentationManager(object):
+    """User-defined class instrumentation extension.
+
+    :class:`.InstrumentationManager` can be subclassed in order
+    to change
+    how class instrumentation proceeds. This class exists for
+    the purposes of integration with other object management
+    frameworks which would like to entirely modify the
+    instrumentation methodology of the ORM, and is not intended
+    for regular usage.  For interception of class instrumentation
+    events, see :class:`.InstrumentationEvents`.
+
+    For an example of :class:`.InstrumentationManager`, see the
+    example :ref:`examples_instrumentation`.
+
+    The API for this class should be considered as semi-stable,
+    and may change slightly with new releases.
+
+    """
+
+    # r4361 added a mandatory (cls) constructor to this interface.
+    # given that, perhaps class_ should be dropped from all of these
+    # signatures.
+
+    def __init__(self, class_):
+        pass
+
+    def manage(self, class_, manager):
+        setattr(class_, '_default_class_manager', manager)
+
+    def dispose(self, class_, manager):
+        delattr(class_, '_default_class_manager')
+
+    def manager_getter(self, class_):
+        def get(cls):
+            return cls._default_class_manager
+        return get
+
+    def instrument_attribute(self, class_, key, inst):
+        pass
+
+    def post_configure_attribute(self, class_, key, inst):
+        pass
+
+    def install_descriptor(self, class_, key, inst):
+        setattr(class_, key, inst)
+
+    def uninstall_descriptor(self, class_, key):
+        delattr(class_, key)
+
+    def install_member(self, class_, key, implementation):
+        setattr(class_, key, implementation)
+
+    def uninstall_member(self, class_, key):
+        delattr(class_, key)
+
+    def instrument_collection_class(self, class_, key, collection_class):
+        global collections
+        if collections is None:
+            from sqlalchemy.orm import collections
+        return collections.prepare_instrumentation(collection_class)
+
+    def get_instance_dict(self, class_, instance):
+        return instance.__dict__
+
+    def initialize_instance_dict(self, class_, instance):
+        pass
+
+    def install_state(self, class_, instance, state):
+        setattr(instance, '_default_state', state)
+
+    def remove_state(self, class_, instance):
+        delattr(instance, '_default_state')
+
+    def state_getter(self, class_):
+        return lambda instance: getattr(instance, '_default_state')
+
+    def dict_getter(self, class_):
+        return lambda inst: self.get_instance_dict(class_, inst)

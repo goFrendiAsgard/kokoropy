@@ -4,16 +4,15 @@ Currently includes MySQL and Drizzle.
 
 """
 
-from . import Connector
-from ..engine import base as engine_base, default
-from ..sql import operators as sql_operators
-from .. import exc, log, schema, sql, types as sqltypes, util, processors
+from sqlalchemy.connectors import Connector
+from sqlalchemy.engine import base as engine_base, default
+from sqlalchemy.sql import operators as sql_operators
+from sqlalchemy import exc, log, schema, sql, types as sqltypes, util
+from sqlalchemy import processors
 import re
-
 
 # the subclassing of Connector by all classes
 # here is not strictly necessary
-
 
 class MySQLDBExecutionContext(Connector):
 
@@ -24,22 +23,18 @@ class MySQLDBExecutionContext(Connector):
         else:
             return self.cursor.rowcount
 
-
 class MySQLDBCompiler(Connector):
-    def visit_mod_binary(self, binary, operator, **kw):
-        return self.process(binary.left, **kw) + " %% " + \
-                    self.process(binary.right, **kw)
+    def visit_mod(self, binary, **kw):
+        return self.process(binary.left) + " %% " + self.process(binary.right)
 
     def post_process_text(self, text):
         return text.replace('%', '%%')
-
 
 class MySQLDBIdentifierPreparer(Connector):
 
     def _escape_identifier(self, value):
         value = value.replace(self.escape_quote, self.escape_to_quote)
         return value.replace("%", "%%")
-
 
 class MySQLDBConnector(Connector):
     driver = 'mysqldb'
@@ -81,8 +76,7 @@ class MySQLDBConnector(Connector):
         # query string.
 
         ssl = {}
-        keys = ['ssl_ca', 'ssl_key', 'ssl_cert', 'ssl_capath', 'ssl_cipher']
-        for key in keys:
+        for key in ['ssl_ca', 'ssl_key', 'ssl_cert', 'ssl_capath', 'ssl_cipher']:
             if key in opts:
                 ssl[key[4:]] = opts[key]
                 util.coerce_kw_type(ssl, key[4:], str)
@@ -154,3 +148,4 @@ class MySQLDBConnector(Connector):
                     "combination of MySQL server and MySQL-python. "
                     "MySQL-python >= 1.2.2 is recommended.  Assuming latin1.")
                 return 'latin1'
+

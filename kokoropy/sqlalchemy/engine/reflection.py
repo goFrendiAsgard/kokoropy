@@ -24,14 +24,12 @@ methods such as get_table_names, get_columns, etc.
    'name' attribute..
 """
 
-from .. import exc, sql
-from .. import schema as sa_schema
-from .. import util
-from ..types import TypeEngine
-from ..util import deprecated
-from ..util import topological
-from .. import inspection
-from .base import Connectable
+import sqlalchemy
+from sqlalchemy import exc, sql
+from sqlalchemy import util
+from sqlalchemy.util import topological
+from sqlalchemy.types import TypeEngine
+from sqlalchemy import schema as sa_schema
 
 
 @util.decorator
@@ -55,24 +53,17 @@ class Inspector(object):
     """Performs database schema inspection.
 
     The Inspector acts as a proxy to the reflection methods of the
-    :class:`~sqlalchemy.engine.interfaces.Dialect`, providing a
+    :class:`~sqlalchemy.engine.base.Dialect`, providing a
     consistent interface as well as caching support for previously
     fetched metadata.
 
-    A :class:`.Inspector` object is usually created via the
-    :func:`.inspect` function::
-
-        from sqlalchemy import inspect, create_engine
-        engine = create_engine('...')
-        insp = inspect(engine)
-
-    The inspection method above is equivalent to using the
-    :meth:`.Inspector.from_engine` method, i.e.::
+    The preferred method to construct an :class:`.Inspector` is via the
+    :meth:`Inspector.from_engine` method.   I.e.::
 
         engine = create_engine('...')
         insp = Inspector.from_engine(engine)
 
-    Where above, the :class:`~sqlalchemy.engine.interfaces.Dialect` may opt
+    Where above, the :class:`~sqlalchemy.engine.base.Dialect` may opt
     to return an :class:`.Inspector` subclass that provides additional
     methods specific to the dialect's target database.
 
@@ -81,13 +72,13 @@ class Inspector(object):
     def __init__(self, bind):
         """Initialize a new :class:`.Inspector`.
 
-        :param bind: a :class:`~sqlalchemy.engine.Connectable`,
+        :param bind: a :class:`~sqlalchemy.engine.base.Connectable`,
           which is typically an instance of
-          :class:`~sqlalchemy.engine.Engine` or
-          :class:`~sqlalchemy.engine.Connection`.
+          :class:`~sqlalchemy.engine.base.Engine` or
+          :class:`~sqlalchemy.engine.base.Connection`.
 
         For a dialect-specific instance of :class:`.Inspector`, see
-        :meth:`.Inspector.from_engine`
+        :meth:`Inspector.from_engine`
 
         """
         # this might not be a connection, it could be an engine.
@@ -108,19 +99,17 @@ class Inspector(object):
 
     @classmethod
     def from_engine(cls, bind):
-        """Construct a new dialect-specific Inspector object from the given
-        engine or connection.
+        """Construct a new dialect-specific Inspector object from the given engine or connection.
 
-        :param bind: a :class:`~sqlalchemy.engine.Connectable`,
+        :param bind: a :class:`~sqlalchemy.engine.base.Connectable`,
           which is typically an instance of
-          :class:`~sqlalchemy.engine.Engine` or
-          :class:`~sqlalchemy.engine.Connection`.
+          :class:`~sqlalchemy.engine.base.Engine` or
+          :class:`~sqlalchemy.engine.base.Connection`.
 
-        This method differs from direct a direct constructor call of
-        :class:`.Inspector` in that the
-        :class:`~sqlalchemy.engine.interfaces.Dialect` is given a chance to
-        provide a dialect-specific :class:`.Inspector` instance, which may
-        provide additional methods.
+        This method differs from direct a direct constructor call of :class:`.Inspector`
+        in that the :class:`~sqlalchemy.engine.base.Dialect` is given a chance to provide
+        a dialect-specific :class:`.Inspector` instance, which may provide additional
+        methods.
 
         See the example at :class:`.Inspector`.
 
@@ -128,10 +117,6 @@ class Inspector(object):
         if hasattr(bind.dialect, 'inspector'):
             return bind.dialect.inspector(bind)
         return Inspector(bind)
-
-    @inspection._inspects(Connectable)
-    def _insp(bind):
-        return Inspector.from_engine(bind)
 
     @property
     def default_schema_name(self):
@@ -154,32 +139,14 @@ class Inspector(object):
         return []
 
     def get_table_names(self, schema=None, order_by=None):
-        """Return all table names in referred to within a particular schema.
+        """Return all table names in `schema`.
 
-        The names are expected to be real tables only, not views.
-        Views are instead returned using the :meth:`.get_view_names`
-        method.
-
-
-        :param schema: Schema name. If ``schema`` is left at ``None``, the
-         database's default schema is
-         used, else the named schema is searched.  If the database does not
-         support named schemas, behavior is undefined if ``schema`` is not
-         passed as ``None``.
-
+        :param schema: Optional, retrieve names from a non-default schema.
         :param order_by: Optional, may be the string "foreign_key" to sort
-         the result on foreign key dependencies.
+                         the result on foreign key dependencies.
 
-         .. versionchanged:: 0.8 the "foreign_key" sorting sorts tables
-            in order of dependee to dependent; that is, in creation
-            order, rather than in drop order.  This is to maintain
-            consistency with similar features such as
-            :attr:`.MetaData.sorted_tables` and :func:`.util.sort_tables`.
-
-        .. seealso::
-
-            :attr:`.MetaData.sorted_tables`
-
+        This should probably not return view names or maybe it should return
+        them with an indicator t or v.
         """
 
         if hasattr(self.dialect, 'get_table_names'):
@@ -188,25 +155,27 @@ class Inspector(object):
         else:
             tnames = self.engine.table_names(schema)
         if order_by == 'foreign_key':
+            import random
+            random.shuffle(tnames)
+
             tuples = []
             for tname in tnames:
                 for fkey in self.get_foreign_keys(tname, schema):
                     if tname != fkey['referred_table']:
-                        tuples.append((fkey['referred_table'], tname))
+                        tuples.append((tname, fkey['referred_table']))
             tnames = list(topological.sort(tuples, tnames))
         return tnames
 
     def get_table_options(self, table_name, schema=None, **kw):
-        """Return a dictionary of options specified when the table of the
-        given name was created.
+        """Return a dictionary of options specified when the table of the given name was created.
 
         This currently includes some options that apply to MySQL tables.
 
         """
         if hasattr(self.dialect, 'get_table_options'):
-            return self.dialect.get_table_options(
-                self.bind, table_name, schema,
-                info_cache=self.info_cache, **kw)
+            return self.dialect.get_table_options(self.bind, table_name, schema,
+                                                  info_cache=self.info_cache,
+                                                  **kw)
         return {}
 
     def get_view_names(self, schema=None):
@@ -259,8 +228,6 @@ class Inspector(object):
                 col_def['type'] = coltype()
         return col_defs
 
-    @deprecated('0.7', 'Call to deprecated method get_primary_keys.'
-                '  Use get_pk_constraint instead.')
     def get_primary_keys(self, table_name, schema=None, **kw):
         """Return information about primary keys in `table_name`.
 
@@ -268,9 +235,11 @@ class Inspector(object):
         primary key information as a list of column names.
         """
 
-        return self.dialect.get_pk_constraint(self.bind, table_name, schema,
-                                               info_cache=self.info_cache,
-                                               **kw)['constrained_columns']
+        pkeys = self.dialect.get_primary_keys(self.bind, table_name, schema,
+                                              info_cache=self.info_cache,
+                                              **kw)
+
+        return pkeys
 
     def get_pk_constraint(self, table_name, schema=None, **kw):
         """Return information about primary key constraint on `table_name`.
@@ -285,9 +254,12 @@ class Inspector(object):
           optional name of the primary key constraint.
 
         """
-        return self.dialect.get_pk_constraint(self.bind, table_name, schema,
+        pkeys = self.dialect.get_pk_constraint(self.bind, table_name, schema,
                                               info_cache=self.info_cache,
                                               **kw)
+
+        return pkeys
+
 
     def get_foreign_keys(self, table_name, schema=None, **kw):
         """Return information about foreign_keys in `table_name`.
@@ -316,9 +288,10 @@ class Inspector(object):
 
         """
 
-        return self.dialect.get_foreign_keys(self.bind, table_name, schema,
+        fk_defs = self.dialect.get_foreign_keys(self.bind, table_name, schema,
                                                 info_cache=self.info_cache,
                                                 **kw)
+        return fk_defs
 
     def get_indexes(self, table_name, schema=None, **kw):
         """Return information about indexes in `table_name`.
@@ -339,13 +312,13 @@ class Inspector(object):
           other options passed to the dialect's get_indexes() method.
         """
 
-        return self.dialect.get_indexes(self.bind, table_name,
+        indexes = self.dialect.get_indexes(self.bind, table_name,
                                                   schema,
                                             info_cache=self.info_cache, **kw)
+        return indexes
 
     def reflecttable(self, table, include_columns, exclude_columns=()):
-        """Given a Table object, load its internal constructs based on
-        introspection.
+        """Given a Table object, load its internal constructs based on introspection.
 
         This is the underlying method used by most dialects to produce
         table reflection.  Direct usage is like::
@@ -396,7 +369,7 @@ class Inspector(object):
         found_table = False
         for col_d in self.get_columns(table_name, schema, **tblkw):
             found_table = True
-            table.dispatch.column_reflect(self, table, col_d)
+            table.dispatch.column_reflect(table, col_d)
 
             name = col_d['name']
             if include_columns and name not in include_columns:
@@ -414,9 +387,8 @@ class Inspector(object):
 
             colargs = []
             if col_d.get('default') is not None:
-                # the "default" value is assumed to be a literal SQL
-                # expression, so is wrapped in text() so that no quoting
-                # occurs on re-issuance.
+                # the "default" value is assumed to be a literal SQL expression,
+                # so is wrapped in text() so that no quoting occurs on re-issuance.
                 colargs.append(
                     sa_schema.DefaultClause(
                         sql.text(col_d['default']), _reflected=True
@@ -442,18 +414,11 @@ class Inspector(object):
         # Primary keys
         pk_cons = self.get_pk_constraint(table_name, schema, **tblkw)
         if pk_cons:
-            pk_cols = [
-                table.c[pk]
-                for pk in pk_cons['constrained_columns']
-                if pk in table.c and pk not in exclude_columns
-            ]
-            pk_cols += [
-                pk
-                for pk in table.primary_key
-                if pk.key in exclude_columns
-            ]
-            primary_key_constraint = sa_schema.PrimaryKeyConstraint(
-                name=pk_cons.get('name'),
+            pk_cols = [table.c[pk]
+                        for pk in pk_cons['constrained_columns']
+                        if pk in table.c and pk not in exclude_columns
+                    ] + [pk for pk in table.primary_key if pk.key in exclude_columns]
+            primary_key_constraint = sa_schema.PrimaryKeyConstraint(name=pk_cons.get('name'),
                 *pk_cols
             )
 
@@ -464,9 +429,6 @@ class Inspector(object):
         for fkey_d in fkeys:
             conname = fkey_d['name']
             constrained_columns = fkey_d['constrained_columns']
-            if exclude_columns and set(constrained_columns).intersection(
-                                exclude_columns):
-                continue
             referred_schema = fkey_d['referred_schema']
             referred_table = fkey_d['referred_table']
             referred_columns = fkey_d['referred_columns']

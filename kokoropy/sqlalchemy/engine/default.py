@@ -12,11 +12,10 @@ as the base class for their own corresponding classes.
 
 """
 
-import re
-import random
-from . import reflection, interfaces, result
-from ..sql import compiler, expression
-from .. import exc, types as sqltypes, util, pool, processors
+import re, random
+from sqlalchemy.engine import base, reflection
+from sqlalchemy.sql import compiler, expression
+from sqlalchemy import exc, types as sqltypes, util, pool, processors
 import codecs
 import weakref
 
@@ -25,7 +24,7 @@ AUTOCOMMIT_REGEXP = re.compile(
             re.I | re.UNICODE)
 
 
-class DefaultDialect(interfaces.Dialect):
+class DefaultDialect(base.Dialect):
     """Default implementation of Dialect"""
 
     statement_compiler = compiler.SQLCompiler
@@ -44,6 +43,7 @@ class DefaultDialect(interfaces.Dialect):
     preexecute_autoincrement_sequences = False
     postfetch_lastrowid = True
     implicit_returning = False
+
 
     supports_native_enum = False
     supports_native_boolean = False
@@ -65,6 +65,7 @@ class DefaultDialect(interfaces.Dialect):
     description_encoding = 'use_encoding'
     # end Py2K
 
+
     name = 'default'
 
     # length at which to truncate
@@ -85,7 +86,6 @@ class DefaultDialect(interfaces.Dialect):
     default_paramstyle = 'named'
     supports_default_values = False
     supports_empty_insert = True
-    supports_multivalues_insert = False
 
     server_version_info = None
 
@@ -98,18 +98,27 @@ class DefaultDialect(interfaces.Dialect):
 
     reflection_options = ()
 
-    def __init__(self, convert_unicode=False,
+    def __init__(self, convert_unicode=False, assert_unicode=False,
                  encoding='utf-8', paramstyle=None, dbapi=None,
                  implicit_returning=None,
-                 case_sensitive=True,
                  label_length=None, **kwargs):
 
         if not getattr(self, 'ported_sqla_06', True):
             util.warn(
-                "The %s dialect is not yet ported to the 0.6 format" %
+                "The %s dialect is not yet ported to SQLAlchemy 0.6/0.7" %
                 self.name)
 
         self.convert_unicode = convert_unicode
+        if assert_unicode:
+            util.warn_deprecated(
+                "assert_unicode is deprecated. "
+                "SQLAlchemy emits a warning in all cases where it "
+                "would otherwise like to encode a Python unicode object "
+                "into a specific encoding but a plain bytestring is "
+                "received. "
+                "This does *not* apply to DBAPIs that coerce Unicode "
+                "natively.")
+
         self.encoding = encoding
         self.positional = False
         self._ischema = None
@@ -126,8 +135,6 @@ class DefaultDialect(interfaces.Dialect):
         self.identifier_preparer = self.preparer(self)
         self.type_compiler = self.type_compiler(self)
 
-        self.case_sensitive = case_sensitive
-
         if label_length and label_length > self.max_identifier_length:
             raise exc.ArgumentError(
                     "Label length of %d is greater than this dialect's"
@@ -136,13 +143,11 @@ class DefaultDialect(interfaces.Dialect):
         self.label_length = label_length
 
         if self.description_encoding == 'use_encoding':
-            self._description_decoder = \
-                            processors.to_unicode_processor_factory(
+            self._description_decoder = processors.to_unicode_processor_factory(
                                             encoding
                                     )
         elif self.description_encoding is not None:
-            self._description_decoder = \
-                            processors.to_unicode_processor_factory(
+            self._description_decoder = processors.to_unicode_processor_factory(
                                             self.description_encoding
                                     )
         self._encoder = codecs.getencoder(self.encoding)
@@ -205,7 +210,6 @@ class DefaultDialect(interfaces.Dialect):
         # end Py2K
         # Py3K
         #cast_to = str
-
         def check_unicode(formatstr, type_):
             cursor = connection.connection.cursor()
             try:
@@ -215,8 +219,7 @@ class DefaultDialect(interfaces.Dialect):
                             expression.select(
                             [expression.cast(
                                 expression.literal_column(
-                                        "'test %s returns'" % formatstr),
-                                        type_)
+                                        "'test %s returns'" % formatstr), type_)
                             ]).compile(dialect=self)
                         )
                     )
@@ -242,18 +245,17 @@ class DefaultDialect(interfaces.Dialect):
             return unicode_for_varchar
 
     def type_descriptor(self, typeobj):
-        """Provide a database-specific :class:`.TypeEngine` object, given
+        """Provide a database-specific ``TypeEngine`` object, given
         the generic object which comes from the types module.
 
         This method looks for a dictionary called
         ``colspecs`` as a class or instance-level variable,
-        and passes on to :func:`.types.adapt_type`.
+        and passes on to ``types.adapt_type()``.
 
         """
         return sqltypes.adapt_type(typeobj, self.colspecs)
 
-    def reflecttable(self, connection, table, include_columns,
-                    exclude_columns=None):
+    def reflecttable(self, connection, table, include_columns, exclude_columns=None):
         insp = reflection.Inspector.from_engine(connection)
         return insp.reflecttable(table, include_columns, exclude_columns)
 
@@ -283,17 +285,26 @@ class DefaultDialect(interfaces.Dialect):
         opts.update(url.query)
         return [[], opts]
 
-    def do_begin(self, dbapi_connection):
+    def do_begin(self, connection):
+        """Implementations might want to put logic here for turning
+        autocommit on/off, etc.
+        """
+
         pass
 
-    def do_rollback(self, dbapi_connection):
-        dbapi_connection.rollback()
+    def do_rollback(self, connection):
+        """Implementations might want to put logic here for turning
+        autocommit on/off, etc.
+        """
 
-    def do_commit(self, dbapi_connection):
-        dbapi_connection.commit()
+        connection.rollback()
 
-    def do_close(self, dbapi_connection):
-        dbapi_connection.close()
+    def do_commit(self, connection):
+        """Implementations might want to put logic here for turning
+        autocommit on/off, etc.
+        """
+
+        connection.commit()
 
     def create_xid(self):
         """Create a random two-phase transaction ID.
@@ -331,8 +342,7 @@ class DefaultDialect(interfaces.Dialect):
         # the configured default of this dialect.
         self.set_isolation_level(dbapi_conn, self.default_isolation_level)
 
-
-class DefaultExecutionContext(interfaces.ExecutionContext):
+class DefaultExecutionContext(base.ExecutionContext):
     isinsert = False
     isupdate = False
     isdelete = False
@@ -385,8 +395,7 @@ class DefaultExecutionContext(interfaces.ExecutionContext):
         return self
 
     @classmethod
-    def _init_compiled(cls, dialect, connection, dbapi_connection,
-                    compiled, parameters):
+    def _init_compiled(cls, dialect, connection, dbapi_connection, compiled, parameters):
         """Initialize execution context for a Compiled construct."""
 
         self = cls.__new__(cls)
@@ -412,8 +421,7 @@ class DefaultExecutionContext(interfaces.ExecutionContext):
 
         self.unicode_statement = unicode(compiled)
         if not dialect.supports_unicode_statements:
-            self.statement = self.unicode_statement.encode(
-                                        self.dialect.encoding)
+            self.statement = self.unicode_statement.encode(self.dialect.encoding)
         else:
             self.statement = self.unicode_statement
 
@@ -422,16 +430,16 @@ class DefaultExecutionContext(interfaces.ExecutionContext):
         self.isdelete = compiled.isdelete
 
         if self.isinsert or self.isupdate or self.isdelete:
-            self._is_explicit_returning = bool(compiled.statement._returning)
-            self._is_implicit_returning = bool(compiled.returning and \
-                                            not compiled.statement._returning)
+            self._is_explicit_returning = compiled.statement._returning
+            self._is_implicit_returning = compiled.returning and \
+                                            not compiled.statement._returning
 
         if not parameters:
             self.compiled_parameters = [compiled.construct_params()]
         else:
             self.compiled_parameters = \
                         [compiled.construct_params(m, _group_number=grp) for
-                                        grp, m in enumerate(parameters)]
+                                        grp,m in enumerate(parameters)]
 
             self.executemany = len(parameters) > 1
 
@@ -466,8 +474,7 @@ class DefaultExecutionContext(interfaces.ExecutionContext):
                             param[dialect._encoder(key)[0]] = \
                                         processors[key](compiled_params[key])
                         else:
-                            param[dialect._encoder(key)[0]] = \
-                                    compiled_params[key]
+                            param[dialect._encoder(key)[0]] = compiled_params[key]
                 else:
                     for key in compiled_params:
                         if key in processors:
@@ -480,8 +487,7 @@ class DefaultExecutionContext(interfaces.ExecutionContext):
         return self
 
     @classmethod
-    def _init_statement(cls, dialect, connection, dbapi_connection,
-                                                    statement, parameters):
+    def _init_statement(cls, dialect, connection, dbapi_connection, statement, parameters):
         """Initialize execution context for a string SQL statement."""
 
         self = cls.__new__(cls)
@@ -504,7 +510,7 @@ class DefaultExecutionContext(interfaces.ExecutionContext):
             if dialect.supports_unicode_statements:
                 self.parameters = parameters
             else:
-                self.parameters = [
+                self.parameters= [
                             dict((dialect._encoder(k)[0], d[k]) for k in d)
                             for d in parameters
                         ] or [{}]
@@ -514,8 +520,7 @@ class DefaultExecutionContext(interfaces.ExecutionContext):
 
         self.executemany = len(parameters) > 1
 
-        if not dialect.supports_unicode_statements and \
-            isinstance(statement, unicode):
+        if not dialect.supports_unicode_statements and isinstance(statement, unicode):
             self.unicode_statement = statement
             self.statement = dialect._encoder(statement)[0]
         else:
@@ -578,7 +583,7 @@ class DefaultExecutionContext(interfaces.ExecutionContext):
         else:
             default_params = {}
 
-        conn._cursor_execute(self.cursor, stmt, default_params, context=self)
+        conn._cursor_execute(self.cursor, stmt, default_params)
         r = self.cursor.fetchone()[0]
         if type_ is not None:
             # apply type post processors to the result
@@ -605,16 +610,6 @@ class DefaultExecutionContext(interfaces.ExecutionContext):
 
     def post_exec(self):
         pass
-
-    def get_result_processor(self, type_, colname, coltype):
-        """Return a 'result processor' for a given type as present in
-        cursor.description.
-
-        This has a default implementation that dialects can override
-        for context-sensitive result type handling.
-
-        """
-        return type_._cached_result_processor(self.dialect, coltype)
 
     def get_lastrowid(self):
         """return self.cursor.lastrowid, or equivalent, after an INSERT.
@@ -648,7 +643,7 @@ class DefaultExecutionContext(interfaces.ExecutionContext):
         pass
 
     def get_result_proxy(self):
-        return result.ResultProxy(self)
+        return base.ResultProxy(self)
 
     @property
     def rowcount(self):
@@ -662,19 +657,17 @@ class DefaultExecutionContext(interfaces.ExecutionContext):
 
     def post_insert(self):
         if not self._is_implicit_returning and \
-            not self._is_explicit_returning and \
-            not self.compiled.inline and \
             self.dialect.postfetch_lastrowid and \
             (not self.inserted_primary_key or \
                         None in self.inserted_primary_key):
 
             table = self.compiled.statement.table
             lastrowid = self.get_lastrowid()
+
             autoinc_col = table._autoincrement_column
             if autoinc_col is not None:
                 # apply type post processors to the lastrowid
-                proc = autoinc_col.type._cached_result_processor(
-                                        self.dialect, None)
+                proc = autoinc_col.type._cached_result_processor(self.dialect, None)
                 if proc is not None:
                     lastrowid = proc(lastrowid)
 
@@ -723,35 +716,27 @@ class DefaultExecutionContext(interfaces.ExecutionContext):
             inputsizes = []
             for key in self.compiled.positiontup:
                 typeengine = types[key]
-                dbtype = typeengine.dialect_impl(self.dialect).\
-                                    get_dbapi_type(self.dialect.dbapi)
-                if dbtype is not None and \
-                    (not exclude_types or dbtype not in exclude_types):
+                dbtype = typeengine.dialect_impl(self.dialect).get_dbapi_type(self.dialect.dbapi)
+                if dbtype is not None and (not exclude_types or dbtype not in exclude_types):
                     inputsizes.append(dbtype)
             try:
                 self.cursor.setinputsizes(*inputsizes)
             except Exception, e:
-                self.root_connection._handle_dbapi_exception(
-                                e, None, None, None, self)
+                self.root_connection._handle_dbapi_exception(e, None, None, None, self)
                 raise
         else:
             inputsizes = {}
             for key in self.compiled.bind_names.values():
                 typeengine = types[key]
-                dbtype = typeengine.dialect_impl(self.dialect).\
-                                get_dbapi_type(self.dialect.dbapi)
-                if dbtype is not None and \
-                        (not exclude_types or dbtype not in exclude_types):
+                dbtype = typeengine.dialect_impl(self.dialect).get_dbapi_type(self.dialect.dbapi)
+                if dbtype is not None and (not exclude_types or dbtype not in exclude_types):
                     if translate:
                         key = translate.get(key, key)
-                    if not self.dialect.supports_unicode_binds:
-                        key = self.dialect._encoder(key)[0]
-                    inputsizes[key] = dbtype
+                    inputsizes[self.dialect._encoder(key)[0]] = dbtype
             try:
                 self.cursor.setinputsizes(**inputsizes)
             except Exception, e:
-                self.root_connection._handle_dbapi_exception(
-                                e, None, None, None, self)
+                self.root_connection._handle_dbapi_exception(e, None, None, None, self)
                 raise
 
     def _exec_default(self, default, type_):

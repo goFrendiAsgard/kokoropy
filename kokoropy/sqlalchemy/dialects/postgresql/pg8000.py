@@ -4,12 +4,13 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
-"""
-.. dialect:: postgresql+pg8000
-    :name: pg8000
-    :dbapi: pg8000
-    :connectstring: postgresql+pg8000://user:password@host:port/dbname[?key=value&key=value...]
-    :url: http://pybrary.net/pg8000/
+"""Support for the PostgreSQL database via the pg8000 driver.
+
+Connecting
+----------
+
+URLs are of the form
+``postgresql+pg8000://user:password@host:port/dbname[?key=value&key=value...]``.
 
 Unicode
 -------
@@ -26,14 +27,13 @@ Passing data from/to the Interval type is not supported as of
 yet.
 
 """
-from ... import util, exc
-import decimal
-from ... import processors
-from ... import types as sqltypes
-from .base import PGDialect, \
+from sqlalchemy import util, exc
+from sqlalchemy.util.compat import decimal
+from sqlalchemy import processors
+from sqlalchemy import types as sqltypes
+from sqlalchemy.dialects.postgresql.base import PGDialect, \
                 PGCompiler, PGIdentifierPreparer, PGExecutionContext,\
                 _DECIMAL_TYPES, _FLOAT_TYPES, _INT_TYPES
-
 
 class _PGNumeric(sqltypes.Numeric):
     def result_processor(self, dialect, coltype):
@@ -61,20 +61,17 @@ class _PGNumericNoBind(_PGNumeric):
     def bind_processor(self, dialect):
         return None
 
-
 class PGExecutionContext_pg8000(PGExecutionContext):
     pass
 
 
 class PGCompiler_pg8000(PGCompiler):
-    def visit_mod_binary(self, binary, operator, **kw):
-        return self.process(binary.left, **kw) + " %% " + \
-                        self.process(binary.right, **kw)
+    def visit_mod(self, binary, **kw):
+        return self.process(binary.left) + " %% " + self.process(binary.right)
 
     def post_process_text(self, text):
         if '%%' in text:
-            util.warn("The SQLAlchemy postgresql dialect "
-                      "now automatically escapes '%' in text() "
+            util.warn("The SQLAlchemy postgresql dialect now automatically escapes '%' in text() "
                       "expressions to '%%'.")
         return text.replace('%', '%%')
 
@@ -102,8 +99,8 @@ class PGDialect_pg8000(PGDialect):
     colspecs = util.update_copy(
         PGDialect.colspecs,
         {
-            sqltypes.Numeric: _PGNumericNoBind,
-            sqltypes.Float: _PGNumeric
+            sqltypes.Numeric : _PGNumericNoBind,
+            sqltypes.Float : _PGNumeric
         }
     )
 

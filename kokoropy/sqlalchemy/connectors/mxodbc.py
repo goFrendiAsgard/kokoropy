@@ -22,15 +22,14 @@ import sys
 import re
 import warnings
 
-from . import Connector
-
+from sqlalchemy.connectors import Connector
 
 class MxODBCConnector(Connector):
-    driver = 'mxodbc'
+    driver='mxodbc'
 
     supports_sane_multi_rowcount = False
-    supports_unicode_statements = True
-    supports_unicode_binds = True
+    supports_unicode_statements = False
+    supports_unicode_binds = False
 
     supports_native_decimal = True
 
@@ -48,7 +47,7 @@ class MxODBCConnector(Connector):
         elif platform == 'darwin':
             from mx.ODBC import iODBC as module
         else:
-            raise ImportError("Unrecognized platform for mxODBC import")
+            raise ImportError, "Unrecognized platform for mxODBC import"
         return module
 
     @classmethod
@@ -74,8 +73,8 @@ class MxODBCConnector(Connector):
         emit Python standard warnings.
         """
         from mx.ODBC.Error import Warning as MxOdbcWarning
-
         def error_handler(connection, cursor, errorclass, errorvalue):
+
             if issubclass(errorclass, MxOdbcWarning):
                 errorclass.__bases__ = (Warning,)
                 warnings.warn(message=str(errorvalue),
@@ -131,19 +130,21 @@ class MxODBCConnector(Connector):
                 version.append(n)
         return tuple(version)
 
-    def _get_direct(self, context):
+    def do_execute(self, cursor, statement, parameters, context=None):
         if context:
             native_odbc_execute = context.execution_options.\
                                         get('native_odbc_execute', 'auto')
-            # default to direct=True in all cases, is more generally
-            # compatible especially with SQL Server
-            return False if native_odbc_execute is True else True
+            if native_odbc_execute is True:
+                # user specified native_odbc_execute=True
+                cursor.execute(statement, parameters)
+            elif native_odbc_execute is False:
+                # user specified native_odbc_execute=False
+                cursor.executedirect(statement, parameters)
+            elif context.is_crud:
+                # statement is UPDATE, DELETE, INSERT
+                cursor.execute(statement, parameters)
+            else:
+                # all other statements
+                cursor.executedirect(statement, parameters)
         else:
-            return True
-
-    def do_executemany(self, cursor, statement, parameters, context=None):
-        cursor.executemany(
-            statement, parameters, direct=self._get_direct(context))
-
-    def do_execute(self, cursor, statement, parameters, context=None):
-        cursor.execute(statement, parameters, direct=self._get_direct(context))
+            cursor.executedirect(statement, parameters)

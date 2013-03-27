@@ -6,7 +6,7 @@
 
 """Core event interfaces."""
 
-from . import event, exc, util
+from sqlalchemy import event, exc, util
 engine = util.importlater('sqlalchemy', 'engine')
 pool = util.importlater('sqlalchemy', 'pool')
 
@@ -166,7 +166,7 @@ class DDLEvents(event.Events):
 
         """
 
-    def column_reflect(self, inspector, table, column_info):
+    def column_reflect(self, table, column_info):
         """Called for each unit of 'column info' retrieved when
         a :class:`.Table` is being reflected.
 
@@ -188,7 +188,7 @@ class DDLEvents(event.Events):
             from sqlalchemy.schema import Table
             from sqlalchemy import event
 
-            def listen_for_reflect(inspector, table, column_info):
+            def listen_for_reflect(table, column_info):
                 "receive a column_reflect event"
                 # ...
 
@@ -200,7 +200,7 @@ class DDLEvents(event.Events):
         ...or with a specific :class:`.Table` instance using
         the ``listeners`` argument::
 
-            def listen_for_reflect(inspector, table, column_info):
+            def listen_for_reflect(table, column_info):
                 "receive a column_reflect event"
                 # ...
 
@@ -216,10 +216,8 @@ class DDLEvents(event.Events):
 
         """
 
-
 class SchemaEventTarget(object):
-    """Base class for elements that are the targets of :class:`.DDLEvents`
-    events.
+    """Base class for elements that are the targets of :class:`.DDLEvents` events.
 
     This includes :class:`.SchemaItem` as well as :class:`.SchemaType`.
 
@@ -235,7 +233,6 @@ class SchemaEventTarget(object):
         self.dispatch.before_parent_attach(self, parent)
         self._set_parent(parent)
         self.dispatch.after_parent_attach(self, parent)
-
 
 class PoolEvents(event.Events):
     """Available events for :class:`.Pool`.
@@ -253,11 +250,11 @@ class PoolEvents(event.Events):
 
         event.listen(Pool, 'checkout', my_on_checkout)
 
-    In addition to accepting the :class:`.Pool` class and
-    :class:`.Pool` instances, :class:`.PoolEvents` also accepts
-    :class:`.Engine` objects and the :class:`.Engine` class as
-    targets, which will be resolved to the ``.pool`` attribute of the
-    given engine or the :class:`.Pool` class::
+    In addition to accepting the :class:`.Pool` class and :class:`.Pool` instances,
+    :class:`.PoolEvents` also accepts :class:`.Engine` objects and
+    the :class:`.Engine` class as targets, which will be resolved
+    to the ``.pool`` attribute of the given engine or the :class:`.Pool`
+    class::
 
         engine = create_engine("postgresql://scott:tiger@localhost/test")
 
@@ -336,95 +333,22 @@ class PoolEvents(event.Events):
 
         """
 
-    def reset(self, dbapi_con, con_record):
-        """Called before the "reset" action occurs for a pooled connection.
-
-        This event represents
-        when the ``rollback()`` method is called on the DBAPI connection
-        before it is returned to the pool.  The behavior of "reset" can
-        be controlled, including disabled, using the ``reset_on_return``
-        pool argument.
-
-
-        The :meth:`.PoolEvents.reset` event is usually followed by the
-        the :meth:`.PoolEvents.checkin` event is called, except in those
-        cases where the connection is discarded immediately after reset.
-
-        :param dbapi_con:
-          A raw DB-API connection
-
-        :param con_record:
-          The ``_ConnectionRecord`` that persistently manages the connection
-
-        .. versionadded:: 0.8
-
-        .. seealso::
-
-            :meth:`.ConnectionEvents.rollback`
-
-            :meth:`.ConnectionEvents.commit`
-
-        """
-
-
-
 class ConnectionEvents(event.Events):
-    """Available events for :class:`.Connectable`, which includes
-    :class:`.Connection` and :class:`.Engine`.
+    """Available events for :class:`.Connection`.
 
-    The methods here define the name of an event as well as the names of
-    members that are passed to listener functions.
+    The methods here define the name of an event as well as the names of members that are passed to listener functions.
 
-    An event listener can be associated with any :class:`.Connectable`
-    class or instance, such as an :class:`.Engine`, e.g.::
+    e.g.::
 
         from sqlalchemy import event, create_engine
 
-        def before_cursor_execute(conn, cursor, statement, parameters, context,
-                                                        executemany):
-            log.info("Received statement: %s" % statement)
+        def before_execute(conn, clauseelement, multiparams, params):
+            log.info("Received statement: %s" % clauseelement)
 
         engine = create_engine('postgresql://scott:tiger@localhost/test')
-        event.listen(engine, "before_cursor_execute", before_cursor_execute)
+        event.listen(engine, "before_execute", before_execute)
 
-    or with a specific :class:`.Connection`::
-
-        with engine.begin() as conn:
-            @event.listens_for(conn, 'before_cursor_execute')
-            def before_cursor_execute(conn, cursor, statement, parameters,
-                                            context, executemany):
-                log.info("Received statement: %s" % statement)
-
-    The :meth:`.before_execute` and :meth:`.before_cursor_execute`
-    events can also be established with the ``retval=True`` flag, which
-    allows modification of the statement and parameters to be sent
-    to the database.  The :meth:`.before_cursor_execute` event is
-    particularly useful here to add ad-hoc string transformations, such
-    as comments, to all executions::
-
-        from sqlalchemy.engine import Engine
-        from sqlalchemy import event
-
-        @event.listens_for(Engine, "before_cursor_execute", retval=True)
-        def comment_sql_calls(conn, cursor, statement, parameters,
-                                            context, executemany):
-            statement = statement + " -- some comment"
-            return statement, parameters
-
-    .. note:: :class:`.ConnectionEvents` can be established on any
-       combination of :class:`.Engine`, :class:`.Connection`, as well
-       as instances of each of those classes.  Events across all
-       four scopes will fire off for a given instance of
-       :class:`.Connection`.  However, for performance reasons, the
-       :class:`.Connection` object determines at instantiation time
-       whether or not its parent :class:`.Engine` has event listeners
-       established.   Event listeners added to the :class:`.Engine`
-       class or to an instance of :class:`.Engine` *after* the instantiation
-       of a dependent :class:`.Connection` instance will usually
-       *not* be available on that :class:`.Connection` instance.  The newly
-       added listeners will instead take effect for :class:`.Connection`
-       instances created subsequent to those event listeners being
-       established on the parent :class:`.Engine` class or instance.
+    Some events allow modifiers to the listen() function.
 
     :param retval=False: Applies to the :meth:`.before_execute` and
       :meth:`.before_cursor_execute` events only.  When True, the
@@ -432,10 +356,6 @@ class ConnectionEvents(event.Events):
       is a tuple of parameters that replace the given statement
       and parameters.  See those methods for a description of
       specific return arguments.
-
-    .. versionchanged:: 0.8 :class:`.ConnectionEvents` can now be associated
-       with any :class:`.Connectable` including :class:`.Connection`,
-       in addition to the existing support for :class:`.Engine`.
 
     """
 
@@ -446,24 +366,20 @@ class ConnectionEvents(event.Events):
         if not retval:
             if identifier == 'before_execute':
                 orig_fn = fn
-
-                def wrap_before_execute(conn, clauseelement,
-                                                multiparams, params):
+                def wrap(conn, clauseelement, multiparams, params):
                     orig_fn(conn, clauseelement, multiparams, params)
                     return clauseelement, multiparams, params
-                fn = wrap_before_execute
+                fn = wrap
             elif identifier == 'before_cursor_execute':
                 orig_fn = fn
-
-                def wrap_before_cursor_execute(conn, cursor, statement,
+                def wrap(conn, cursor, statement,
                         parameters, context, executemany):
                     orig_fn(conn, cursor, statement,
                         parameters, context, executemany)
                     return statement, parameters
-                fn = wrap_before_cursor_execute
+                fn = wrap
 
-        elif retval and \
-            identifier not in ('before_execute', 'before_cursor_execute'):
+        elif retval and identifier not in ('before_execute', 'before_cursor_execute'):
             raise exc.ArgumentError(
                     "Only the 'before_execute' and "
                     "'before_cursor_execute' engine "
@@ -472,107 +388,18 @@ class ConnectionEvents(event.Events):
         event.Events._listen(target, identifier, fn)
 
     def before_execute(self, conn, clauseelement, multiparams, params):
-        """Intercept high level execute() events, receiving uncompiled
-        SQL constructs and other objects prior to rendering into SQL.
-
-        This event is good for debugging SQL compilation issues as well
-        as early manipulation of the parameters being sent to the database,
-        as the parameter lists will be in a consistent format here.
-
-        This event can be optionally established with the ``retval=True``
-        flag.  The ``clauseelement``, ``multiparams``, and ``params``
-        arguments should be returned as a three-tuple in this case::
-
-            @event.listens_for(Engine, "before_execute", retval=True)
-            def before_execute(conn, conn, clauseelement, multiparams, params):
-                # do something with clauseelement, multiparams, params
-                return clauseelement, multiparams, params
-
-        :param conn: :class:`.Connection` object
-        :param clauseelement: SQL expression construct, :class:`.Compiled`
-         instance, or string statement passed to :meth:`.Connection.execute`.
-        :param multiparams: Multiple parameter sets, a list of dictionaries.
-        :param params: Single parameter set, a single dictionary.
-
-        See also:
-
-        :meth:`.before_cursor_execute`
-
-        """
+        """Intercept high level execute() events."""
 
     def after_execute(self, conn, clauseelement, multiparams, params, result):
-        """Intercept high level execute() events after execute.
-
-
-        :param conn: :class:`.Connection` object
-        :param clauseelement: SQL expression construct, :class:`.Compiled`
-         instance, or string statement passed to :meth:`.Connection.execute`.
-        :param multiparams: Multiple parameter sets, a list of dictionaries.
-        :param params: Single parameter set, a single dictionary.
-        :param result: :class:`.ResultProxy` generated by the execution.
-
-        """
+        """Intercept high level execute() events."""
 
     def before_cursor_execute(self, conn, cursor, statement,
                         parameters, context, executemany):
-        """Intercept low-level cursor execute() events before execution,
-        receiving the string
-        SQL statement and DBAPI-specific parameter list to be invoked
-        against a cursor.
-
-        This event is a good choice for logging as well as late modifications
-        to the SQL string.  It's less ideal for parameter modifications except
-        for those which are specific to a target backend.
-
-        This event can be optionally established with the ``retval=True``
-        flag.  The ``statement`` and ``parameters`` arguments should be
-        returned as a two-tuple in this case::
-
-            @event.listens_for(Engine, "before_cursor_execute", retval=True)
-            def before_cursor_execute(conn, cursor, statement,
-                            parameters, context, executemany):
-                # do something with statement, parameters
-                return statement, parameters
-
-        See the example at :class:`.ConnectionEvents`.
-
-        :param conn: :class:`.Connection` object
-        :param cursor: DBAPI cursor object
-        :param statement: string SQL statement
-        :param parameters: Dictionary, tuple, or list of parameters being
-         passed to the ``execute()`` or ``executemany()`` method of the
-         DBAPI ``cursor``.  In some cases may be ``None``.
-        :param context: :class:`.ExecutionContext` object in use.  May
-         be ``None``.
-        :param executemany: boolean, if ``True``, this is an ``executemany()``
-         call, if ``False``, this is an ``execute()`` call.
-
-        See also:
-
-        :meth:`.before_execute`
-
-        :meth:`.after_cursor_execute`
-
-        """
+        """Intercept low-level cursor execute() events."""
 
     def after_cursor_execute(self, conn, cursor, statement,
                         parameters, context, executemany):
-        """Intercept low-level cursor execute() events after execution.
-
-        :param conn: :class:`.Connection` object
-        :param cursor: DBAPI cursor object.  Will have results pending
-         if the statement was a SELECT, but these should not be consumed
-         as they will be needed by the :class:`.ResultProxy`.
-        :param statement: string SQL statement
-        :param parameters: Dictionary, tuple, or list of parameters being
-         passed to the ``execute()`` or ``executemany()`` method of the
-         DBAPI ``cursor``.  In some cases may be ``None``.
-        :param context: :class:`.ExecutionContext` object in use.  May
-         be ``None``.
-        :param executemany: boolean, if ``True``, this is an ``executemany()``
-         call, if ``False``, this is an ``execute()`` call.
-
-        """
+        """Intercept low-level cursor execute() events."""
 
     def dbapi_error(self, conn, cursor, statement, parameters,
                         context, exception):
@@ -600,115 +427,37 @@ class ConnectionEvents(event.Events):
         exception is then wrapped in a SQLAlchemy DBAPI exception
         wrapper and re-thrown.
 
-        :param conn: :class:`.Connection` object
-        :param cursor: DBAPI cursor object
-        :param statement: string SQL statement
-        :param parameters: Dictionary, tuple, or list of parameters being
-         passed to the ``execute()`` or ``executemany()`` method of the
-         DBAPI ``cursor``.  In some cases may be ``None``.
-        :param context: :class:`.ExecutionContext` object in use.  May
-         be ``None``.
-        :param exception: The **unwrapped** exception emitted directly from the
-         DBAPI.  The class here is specific to the DBAPI module in use.
-
         .. versionadded:: 0.7.7
 
         """
 
     def begin(self, conn):
-        """Intercept begin() events.
-
-        :param conn: :class:`.Connection` object
-
-        """
+        """Intercept begin() events."""
 
     def rollback(self, conn):
-        """Intercept rollback() events, as initiated by a
-        :class:`.Transaction`.
-
-        Note that the :class:`.Pool` also "auto-rolls back"
-        a DBAPI connection upon checkin, if the ``reset_on_return``
-        flag is set to its default value of ``'rollback'``.
-        To intercept this
-        rollback, use the :meth:`.PoolEvents.reset` hook.
-
-        :param conn: :class:`.Connection` object
-
-        .. seealso::
-
-            :meth:`.PoolEvents.reset`
-
-        """
+        """Intercept rollback() events."""
 
     def commit(self, conn):
-        """Intercept commit() events, as initiated by a
-        :class:`.Transaction`.
-
-        Note that the :class:`.Pool` may also "auto-commit"
-        a DBAPI connection upon checkin, if the ``reset_on_return``
-        flag is set to the value ``'commit'``.  To intercept this
-        commit, use the :meth:`.PoolEvents.reset` hook.
-
-        :param conn: :class:`.Connection` object
-        """
+        """Intercept commit() events."""
 
     def savepoint(self, conn, name=None):
-        """Intercept savepoint() events.
-
-        :param conn: :class:`.Connection` object
-        :param name: specified name used for the savepoint.
-
-        """
+        """Intercept savepoint() events."""
 
     def rollback_savepoint(self, conn, name, context):
-        """Intercept rollback_savepoint() events.
-
-        :param conn: :class:`.Connection` object
-        :param name: specified name used for the savepoint.
-        :param context: :class:`.ExecutionContext` in use.  May be ``None``.
-
-        """
+        """Intercept rollback_savepoint() events."""
 
     def release_savepoint(self, conn, name, context):
-        """Intercept release_savepoint() events.
-
-        :param conn: :class:`.Connection` object
-        :param name: specified name used for the savepoint.
-        :param context: :class:`.ExecutionContext` in use.  May be ``None``.
-
-        """
+        """Intercept release_savepoint() events."""
 
     def begin_twophase(self, conn, xid):
-        """Intercept begin_twophase() events.
-
-        :param conn: :class:`.Connection` object
-        :param xid: two-phase XID identifier
-
-        """
+        """Intercept begin_twophase() events."""
 
     def prepare_twophase(self, conn, xid):
-        """Intercept prepare_twophase() events.
-
-        :param conn: :class:`.Connection` object
-        :param xid: two-phase XID identifier
-        """
+        """Intercept prepare_twophase() events."""
 
     def rollback_twophase(self, conn, xid, is_prepared):
-        """Intercept rollback_twophase() events.
-
-        :param conn: :class:`.Connection` object
-        :param xid: two-phase XID identifier
-        :param is_prepared: boolean, indicates if
-         :meth:`.TwoPhaseTransaction.prepare` was called.
-
-        """
+        """Intercept rollback_twophase() events."""
 
     def commit_twophase(self, conn, xid, is_prepared):
-        """Intercept commit_twophase() events.
+        """Intercept commit_twophase() events."""
 
-        :param conn: :class:`.Connection` object
-        :param xid: two-phase XID identifier
-        :param is_prepared: boolean, indicates if
-         :meth:`.TwoPhaseTransaction.prepare` was called.
-
-        """

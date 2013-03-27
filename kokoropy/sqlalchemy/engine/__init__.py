@@ -53,41 +53,51 @@ url.py
 # not sure what this was used for
 #import sqlalchemy.databases
 
-from .interfaces import (
-    Compiled,
-    Connectable,
-    Dialect,
-    ExecutionContext,
-    TypeCompiler
-)
-
-from .base import (
-    Connection,
-    Engine,
-    NestedTransaction,
-    RootTransaction,
-    Transaction,
-    TwoPhaseTransaction,
-    )
-
-from .result import (
+from sqlalchemy.engine.base import (
     BufferedColumnResultProxy,
     BufferedColumnRow,
     BufferedRowResultProxy,
-    FullyBufferedResultProxy,
+    Compiled,
+    Connectable,
+    Connection,
+    Dialect,
+    Engine,
+    ExecutionContext,
+    NestedTransaction,
     ResultProxy,
+    RootTransaction,
     RowProxy,
+    Transaction,
+    TwoPhaseTransaction,
+    TypeCompiler
+    )
+from sqlalchemy.engine import strategies
+from sqlalchemy import util
+
+
+__all__ = (
+    'BufferedColumnResultProxy',
+    'BufferedColumnRow',
+    'BufferedRowResultProxy',
+    'Compiled',
+    'Connectable',
+    'Connection',
+    'Dialect',
+    'Engine',
+    'ExecutionContext',
+    'NestedTransaction',
+    'ResultProxy',
+    'RootTransaction',
+    'RowProxy',
+    'Transaction',
+    'TwoPhaseTransaction',
+    'TypeCompiler',
+    'create_engine',
+    'engine_from_config',
     )
 
-from .util import (
-    connection_memoize
-    )
-
-from . import util, strategies
 
 default_strategy = 'plain'
-
-
 def create_engine(*args, **kwargs):
     """Create a new :class:`.Engine` instance.
 
@@ -107,11 +117,11 @@ def create_engine(*args, **kwargs):
     the URL can be an instance of :class:`~sqlalchemy.engine.url.URL`.
 
     ``**kwargs`` takes a wide variety of options which are routed
-    towards their appropriate components.  Arguments may be     specific
-    to the :class:`.Engine`, the underlying :class:`.Dialect`, as well as
-    the     :class:`.Pool`.  Specific dialects also accept keyword
-    arguments that     are unique to that dialect.   Here, we describe the
-    parameters     that are common to most :func:`.create_engine()` usage.
+    towards their appropriate components.  Arguments may be
+    specific to the :class:`.Engine`, the underlying :class:`.Dialect`, as well as the
+    :class:`.Pool`.  Specific dialects also accept keyword arguments that
+    are unique to that dialect.   Here, we describe the parameters
+    that are common to most :func:`.create_engine()` usage.
 
     Once established, the newly resulting :class:`.Engine` will
     request a connection from the underlying :class:`.Pool` once
@@ -123,17 +133,15 @@ def create_engine(*args, **kwargs):
 
     See also:
 
-    :doc:`/core/engines`
+    :ref:`engines_toplevel`
 
     :ref:`connections_toplevel`
 
-    :param case_sensitive=True: if False, result column names
-       will match in a case-insensitive fashion, that is,
-       ``row['SomeColumn']``.
-
-       .. versionchanged:: 0.8
-           By default, result row names match case-sensitively.
-           In version 0.7 and prior, all matches were case-insensitive.
+    :param assert_unicode:  Deprecated.  This flag
+        sets an engine-wide default value for
+        the ``assert_unicode`` flag on the
+        :class:`.String` type - see that
+        type for further details.
 
     :param connect_args: a dictionary of options which will be
         passed directly to the DBAPI's ``connect()`` method as
@@ -223,7 +231,7 @@ def create_engine(*args, **kwargs):
 
     :param execution_options: Dictionary execution options which will
         be applied to all connections.  See
-        :meth:`~sqlalchemy.engine.Connection.execution_options`
+        :meth:`~sqlalchemy.engine.base.Connection.execution_options`
 
     :param implicit_returning=True: When ``True``, a RETURNING-
         compatible construct, if available, will be used to
@@ -254,13 +262,13 @@ def create_engine(*args, **kwargs):
         opened above and beyond the pool_size setting, which defaults
         to five. this is only used with :class:`~sqlalchemy.pool.QueuePool`.
 
-    :param module=None: reference to a Python module object (the module
-        itself, not its string name).  Specifies an alternate DBAPI module to
-        be used by the engine's dialect.  Each sub-dialect references a
-        specific DBAPI which will be imported before first connect.  This
-        parameter causes the import to be bypassed, and the given module to
-        be used instead. Can be used for testing of DBAPIs as well as to
-        inject "mock" DBAPI implementations into the :class:`.Engine`.
+    :param module=None: reference to a Python module object (the module itself, not
+        its string name).  Specifies an alternate DBAPI module to be used
+        by the engine's dialect.  Each sub-dialect references a specific DBAPI which
+        will be imported before first connect.  This parameter causes the
+        import to be bypassed, and the given module to be used instead.
+        Can be used for testing of DBAPIs as well as to inject "mock"
+        DBAPI implementations into the :class:`.Engine`.
 
     :param pool=None: an already-constructed instance of
         :class:`~sqlalchemy.pool.Pool`, such as a
@@ -283,8 +291,7 @@ def create_engine(*args, **kwargs):
        id.
 
     :param pool_size=5: the number of connections to keep open
-        inside the connection pool. This used with
-        :class:`~sqlalchemy.pool.QueuePool` as
+        inside the connection pool. This used with :class:`~sqlalchemy.pool.QueuePool` as
         well as :class:`~sqlalchemy.pool.SingletonThreadPool`.  With
         :class:`~sqlalchemy.pool.QueuePool`, a ``pool_size`` setting
         of 0 indicates no limit; to disable pooling, set ``poolclass`` to
@@ -318,8 +325,7 @@ def create_engine(*args, **kwargs):
           :ref:`threadlocal_strategy`;
         * the ``mock`` strategy, which dispatches all statement
           execution to a function passed as the argument ``executor``.
-          See `example in the FAQ
-          <http://www.sqlalchemy.org/trac/wiki/FAQ#HowcanIgettheCREATETABLEDROPTABLEoutputasastring>`_.
+          See `example in the FAQ <http://www.sqlalchemy.org/trac/wiki/FAQ#HowcanIgettheCREATETABLEDROPTABLEoutputasastring>`_.
 
     :param executor=None: a function taking arguments
         ``(sql, *multiparams, **params)``, to which the ``mock`` strategy will
@@ -330,7 +336,6 @@ def create_engine(*args, **kwargs):
     strategy = kwargs.pop('strategy', default_strategy)
     strategy = strategies.strategies[strategy]
     return strategy.create(*args, **kwargs)
-
 
 def engine_from_config(configuration, prefix='sqlalchemy.', **kwargs):
     """Create a new Engine instance using a configuration dictionary.
@@ -345,13 +350,27 @@ def engine_from_config(configuration, prefix='sqlalchemy.', **kwargs):
     arguments.
     """
 
-    opts = util._coerce_config(configuration, prefix)
+    opts = _coerce_config(configuration, prefix)
     opts.update(kwargs)
     url = opts.pop('url')
     return create_engine(url, **opts)
 
+def _coerce_config(configuration, prefix):
+    """Convert configuration values to expected types."""
 
-__all__ = (
-    'create_engine',
-    'engine_from_config',
-    )
+    options = dict((key[len(prefix):], configuration[key])
+                   for key in configuration
+                   if key.startswith(prefix))
+    for option, type_ in (
+        ('convert_unicode', util.bool_or_str('force')),
+        ('pool_timeout', int),
+        ('echo', util.bool_or_str('debug')),
+        ('echo_pool', util.bool_or_str('debug')),
+        ('pool_recycle', int),
+        ('pool_size', int),
+        ('max_overflow', int),
+        ('pool_threadlocal', bool),
+        ('use_native_unicode', bool),
+    ):
+        util.coerce_kw_type(options, option, type_)
+    return options

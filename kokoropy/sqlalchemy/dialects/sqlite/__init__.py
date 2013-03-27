@@ -15,7 +15,6 @@ from sqlalchemy.dialects.sqlite.base import \
     NUMERIC, SMALLINT, TEXT, TIME, TIMESTAMP, VARCHAR, dialect
 
 __all__ = (
-    'BLOB', 'BOOLEAN', 'CHAR', 'DATE', 'DATETIME', 'DECIMAL', 'FLOAT',
-    'INTEGER', 'NUMERIC', 'SMALLINT', 'TEXT', 'TIME', 'TIMESTAMP', 'VARCHAR',
-    'REAL', 'dialect'
+    'BLOB', 'BOOLEAN', 'CHAR', 'DATE', 'DATETIME', 'DECIMAL', 'FLOAT', 'INTEGER',
+    'NUMERIC', 'SMALLINT', 'TEXT', 'TIME', 'TIMESTAMP', 'VARCHAR', 'dialect', 'REAL'
 )
