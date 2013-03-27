@@ -85,14 +85,13 @@ def get_routes(directory, controller, function, parameters):
             routes.append(basic_route+'/'+parameter_segment)
         routes.append(basic_route)
         routes.append(basic_route+'/')
-    # return routes
     return routes
 
 def application_static(path):
     return static_file(path, root='application/static')
 
 def module_static(module_path, path):
-        return static_file(path, root='application/'+module_path+'/static')
+    return static_file(path, root='application/'+module_path+'/static')
 
 def kokoro_init(DEBUG, custom_error_handler):
     
@@ -145,6 +144,8 @@ def kokoro_init(DEBUG, custom_error_handler):
     # Load everything inside controller modules
     ###################################################################################################
     for directory in directories:
+        if not directory in directory_controller_modules:
+            continue
         for controller_module in directory_controller_modules[directory]:
             # load everything inside the controllers
             print('LOAD CONTROLLER : '+controller_module)
@@ -154,6 +155,8 @@ def kokoro_init(DEBUG, custom_error_handler):
     # Load Default_Controller inside controller modules
     ###################################################################################################
     for directory in directories:
+        if not directory in directory_controller_modules:
+            continue
         for controller_module in directory_controller_modules[directory]:
             module_obj = None
             exec('import application.'+directory+'.controllers.'+controller_module+' as module_obj')
