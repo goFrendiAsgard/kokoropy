@@ -5,7 +5,7 @@
 # import "standard" modules (Please leave it as is)
 ########################################################################################################
 import os, inspect
-from application import kokoro_init
+from kokoropy import kokoro_init
 from kokoropy.bottle import run, template
 custom_404, custom_403, custom_500 = None, None, None
 
