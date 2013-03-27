@@ -4,9 +4,9 @@
 ########################################################################################################
 # import "standard" modules (Please leave it as is)
 ########################################################################################################
-import os, inspect
+import inspect
 from kokoropy import kokoro_init
-from kokoropy.bottle import run, template
+from kokoropy.bottle import template
 custom_404, custom_403, custom_500 = None, None, None
 
 ########################################################################################################
@@ -119,17 +119,15 @@ def custom_500(error):
 if __name__ == '__main__':
     
     if inspect.isfunction(custom_404) and inspect.isfunction(custom_403) and inspect.isfunction(custom_500):
-        custom_error_handler = {
+        ERROR_HANDLER = {
             404 : custom_404,
             403 : custom_403,
             500 : custom_500
         }
     else:
-        custom_error_handler = ''
+        ERROR_HANDLER = ''
     
     ###################################################################################################
     # run app with given parameters
     ###################################################################################################
-    kokoro_init(DEBUG, custom_error_handler)
-    port = int(os.environ.get("PORT", PORT))
-    run(reloader=RELOADER, host=HOST, port=port)
+    kokoro_init(DEBUG, PORT, RELOADER, HOST, ERROR_HANDLER)    

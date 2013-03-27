@@ -1,10 +1,14 @@
 import bottle
 import sqlalchemy
-__all__ = ['bottle', 'sqlalchemy']
+import beaker
+__all__ = ['bottle', 'sqlalchemy', 'beaker']
 
 # -*- coding: utf-8 -*-
 import os, inspect, sys
-from kokoropy.bottle import default_app, debug, run, static_file, TEMPLATE_PATH, template, route, error, Bottle
+sys.path.append(os.path.dirname(__file__))
+import beaker.middleware
+from bottle import default_app, debug, run, static_file,\
+    request, TEMPLATE_PATH, template, route, error, hook, Bottle
 
 
 # python 3 hack for xrange
@@ -97,17 +101,19 @@ def application_static(path):
 def module_static(module_path, path):
     return static_file(path, root='application/'+module_path+'/static')
 
-def kokoro_init(DEBUG, custom_error_handler):
+@hook('before_request')
+def setup_request():
+    request.session = request.environ['beaker.session']
+
+def kokoro_init(DEBUG, PORT, RELOADER, HOST, ERROR_HANDLER):
     
     ###################################################################################################
     # Handling error
     ###################################################################################################
-    for key in custom_error_handler:
-        error(key)(custom_error_handler[key])
-    debug(DEBUG)
+    for key in ERROR_HANDLER:
+        error(key)(ERROR_HANDLER[key])    
     
-    TEMPLATE_PATH.remove('./views/')
-    
+    TEMPLATE_PATH.remove('./views/')    
     
     # init directories
     print ('INIT APPLICATION DIRECTORIES')
@@ -141,8 +147,7 @@ def kokoro_init(DEBUG, custom_error_handler):
                 continue
             if not directory in directory_controller_modules:
                 directory_controller_modules[directory] = []
-            directory_controller_modules[directory].append(module_name)
-    
+            directory_controller_modules[directory].append(module_name)    
     
     ###################################################################################################
     # Load everything inside controller modules
@@ -191,8 +196,7 @@ def kokoro_init(DEBUG, custom_error_handler):
                 parameters = inspect.getargspec(method_object)[0][1:]
                 routes = get_routes(directory, controller_module, method_published_name, parameters)
                 for single_route in routes:
-                    route(single_route)(method_object)
-    
+                    route(single_route)(method_object)    
             
     ###################################################################################################
     # serve application's static file
@@ -200,16 +204,14 @@ def kokoro_init(DEBUG, custom_error_handler):
     print('ADD STATIC FILE ROUTE : /favicon.ico, /human.txt')
     print('ADD STATIC FILE ROUTE: "/images/*, /css/*, /js/*, /fonts/*')
     route('/<path:re:(favicon.ico|humans.txt)>')(application_static)
-    route('/<path:re:(static_libraries|images|css|js|fonts)\/.+>')(application_static)
-    
+    route('/<path:re:(static_libraries|images|css|js|fonts)\/.+>')(application_static)    
     
     ###################################################################################################
     # serve module's static file
     ###################################################################################################
     directory_pattern = '|'.join(directories)
     print('ADD STATIC FILE ROUTE: "module/static_libraries/*, module/images/*, module/css/*, module/js/*, module/fonts/*')
-    route('/<module_path:re:('+directory_pattern+')>/<path:re:(static_libraries|images|css|js|fonts)\/.+>')(module_static)
-    
+    route('/<module_path:re:('+directory_pattern+')>/<path:re:(static_libraries|images|css|js|fonts)\/.+>')(module_static)    
     
     ###################################################################################################
     # add template path
@@ -217,3 +219,14 @@ def kokoro_init(DEBUG, custom_error_handler):
     for directory in directories:
         print('REGISTER TEMPLATE PATH : '+directory+'/views/')
         TEMPLATE_PATH.append('./application/'+directory+'/views/')
+    
+    # run the application
+    session_opts = {
+        'session.type': 'file',
+        'session.data_dir': './session/',
+        'session.auto': True,
+    }
+    app = beaker.middleware.SessionMiddleware(bottle.app(), session_opts)
+    debug(DEBUG)
+    port = int(os.environ.get("PORT", PORT))
+    run(app=app, reloader=RELOADER, host=HOST, port=port)
