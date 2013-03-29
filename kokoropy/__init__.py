@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(__file__))
 import bottle, sqlalchemy, beaker
 import beaker.middleware
 from bottle import default_app, debug, run, static_file,\
-    request, TEMPLATE_PATH, template, route, error, hook, Bottle    
+    request, TEMPLATE_PATH, template, route, get, post, put, delete, error, hook, Bottle    
 ###################################################################################################
 # Hacks
 ###################################################################################################  
@@ -105,10 +105,10 @@ def _get_routes(directory, controller, function, parameters):
     return routes
 
 def _application_static(path):
-    return static_file(path, root='application/static')
+    return static_file(path, root='application/assets')
 
 def _module_static(module_path, path):
-    return static_file(path, root='application/'+module_path+'/static')
+    return static_file(path, root='application/'+module_path+'/assets')
 
 def _pop_dynamic_argument(kwargs, key, default_value):
     if key in kwargs:
@@ -226,20 +226,24 @@ def kokoro_init(**kwargs):
                 parameters = inspect.getargspec(method_object)[0][1:]
                 routes = _get_routes(directory, controller_module, method_published_name, parameters)
                 for single_route in routes:
-                    route(single_route)(method_object)            
+                    route(single_route)(method_object)
+                    get(single_route)(method_object)
+                    post(single_route)(method_object)
+                    put(single_route)(method_object)
+                    delete(single_route)(method_object)            
     ###################################################################################################
     # serve application's static file
     ###################################################################################################
     print('ADD STATIC FILE ROUTE : /favicon.ico, /human.txt')
-    print('ADD STATIC FILE ROUTE: "/images/*, /css/*, /js/*, /fonts/*')
+    print('ADD STATIC FILE ROUTE: "/assets/*"')
     route('/<path:re:(favicon.ico|humans.txt)>')(_application_static)
-    route('/<path:re:(static_libraries|images|css|js|fonts)\/.+>')(_application_static)
+    route('/assets/<path:re:.+>')(_application_static)
     ###################################################################################################
     # serve module's static file
     ###################################################################################################
     directory_pattern = '|'.join(directory_list)
-    print('ADD STATIC FILE ROUTE: "module/static_libraries/*, module/images/*, module/css/*, module/js/*, module/fonts/*')
-    route('/<module_path:re:('+directory_pattern+')>/<path:re:(static_libraries|images|css|js|fonts)\/.+>')(_module_static)
+    print('ADD STATIC FILE ROUTE: "module/assets/*"')
+    route('/<module_path:re:('+directory_pattern+')>/assets/<path:re:.+>')(_module_static)
     ###################################################################################################
     # add template path
     ###################################################################################################

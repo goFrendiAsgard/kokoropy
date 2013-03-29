@@ -1,4 +1,4 @@
-from kokoropy import template, request
+from kokoropy import template, request, os
 
 class Default_Controller(object):
     """
@@ -50,6 +50,22 @@ class Default_Controller(object):
             keyword = ''       
         pokemons = self.db_model.get_pokemon(keyword)
         return template('example/pokemon', pokemons=pokemons)
+    
+    # upload example
+    def action_upload(self):        
+        # get uploaded file
+        upload = request.files.get('upload')
+        if upload is None:
+            return template('example/upload', message='upload image file (png, jpg or jpeg)')
+        else:
+            name, ext = os.path.splitext(upload.filename)
+            if ext not in ('.png','.jpg','.jpeg'):
+                return template('example/upload', message='invalid file extension '+ext)
+            # appends upload.filename automatically
+            upload_path = os.path.dirname(os.path.dirname(__file__))+'/assets/uploads/'
+            print upload_path
+            upload.save(upload_path) 
+            return template('example/upload', message='upload '+name+ext+' success')
     
     # not routed
     def unpublished_function(self):

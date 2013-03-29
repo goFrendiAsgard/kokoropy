@@ -7,7 +7,7 @@ class DB_Model(object):
     
     def __init__(self):
         # define conn
-        self.conn = sqlite3.connect("pokemon.db") # or use :memory: to put it in RAM 
+        self.conn = sqlite3.connect("db/pokemon.db") # or use :memory: to put it in RAM 
         self.cursor = self.conn.cursor()
         # create a table if not exists
         self.cursor.execute("CREATE TABLE IF NOT EXISTS pokemon_list (id int, name text)")

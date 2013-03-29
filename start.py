@@ -5,8 +5,7 @@
 # import "standard" modules (Please leave it as is)
 ########################################################################################################
 import inspect
-from kokoropy import kokoro_init
-from kokoropy.bottle import template
+from kokoropy import kokoro_init, template
 custom_404, custom_403, custom_500 = None, None, None
 
 ########################################################################################################
@@ -16,6 +15,7 @@ HOST                = 'localhost'
 PORT                = 8080
 DEBUG               = True
 RELOADER            = True
+SERVER              = 'wsgiref'
 
 # Custom error handlers. Yes you can modify it (with care)
 # But please let the function name as is
@@ -125,9 +125,9 @@ if __name__ == '__main__':
             500 : custom_500
         }
     else:
-        ERROR_HANDLER = ''
+        ERROR_HANDLER = {}
     
     ###################################################################################################
     # run app with given parameters
     ###################################################################################################
-    kokoro_init(debug=DEBUG, port=PORT, reloader=RELOADER, host=HOST, error_handler=ERROR_HANDLER)    
+    kokoro_init(debug=DEBUG, port=PORT, reloader=RELOADER, host=HOST, error_handler=ERROR_HANDLER, server=SERVER)    
