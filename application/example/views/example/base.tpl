@@ -72,12 +72,9 @@
                     <a class="brand" href="#">Kokoropy</a>
                     <div class="nav-collapse collapse">
                         <ul class="nav">
-                            <li><a href="/example/simple/hello_world">hello_world</a></li>
-                            <li><a href="/example/recommended/auto">auto</a></li>
-                            <li><a href="/example/advance/hello">hello</a></li>
-                            <li><a href="/example/advance/hello/Haruna">hello/Haruna</a></li>
-                            <li><a href="/example/advance/hello?name=Rina">hello?name=Rina</a> </li>
-                            <li><a href="/example/advance/pokemon">pokemon</a> </li>
+                            <li><a href="/example/simple/hello_world">Simple route</a></li>
+                            <li><a href="/example/recommended/index">Recommended route</a></li>
+                            <li><a href="/example/advance/">Advance route</a> </li>
                         </ul>
                     </div><!--/.nav-collapse -->
                 </div>

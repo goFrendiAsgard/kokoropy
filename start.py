@@ -15,7 +15,7 @@ custom_404, custom_403, custom_500 = None, None, None
 HOST                = 'localhost'
 PORT                = 8080
 DEBUG               = True
-RELOADER            = False
+RELOADER            = True
 
 # Custom error handlers. Yes you can modify it (with care)
 # But please let the function name as is
@@ -130,4 +130,4 @@ if __name__ == '__main__':
     ###################################################################################################
     # run app with given parameters
     ###################################################################################################
-    kokoro_init(DEBUG, PORT, RELOADER, HOST, ERROR_HANDLER)    
+    kokoro_init(debug=DEBUG, port=PORT, reloader=RELOADER, host=HOST, error_handler=ERROR_HANDLER)    

@@ -1,10 +1,9 @@
-from kokoropy.bottle import route
+from kokoropy import route
 
-## SIMPLE APPROACH (Simple but deadly works) #############################################
-#
-# A very simple procedural style example
-# Manually routed to http://localhost:8080/example/simple with @route decorator
-##########################################################################################
+"""
+Simple routing (without OOP)
+This is great to make a "hello world" or other small applications
+"""
 
 @route('/example/simple/hello_world')
 def index():
