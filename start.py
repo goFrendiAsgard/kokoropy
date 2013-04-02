@@ -14,7 +14,7 @@ custom_404, custom_403, custom_500 = None, None, None
 HOST                = 'localhost'
 PORT                = 8080
 DEBUG               = True
-RELOADER            = True
+RELOADER            = False
 SERVER              = 'wsgiref'
 
 # Custom error handlers. Yes you can modify it (with care)

@@ -31,7 +31,7 @@
                             <li><a href="/example/simple/hello_world">Simple route</a></li>
                             <li><a href="/example/recommended/index">Recommended route</a></li>
                             <li><a href="/example/advance/hello">Advance route</a> </li>
-                            <li><a href="/example/advance/upload">Test upload file</a> </li>
+                            <li><a href="/example/recommended/upload">Test upload file</a> </li>
                         </ul>
                     </div><!--/.nav-collapse -->
                 </div>
@@ -42,7 +42,7 @@
             <div class="row-fluid">
                 <div id="layout-banner" class="well hidden-phone span12">
                     <div class="span2">
-                        <img src ="/images/kokoropy.png" />
+                        <img src ="/assets/images/kokoropy.png" />
                     </div>
                     <div class="span10">
                         <h1>Kokoropy</h1>
