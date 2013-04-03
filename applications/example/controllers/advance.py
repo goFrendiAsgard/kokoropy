@@ -8,7 +8,7 @@ class Hello_Controller(object):
     
     # load the model
     def __init__(self):
-        from application.example.models.simple_model import Simple_Model
+        from applications.example.models.simple_model import Simple_Model
         self.simple_model = Simple_Model()
         
     def hello(self, name=None):

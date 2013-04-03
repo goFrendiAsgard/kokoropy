@@ -21,7 +21,6 @@ Kokoropy is built based on my experiences with some framework. Here are some com
 * You can use route directive in bottle.py, since bottle.py is the core of kokoropy.
 * kokoropy is built based on HMVC pattern, like laravel, fuelPHP and CodeIgniter+HMVC
 * kokoropy doesn't have any other dependencies. You can even run it without Apache or nginx
-* kokoropy has a funny dragon guarding important source codes, just as laravel :)
 
 __PS:__ This is my pet-project, and might be not stable. It is not ready for production purpose (yet)
 

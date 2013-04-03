@@ -19,8 +19,8 @@ class Default_Controller(object):
     
     def __init__(self):
         # import models
-        from application.example.models.simple_model import Simple_Model
-        from application.example.models.db_model import DB_Model
+        from applications.example.models.simple_model import Simple_Model
+        from applications.example.models.db_model import DB_Model
         # make instance of models      
         self.simple_model = Simple_Model()
         self.db_model = DB_Model()
