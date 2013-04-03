@@ -3,7 +3,7 @@
 ###################################################################################################
 # Add this directory to sys.path
 ###################################################################################################
-import os, inspect, sys
+import os, inspect, sys, shutil
 sys.path.append(os.path.dirname(__file__))
 
 ###################################################################################################
@@ -170,10 +170,22 @@ class kokoro_init(object):
         ###################################################################################################
         # add template path
         ###################################################################################################
+        '''      
         TEMPLATE_PATH.remove('./views/')
         for directory in directory_list:
             print('REGISTER TEMPLATE PATH : '+directory+'/views/')
             TEMPLATE_PATH.append(os.path.join(APPLICATION_PATH, directory, 'views'))
+        '''
+        # TODO: make a copy of application template
+        global_view_path = os.path.join(CURRENT_PATH, 'views')
+        if os.path.exists(global_view_path):
+            shutil.rmtree(global_view_path)
+        for directory in directory_list:
+            print('REGISTER TEMPLATE PATH : '+directory+'/views/')
+            old_path = os.path.join(APPLICATION_PATH, directory, 'views')
+            new_path = os.path.join(global_view_path, directory)
+            shutil.copytree(old_path, new_path)
+        TEMPLATE_PATH.append(global_view_path)
         ###################################################################################################
         # run the application
         ###################################################################################################
