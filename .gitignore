@@ -34,3 +34,7 @@ nosetests.xml
 .project
 .pydevproject
 .settings
+
+# kokoropy auto-generated files
+.views
+.session
