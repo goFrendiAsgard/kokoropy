@@ -29,33 +29,12 @@ class Default_Controller(object):
         """
         Session usage example.
         This function is automatically routed to: http://localhost:8080/example/recommended/index/parameter
-        
-        PS (especially for PHP coder)
-        
-        # this code:
-        request.SESSION['counter'] += request.SESSION['counter']+1 if 'counter' in request.SESSION else 1
-        
-        # has the same meaning as this python code
+        """
+        # get counter from SESSION, or set it
         if 'counter' in request.SESSION:
             request.SESSION['counter'] += 1
         else:
             request.SESSION['counter'] = 1
-        
-        // and has the same meaning with this PHP code:
-        session_start();
-        $_SESSION['counter'] = isset($_SESSION['counter'])? $_SESSION['counter']+1 : 1;
-        
-        // or
-        session_start();
-        if (isset($_SESSION['counter'])) {
-            $_SESSION['counter'] += 1;
-        } else {
-            $_SESSION['counter'] = 1;
-        }
-        
-        """
-        # get counter from SESSION, or set it
-        request.SESSION['counter'] = request.SESSION['counter']+1 if 'counter' in request.SESSION else 1
         # get say_hello
         say_hello = self.simple_model.say_hello(name)
         message = say_hello+', you have visit this page '+str(request.SESSION['counter'])+' times'
@@ -66,12 +45,12 @@ class Default_Controller(object):
         GET, POST & parameter usage example.
         This function is automatically routed to: http://localhost:8080/example/recommended/pokemon/parameter
         """
-        # if name is None, get from GET
-        keyword = request.GET['keyword'] if (keyword is None) and ('keyword' in request.GET) else None
-        # if name is still None, get from POST
-        keyword = request.POST['keyword'] if (keyword is None) and ('keyword' in request.POST) else None
-        # if keyword is still None, make it ''
-        keyword = '' if keyword is None else keyword
+        if 'keyword' in request.GET:
+            keyword = request.GET['keyword']
+        elif 'keyword' in request.POST:
+            keyword = request.POST['keyword']
+        if keyword is None:
+            keyword = ''
         # get pokemons
         pokemons = self.db_model.get_pokemon(keyword)
         return template('example/pokemon', pokemons=pokemons)
@@ -81,7 +60,7 @@ class Default_Controller(object):
         File Upload example.
         This function is automatically routed to: http://localhost:8080/example/recommended/upload
         """
-        upload = request.files.get('upload')
+        upload =  request.files.get('upload')
         if upload is None:
             return template('example/upload', message='upload image file (png, jpg or jpeg)')
         else:

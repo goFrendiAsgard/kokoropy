@@ -1,5 +1,5 @@
 <head>
-    <link rel="stylesheet" type="text/css" href="/static_libraries/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="/assets/static_libraries/bootstrap/css/bootstrap.min.css" />
     <style>
         body{
             color: white;
@@ -10,7 +10,7 @@
         }
         div#error-container{
             background-repeat: no-repeat;
-            background-image:url('/example/images/programmer.png');
+            background-image:url('/example/assets/images/programmer.png');
             background-position: bottom right;
             min-height: 70%;
             min-width: 100%;
