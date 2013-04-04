@@ -36,5 +36,4 @@ nosetests.xml
 .settings
 
 # kokoropy auto-generated files
-.views
-.session
+.runtime

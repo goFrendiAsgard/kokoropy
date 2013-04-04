@@ -10,7 +10,7 @@
         }
         div#error-container{
             background-repeat: no-repeat;
-            background-image:url('/example/assets/images/programmer.png');
+            background-image:url('/assets/example/images/programmer.png');
             background-position: bottom right;
             min-height: 70%;
             min-width: 100%;

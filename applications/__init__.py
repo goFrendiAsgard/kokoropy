@@ -1,7 +1,15 @@
-from kokoropy import template, error
+from kokoropy import template, error, hook
+
+@hook('before_request')
+def _before_request():
+    print('before request hook')
+
+@hook('after_request')
+def _after_request():
+    print('after request hook')
 
 @error(404)
-def custom_404(error):
+def _error_404(error):
     import random
     error_messages = [
         'Sorry, but there is no such a gray elephant in Atlantic...',
@@ -21,7 +29,7 @@ def custom_404(error):
     return template('example/error', data = data)
 
 @error(403)
-def custom_403(error):
+def _error_403(error):
     import random
     error_messages = [
         'You are not authorized to enter ladies rest room, go out....',
@@ -38,7 +46,7 @@ def custom_403(error):
     return template('example/error', data = data)
 
 @error(500)
-def custom_500(error):
+def _error_500(error):
     import random
     error_messages = [
         'Right, right... It\'s not your fault it is our mistake',

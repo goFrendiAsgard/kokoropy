@@ -6,14 +6,14 @@
         <meta name="description" content="">
         <meta name="author" content="">
         <link rel="stylesheet" type="text/css" href="/assets/static_libraries/bootstrap/css/bootstrap.min.css" />
-        <link rel="stylesheet" type="text/css" href="/example/assets/css/style.css" />
+        <link rel="stylesheet" type="text/css" href="/assets/example/css/style.css" />
         <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
         <!--[if lt IE 9]>
           <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
         <![endif]-->
         <script type="text/javascript" src="/assets/static_libraries/jquery.tools.min.js"></script>
         <script type="text/javascript" src="/assets/static_libraries/bootstrap/js/bootstrap.min.js"></script>
-        <script type="text/javascript" src="/example/assets/js/script.js"></script>
+        <script type="text/javascript" src="/assets/example/js/script.js"></script>
         <title>{{ title or 'Kokoropy' }}</title>
     </head>
     <body>
