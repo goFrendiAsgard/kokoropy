@@ -87,27 +87,12 @@ Below is Kokoropy directory structure.
     kokoropy
         |--- applications                (contains your applications)
         |       |--- __init__.py         (application's bootstrap)
-        |       |--- index               (index application)
-        |       |       |--- assets      (contains index's static files,
-        |       |       |                 e.g: javascript, css, images)
-        |       |       |--- models      (contains index's models)
-        |       |       |--- controllers (contains index's controllers)
-        |       |       |--- views       (contains index's views)
-        |       |       |--- __init__.py (index's bootstrap)
-        |       |
-        |       |--- example             (example application)
-        |       |       |--- assets      (contains example's static files)
-        |       |       |--- models      (contains example's models)
-        |       |       |--- controllers (contains example's controllers)
-        |       |       |--- views       (contains example's views)
-        |       |       |--- __init__.py (example's bootstrap)
-        |       |
-        |       |--- your_app            (your_app application)
-        |               |--- assets      (contains your_app's static files)
-        |               |--- models      (contains your_app's models)
-        |               |--- controllers (contains your_app's controllers)
-        |               |--- views       (contains your_app's views)
-        |               |--- __init__.py (example's bootstrap)
+        |       |--- [an_application]    (an application)
+        |               |--- assets      (application's static files)
+        |               |--- models      (application's models)
+        |               |--- controllers (application's controllers)
+        |               |--- views       (application's views)
+        |               |--- __init__.py (application's bootstrap)
         |
         |--- kokoropy                    (the core of kokoropy, you
         |       |                         probably don't need to be here)
