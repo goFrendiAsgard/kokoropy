@@ -115,7 +115,7 @@ To understand about package in python, please visit http://docs.python.org/2/tut
 Tutorial 1: Hello World
 =======================
 In Kokoropy make a "hello world" is very simple.
-You Only need to make an application that consists of a controller.
+You only need to make an application that consists of a controller.
 
 ```
     applications
@@ -161,7 +161,7 @@ Below is explanation of the code:
 * if you want to return a multi line response, you can use triple double quote ```"""``` or triple single quote ```'''```
 
 __Note:__ Doing a manual routing like this can lead to confusion if you work on a team and everyone define their own route.
-To know more about routing, please visit To know more about routing, please visit http://bottlepy.org/docs/dev/tutorial.html#request-routing
+To know more about routing, please visit http://bottlepy.org/docs/dev/tutorial.html#request-routing
 
 
 Tutorial 2: Automatic Routing
@@ -366,7 +366,7 @@ And you want to take the pokemon list from the database. You can do something li
             # define pokemon list
             conn = sqlite3.connect("db/pokemon.db")
             cursor = self.conn.cursor()
-            cursor.execute("SELECT name FROM pokemon_list WHERE name LIKE '%"+keyword+"%'")
+            cursor.execute("SELECT name FROM pokemon_list")
             pokemon_data = self.cursor.fetchall()
             print(pokemon_data) # in case of you are curious how the pokemon_data fetched
             pokemon_list = [x[0] for x in pokemon_list]
