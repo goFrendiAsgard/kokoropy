@@ -173,10 +173,10 @@ Kokoropy support automatic routing. Using automatic routing is very easy:
 * In controller there should be a class named ```Default_Controller```
 * Any published function should has ```action_``` prefix
 * Beside ```action_``` prefix, you can also use REST prefixes:
-    - ```get_``` : only accept get request
-    - ```post_``` : only accept post request
-    - ```delete_``` : only accept delete request
-    - ```put_``` : only accept put request
+    - ```act_get_``` : only accept get request
+    - ```act_post_``` : only accept post request
+    - ```act_delete_``` : only accept delete request
+    - ```act_put_``` : only accept put request
 * Every automatic routed
 * Automatic routing works this way: ```http://domain:port/application/controller_filename/action_function_without_prefix/parameter_1/parameter_2
 * If ```application```, ```controller_filename``` or, ```action_function_without_prefix``` is equal to "index", it can be omitted
@@ -571,4 +571,4 @@ And modify your `base.tpl` into this:
 
 Now, `pokemon.tpl` will also include `base.tpl`. The original content of `pokemon.tpl` will replace `%include` in `base.tpl`
 
-To know more about template, please visit http://bottlepy.org/docs/dev/stpl.html
+__Note:__ To know more about template, please visit http://bottlepy.org/docs/dev/stpl.html

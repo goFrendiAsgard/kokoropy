@@ -286,10 +286,10 @@ def kokoro_init(**kwargs):
             default_controller = Default_Controller()            
             methods = inspect.getmembers(default_controller, inspect.ismethod)
             # publish all methods with REST prefix (get, post, put and delete)
-            _publish_methods(directory, controller_module, "get",    methods, [get]              )
-            _publish_methods(directory, controller_module, "post",   methods, [post]             )
-            _publish_methods(directory, controller_module, "put",    methods, [put]              )
-            _publish_methods(directory, controller_module, "delete", methods, [delete]           )
+            _publish_methods(directory, controller_module, "act_get",    methods, [get]              )
+            _publish_methods(directory, controller_module, "act_post",   methods, [post]             )
+            _publish_methods(directory, controller_module, "act_put",    methods, [put]              )
+            _publish_methods(directory, controller_module, "act_delete", methods, [delete]           )
             # publish all methods with action prefix
             _publish_methods(directory, controller_module, "action", methods, [route, get, post, 
                                                                                put, delete]      )
