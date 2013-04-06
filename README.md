@@ -3,9 +3,9 @@ Kokoropy
 
 A MVC python web framework, from my heart <3
 
-In japanese, kokoro means heart
-I make kokoropy because I can't find any python web-framework which I really comfort with.
-Some are too verbose, while some other are to "magic". Most of them force me to learn about the framework, and not allow me to focus on my job.
+In japanese, kokoro means heart.
+I make Kokoropy because I can not find any python web-framework which I really comfort with.
+Some are too verbose, while some others have too many "magic". Most of them force me to learn about the framework, and not allow me to focus on my job.
 Basically I expect an easy framework like CodeIgniter (of course, with more features) in python.
 
 If you are in the same boat with me, then kokoropy is for you.
@@ -16,15 +16,103 @@ If you've once ever use my another open source project, No-CMS (http://getnocms.
 
 Kokoropy is built based on my experiences with some framework. Here are some comparison between kokoropy and other framework
 
-* In kokoropy, controller name doesn't correspond to URL
-* kokoropy is explicit. There is no such a "magic" like in web2py
+* Kokoropy is explicit. There is no such a "magic" like in web2py.
 * You can use route directive in bottle.py, since bottle.py is the core of kokoropy.
-* kokoropy is built based on HMVC pattern, like laravel, fuelPHP and CodeIgniter+HMVC
-* kokoropy doesn't have any other dependencies. You can even run it without Apache or nginx
+* Kokoropy is built based on HMVC pattern, like laravel, fuelPHP and CodeIgniter+HMVC.
+* Kokoropy doesn't have any other dependencies. You can even run it without Apache or nginx, just like web2py.
+* Kokoropy support many database system. Every model can has its own database.
+* Kokoropy support REST.
+* Kokoropy support both, automatic and manual routing.
+* Kokoropy support SESSION out of the box
 
 __PS:__ This is my pet-project, and might be not stable. It is not ready for production purpose (yet)
 
 Kokoropy come with bottlepy 0.12 dev, sqlalchemy 0.7.11, and beaker 1.6.4 included
+
+Configuration & Getting Started
+===============================
+
+Configuring Kokoropy is very easy. Just open up start.py, and do some modification.
+For development purpose, it is recommended to leave the configuration as it is.
+
+```python
+    HOST                = 'localhost'
+    PORT                = 8080
+    DEBUG               = True
+    RELOADER            = False
+    SERVER              = 'wsgiref'
+    APP_DIRECTORY       = 'applications'
+```
+APP_DIRECTORY contains of your applications directory.
+Other configuration are just like bottlepy configuration.
+
+You can start the server by using this command:
+```
+    python start.py
+```
+
+Once the server started up, you can access your web application by using any browser.
+```
+    http://localhost:8080
+```
+
+Overview
+========
+
+Kokoropy use HMVC architecture. HMVC stands for Hiearchical Model-View-Controller.
+In Kokoropy, your web contains several ```application```.
+Each application consists of several ```model```, ```view```, and ```controller```
+
+* Models are hearts of your application. It define what an application can do.
+* Controllers are gateways of your application. Models make your application able to do things, but controller make your application do things
+* Views are presentations of your application. It deals with user interfaces
+
+Directory Structure
+===================
+
+Below is Kokoropy directory structure.
+
+```
+    kokoropy
+        |--- applications                (contains your applications)
+        |       |--- __init__.py         (application's bootstrap)
+        |       |--- index               (index application)
+        |       |       |--- assets      (contains index's static files,
+        |       |       |                 e.g: javascript, css, images)
+        |       |       |--- models      (contains index's models)
+        |       |       |--- controllers (contains index's controllers)
+        |       |       |--- views       (contains index's views)
+        |       |       |--- __init__.py (index's bootstrap)
+        |       |
+        |       |--- example             (example application)
+        |       |       |--- assets      (contains example's static files)
+        |       |       |--- models      (contains example's models)
+        |       |       |--- controllers (contains example's controllers)
+        |       |       |--- views       (contains example's views)
+        |       |       |--- __init__.py (example's bootstrap)
+        |       |
+        |       |--- your_app            (your_app application)
+        |               |--- assets      (contains your_app's static files)
+        |               |--- models      (contains your_app's models)
+        |               |--- controllers (contains your_app's controllers)
+        |               |--- views       (contains your_app's views)
+        |               |--- __init__.py (example's bootstrap)
+        |
+        |--- kokoropy                    (the core of kokoropy, you
+        |                                 probably don't need to be here)
+        |       |--- __init__.py         (Kokoropy's core script)
+        |       |--- beaker              (beaker package)
+        |       |--- sqlalchemy          (sqlalchemy package)
+        |       |--- bottle.py           (bottle module)
+        |
+        |--- start.py                    (application starter script)
+        |--- db                          (sample database used for
+        |                                 example application)
+        |--- .runtime                    (runtime directory, contains
+                                          copy of all assets, view, and session)
+```
+
+__Note :__ applications, models and controllers are python packages. It shall contains at least ```___init__.py``` file
 
 How to use
 ==========
@@ -34,7 +122,7 @@ First, you need to create a python package in application folder. The package sh
 * "controllers" subpackage
 * "models" subpackage
 * "views" directory
-* "static" directory
+* "assets" directory
 
 __PS:__ To understand about package in python, please visit http://docs.python.org/2/tutorial/modules.html#packages
 

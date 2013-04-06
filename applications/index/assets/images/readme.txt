@@ -1,1 +1,1 @@
-Put your images here
+Put your globally used images here

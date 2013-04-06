@@ -1,1 +1,1 @@
-Put your custom js here
+Put your globally used custom js here

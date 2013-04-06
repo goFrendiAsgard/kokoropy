@@ -1,1 +1,1 @@
-Put your css here
+Put your globally used css here
