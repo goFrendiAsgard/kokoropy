@@ -29,6 +29,17 @@ __PS:__ This is my pet-project, and might be not stable. It is not ready for pro
 
 Kokoropy come with bottlepy 0.12 dev, sqlalchemy 0.7.11, and beaker 1.6.4 included
 
+Who Kokoropy is for?
+====================
+
+Kokoropy is for you if you:
+
+* Already familiar with PHP framework such as CodeIgniter but want to move to Python.
+* Want to have a "educational" web framework that can be run everywhere.
+* Desire explicity of framework, so that popular IDE such as eclipse can help in auto-completion (intellisense).
+* Don't like complicated framework, you want a framework with small learning steep.
+
+
 Configuration & Getting Started
 ===============================
 
@@ -99,7 +110,7 @@ Below is Kokoropy directory structure.
         |               |--- __init__.py (example's bootstrap)
         |
         |--- kokoropy                    (the core of kokoropy, you
-        |                                 probably don't need to be here)
+        |       |                         probably don't need to be here)
         |       |--- __init__.py         (Kokoropy's core script)
         |       |--- beaker              (beaker package)
         |       |--- sqlalchemy          (sqlalchemy package)
@@ -112,246 +123,467 @@ Below is Kokoropy directory structure.
                                           copy of all assets, view, and session)
 ```
 
-__Note :__ applications, models and controllers are python packages. It shall contains at least ```___init__.py``` file
+__Note :__ applications, models and controllers are python packages. It shall contains at least ```___init__.py``` file.
+To understand about package in python, please visit http://docs.python.org/2/tutorial/modules.html#packages
 
-How to use
-==========
 
-First, you need to create a python package in application folder. The package should consist of
+Tutorial 1: Hello World
+=======================
+In Kokoropy make a "hello world" is very simple.
+You Only need to make an application that consists of a controller.
 
-* "controllers" subpackage
-* "models" subpackage
-* "views" directory
-* "assets" directory
-
-__PS:__ To understand about package in python, please visit http://docs.python.org/2/tutorial/modules.html#packages
-
-Inside the controllers subpackage, create a python file (name is not important, it is not PHP)
-The routing is done via route directive.
-Create something like this:
-
-```python
-    from application import app
-
-    @app.route('/', method='GET')
-    def index():
-        return "Hello world"
+```
+    applications
+        |--- index
+        |--- example
+        |--- your_app                    (1. Create this directory)
+                |--- __init__.py         (2. Create empty __init__.py file
+                |                            to turn your_app into python package)
+                |--- controllers         (3. Create this directory)
+                        |--- __init__.py (4. Create empty __init__.py file
+                        |                    to turn controllers into python package)
+                        |--- hello.py    (5. This is your controller)
 ```
 
-Open start.py, edit configuration. Be careful, there is a dragon there.
-Modify some key configuration or leave it as is
+On `applications/your_app/controllers/hello.py`, write this:
 
 ```python
-    HOST                = 'localhost'
-    PORT                = 8080
-    DEBUG               = True
-    RELOADER            = True
+    from kokoropy import route
+
+    @route('/hello_world')
+    def index(self):
+        # return response
+        return '''
+            <title>Kokoropy</title>
+            <h1>Hello world</h1>'''
 ```
 
-Open your console, and do this:
-
+Run kokoropy server (if it is already started, then restart it by pressing ctrl+c, and run it again)
 ```
     python start.py
 ```
 
-Open your browser, access the page
-
+Open your browser, and access
 ```
-   http://localhost:8080/
+    http://localhost:8080/hello_world
 ```
 
-Unlike PHP, you don't need to worry about error message. Every error message will be shown in console, not in browser
+Below is explanation of the code:
 
-MVC
-===
+* ```from kokoropy import route``` : import route from Kokoropy's core. By having route, you can use ```@route``` decorator
+* ```@route('/hello_world')``` : so, from now on if user open http://localhost:8080/hello_world, Kokoropy will return a response returned by ```index``` function
+* if you want to return a single line response, you can use double quote ```"``` or single quote ```'```
+* if you want to return a multi line response, you can use triple double quote ```"""``` or triple single quote ```'''```
 
-MVC stands for "Model-View-Controller". Almost all modern web framework use such a mechanism.
-In kokoropy, You can have several MVC triad located at /application
+__Note:__ Doing a manual routing like this can lead to confusion if you work on a team and everyone define their own route.
+To know more about routing, please visit To know more about routing, please visit http://bottlepy.org/docs/dev/tutorial.html#request-routing
 
-Model
------
-Model is the heart of your application.
-It is not necessarily required, but definitely recommended.
-Model should define what your application can do.
-Using OOP approach will make your model looks more elegant, but don't worry, procedural style is still okay.
-Unlike java, your class name can be different from your file name. Here you have freedom.
 
-kokoropy come with a basic example model located at /application/index/models/example_model.py
+Tutorial 2: Automatic Routing
+=============================
+
+In most cases, your application might contains more than just hello world. Therefore defining routing manually will be tiresome.
+Kokoropy support automatic routing. Using automatic routing is very easy:
+
+* In controller there should be a class named ```Default_Controller```
+* Any published function should has ```action_``` prefix
+* Beside ```action_``` prefix, you can also use REST prefixes:
+    - ```get_``` : only accept get request
+    - ```post_``` : only accept post request
+    - ```delete_``` : only accept delete request
+    - ```put_``` : only accept put request
+* Every automatic routed
+* Automatic routing works this way: ```http://domain:port/application/controller_filename/action_function_without_prefix/parameter_1/parameter_2
+* If ```application```, ```controller_filename``` or, ```action_function_without_prefix``` is equal to "index", it can be omitted
+
+Now modify ```hello.py``` into this:
 
 ```python
-    class Hello_Model(object):
+    class Default_Controller(object):
 
-        def say_hello(self, name=None):
+        def action_index(self):
+            # return response
+            return '''
+                <title>Kokoropy</title>
+                <h1>Hello world</h1>'''
+
+        def action_welcome(self, name = None):
             if name is None:
-                return "Hello Stranger"
-            else:
-                return "Hello "+name
-
-        def get_pokemon(self):
-            return ['bubasaur', 'charmender', 'squirtle', 'caterpie', 'pikachu']
+                name = 'Stranger'
+            response = '<title>Kokoropy</title><h1>Welcome '+name+'</h1>'
+            return response
 ```
 
-This model can say hello, and can give you a list of pokemons
+Run kokoropy server (if it is already started, then restart it by pressing ctrl+c, and run it again)
+```
+    python start.py
+```
 
+Open your browser, and access these addresses:
+```
+    http://localhost:8080/your_app/hello/
+    http://localhost:8080/your_app/hello/index
+    http://localhost:8080/your_app/hello/welcome
+    http://localhost:8080/your_app/hello/welcome/John
+    http://localhost:8080/your_app/hello/welcome/John%20Titor
+    http://localhost:8080/your_app/hello/welcome/Ryuzaki
+```
 
-Controller
-----------
-Have a model, make your application able to do things, but have a controller let you do things.
-Controller is a gateway into your model. Of course, putting some logic here is possible.
-Just keep in mind to keep your controller as slim as possible.
+Explanation:
+* Name of your application is ```your_app```. It is located at ```applications/your_app```
+* Your controller file_name is ```hello```. It is located at ```application/your_app/controllers/hello.py```
+* In ```hello.py``` you have a class named ```Default_Controller```. This make Kokoropy's automatic routing works
+* Since automatic routing works, you don't need to import route from Kokoropy. So, in this tutorial, you don't see any ```from kokoropy import route```
+* In Default_Controller, you have 2 functions with ```action_``` prefix. ```action_index``` and ```action_welcome``` are published as ```index``` and ```welcome``` respectively.
+* ```action_welcome``` has ```name``` parameter. The parameter has default value ```None```. So when you access ```http://localhost:8080/your_app/hello/welcome/John``` the name parameter will be ```"John"```,
+  but when you access ```http://localhost:8080/your_app/hello/welcome```, the name will be ```None``` as its default value.
 
-kokoropy come with a basic example controller located at /application/index/controllers/index.py
+__Note:__ When you work with team, automatic routing is recommended. It make things simple and easy to be tracked
+
+Tutorial 3: Handling request
+============================
+To handle request you will need request object.
+You can use:
+* ```request.GET``` to catch get request as using $_GET in PHP
+* ```request.POST``` to catch post request as using $_GET in PHP
+* ```request.SESSION``` to get session as using $_SESSION in PHP (request.session is actually wrapper for ```request.environ["beaker.session"]```)
+* ```request.file``` to handle file upload
+
+Modify ```hello.py``` into this:
 
 ```python
-    from kokoropy.bottle import template, request, route
-
-    ## APPROACH 1 (Simple but deadly works) ##################################################
-    #
-    # A very simple procedural style example
-    # Manually routed to http://localhost:8080/ with @route decorator
-    ##########################################################################################
-
-    @route('/hello_world')
-    def index():
-        return 'Hello world, I am alive !!!<br /><a href="/">Now go back to work</a>'
-
-
-    ## APPROACH 2 (Automagically route) ######################################################
-    #
-    # An OOP Style with automatic routing example (just like CodeIgniter or FuelPHP)
-    # The routing will be done automatically.
-    # To use this feature:
-    #    * The controller file name can be anything, and will be used for routing
-    #    * Your controller class name should be "Default_Controller"
-    #    * Your published method should have "action" prefix
-    #    * The published URL would be
-    #      http://localhost:8080/app_dir/controller_file/published_method/params
-    #    * If your app_dir, controller_file or published_method named "index", it can be
-    #      omitted
-    #    * For convention, this is the recommended way to do it
-    ##########################################################################################
+    import os
+    from kokoropy import request
 
     class Default_Controller(object):
-        # load the model
-        def __init__(self):
-            from application.index.models.example_model import Hello_Model
-            self.model = Hello_Model()
 
-        # automatically routed to http://localhost:8080/
-        def action(self):
-            return template('example/hello', message='Automatic route working !!!', first_time=True)
+        def action_index(self):
+            # return response
+            return '''
+                <title>Kokoropy</title>
+                <h1>Hello world</h1>'''
 
-        # automatically routed to: http://localhost:8080/auto/parameter
-        def action_auto(self, name=None):
-            message = self.model.say_hello(name)
-            return template('example/hello', message='Automatically say '+message)
+        def action_welcome(self, name = None):
+            if name is None:
+                name = 'Stranger'
+            # get name from get request
+            if 'name' in request.GET:
+                name = request.GET['name']
+            # build response and return it
+            response = '<title>Kokoropy</title><h1>Welcome '+name+'</h1>'
+            return response
 
-        # not routed
-        def unpublished_function(self):
-            return 'this is not published'
-
-
-
-    ## APPROACH 3 (Your route, your style, your freedom) #####################################
-    #
-    # An OOP style with user defined routing example
-    # After declaring the controller class, you need to define manual routing
-    ##########################################################################################
-
-    class Hello_Controller(object):
-
-        # load the model
-        def __init__(self):
-            from application.index.models.example_model import Hello_Model
-            self.model = Hello_Model()
-
-        # will be manually routed to http://localhost/hello
-        def hello_param(self, name = None):
-            message = self.model.say_hello(name)
-            return template('example/hello', message=message)
-
-        def hello_get(self):
-            ##################################################################################
-            # Python                            #  equivalent PHP code                       #
-            ##################################################################################
-            name = None                         # $name = NULL;                              #
-            if 'name' in request.GET:           # if(isset($_GET['name']))                   #
-                name = request.GET['name']      #    $name = $_GET['name'];                  #
-            ##################################################################################
-            message = self.model.say_hello(name)
-            return template('example/hello', message=message)
-
-        def pokemon(self):
-            pokemons = self.model.get_pokemon()
-            return template('example/pokemon', pokemons=pokemons)
-
-    # make a Hello_Controller instance
-    hello_controller = Hello_Controller()
-    route("/hello", method='GET')(hello_controller.hello_get)
-    route("/hello/<name>")(hello_controller.hello_param)
-    route("/pokemon")(hello_controller.pokemon)
+        def action_upload(self):
+            upload =  request.files.get('uploaded_file')
+            upload_path = os.path.dirname(os.path.dirname(__file__))+'/assets/'
+            upload.save(upload_path)
+            return 'Upload success'
 ```
 
-Using procedural style, you can define your routing with __@route()__ decorator.
-Using OOP style, you can use __route()__.
-
-One thing I like from CodeIgnniter is automatic routing. Not many python framework provide such a thing.
-Web2py also provide such a mechanism. In kokoropy, you are free to choose, wether to use manual routing or automatic one.
-To use automatic routing feature, you should use __Default_Controller__ as your controller class name.
-Also Your published function should have __action__ prefix, just as FuelPHP way (e.g: action_index will be published as index, action_hello will be published as hello)
-
-The automatic routing will produce such an url: http://your_domain:your_port/your_application_directory/your_controller_file/published_function_name/parameter1/parameter2
-
-If your_application_directory and you_controller_file named "index", it can be omitted.
-
-
-In kokoropy you can even use those 3 different approach in just one file.
-
-To know more about routing, please visit http://bottlepy.org/docs/dev/tutorial.html#request-routing .
-To know more about request, please visit http://bottlepy.org/docs/dev/tutorial.html#request-data
-
-View
-----
-It is wise to not put presentation logic in your controller. That's why we have view.
-
-You can separate your view into several template.
-Let's say you have a baste template at /application/index/views/example/base.tpl
-
+Make a html file or another function that return a html code of form upload:
 ```html
-    <html>
-    <head>
-        <link rel="stylesheet" type="text/css" href="/index/css/style.css" />
-        <title>{{ title or 'Kokoropy' }}</title>
-    </head>
-    <body>
-        <h1>Kokoro py</h1>
-        <h2>A pythonic MVC Web Framework</h2>
-        <p id="links">
-            <a href="/hello">A normal hello without parameter</a>
-            <a href="/hello?name=Rina">Hello with query</a>
-            <a href="/hello/Haruna">Hello with parameter</a>
-            <a href="/pokemon">Pokemon</a>
-        </p>
-        <p id="content">
-            %include
-        </p>
-        <footer>GoFrendiAsgard &copy; 2013<footer>
-    </body>
-    </html>
+    <form action="http://localhost:8080/your_app/hello/upload" method="post" enctype="multipart/form-data">
+      Select a file: <input type="file" name="uploaded_file" />
+      <input type="submit" value="Start upload" />
+    </form>
 ```
 
-and another template at /application/index/views/example/pokemon.tpl
+__Note:__ To know more about request, please visit http://bottlepy.org/docs/dev/tutorial.html#request-data
+
+Tutorial 4: Model & Database
+============================
+So far, we have play around with Controller. Basically, without Model & View, you can make a working web application.
+But please, do not stop here. Put everything in your controller is a bad practice, and will lead into complicated spaghetti code.
+You need to separate your application into Model-View-Controller.
+
+Let's make another controller in your_app
+```
+    applications
+        |--- index
+        |--- example
+        |--- your_app
+                |--- __init__.py
+                |--- controllers
+                |       |--- __init__.py
+                |       |--- hello.py
+                |       |--- pokemon.py        (1. Create a new controller)
+                |
+                |--- models                    (2. Create a models directory)
+                        |--- __init__.py       (3. Create empty __init__.py file
+                        |                          to make models a package)
+                        |--- pokemon_model.py  (4. Create a model)
+```
+
+Now, take a look on pokemon.py.
+
+Basically you can make something like this:
+```python
+
+    class Default_Controller(object):
+
+        def action_index():
+            # return response
+            return '''
+                <title>Pokemon</title>
+                <ul>
+                    <li>Pikachu</li>
+                    <li>Bulbasur</li>
+                    <li>Squirtle</li>
+                    <li>Charmender</li>
+                    <li>Caterpie</li>
+                </ul>'''
+```
+
+Or you can make it a bit better:
+```python
+
+    class Default_Controller(object):
+
+        def action_index(self):
+            # define pokemon list
+            pokemon_list = ['Pikachu', 'Bulbasur', 'Squirtle', 'Charmender', 'Caterpie']
+            # define ul
+            ul = '<ul>';
+            for pokemon in pokemon_list:
+                ul += '<li>'+pokemon+'</li>'
+            ul += '</ul>'
+            # return response
+            return '<title>Pokemon</title>' + ul
+```
+
+Or even better:
+```python
+
+    class Default_Controller(object):
+
+        def action_index(self):
+            # define pokemon list
+            pokemon_list = ['Pikachu', 'Bulbasur', 'Squirtle', 'Charmender', 'Caterpie']
+            # return response
+            return '<title>Pokemon</title>' + self.build_ul
+
+        def build_ul(self, list):
+            ul = '<ul>';
+            for item in list:
+                ul += '<li>'+item+'</li>'
+            ul += '</ul>'
+```
+
+Now, suppose you have an sqlite database contains a pokemon table located at ```db/pokemon.db```. (Actually it is really there)
+And you want to take the pokemon list from the database. You can do something like this:
+
+```python
+    import sqlite3
+
+    class Default_Controller(object):
+
+        def action_index(self):
+            # define pokemon list
+            conn = sqlite3.connect("db/pokemon.db")
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT name FROM pokemon_list WHERE name LIKE '%"+keyword+"%'")
+            pokemon_data = self.cursor.fetchall()
+            print(pokemon_data) # in case of you are curious how the pokemon_data fetched
+            pokemon_list = [x[0] for x in pokemon_list]
+            # return response
+            return '<title>Pokemon</title>' + self.build_ul
+
+        def build_ul(self, list):
+            ul = '<ul>';
+            for item in list:
+                ul += '<li>'+item+'</li>'
+            ul += '</ul>'
+```
+Python come with a very handy sqlite driver. And any other database driver should refer to this standard.
+the pokemon_data will consist of list of tupple. Every tupple consists of a row. So it gonna be something like this:
+`[('pikachu'), ('charmender'), ('squirtle'), ('bulbasur')]`
+
+Adding database capability make your controller become less-readable. And it's time to use Model.
+Now, modify your `pokemon_model.py` into this:
+
+```python
+import sqlite3
+
+class Pokemon_Model(object):
+
+    def __init__(self):
+        # define conn
+        self.conn = sqlite3.connect("db/pokemon.db") # or use :memory: to put it in RAM
+        self.cursor = self.conn.cursor()
+
+    def fetch_pokemon(self, keyword=""):
+        self.cursor.execute("SELECT name FROM pokemon_list WHERE name LIKE '%"+keyword+"%'")
+        pokemon_data = self.cursor.fetchall()
+        pokemon_list = [x[0] for x in pokemon_list]
+        return pokemon_list
+```
+
+And your `pokemon.py` controller into this:
+
+```python
+    import applications.your_app.models.Pokemon_Model
+
+    class Default_Controller(object):
+
+        def action_index(self):
+            pokemon_model = Pokemon_Model()
+            pokemon_list = pokemon_model.fetch_pokemon()
+            # return response
+            return '<title>Pokemon</title>' + self.build_ul
+
+        def build_ul(self, list):
+            ul = '<ul>';
+            for item in list:
+                ul += '<li>'+item+'</li>'
+            ul += '</ul>'
+```
+
+If it is just to fetch pokemon, you will probably not see many difference. But when it come to big application, you will see how useful is this approach.
+Using model also let you keep yourself DRY (Dont Repeat Yourself)
+
+Suppose you have a lot of controllers and most of them should fetch the pokemon. An amateur will ends up copy-pasting the pokemon-fetching code to every controller.
+This way, modification going to be hard. Using model will save your life :)
+
+Tutorial 5: View
+================
+You have see how useful a model is. Now let's take a look at view.
+View is your presentation layer. In previous tutorial, we always mix up HTML into Controller. Imagine you have a lot of banner, javascript, css, etc, and your controller will be a spaghetti.
+That is why you need a view.
+
+Now, add a view folder:
+
+```
+    applications
+        |--- index
+        |--- example
+        |--- your_app
+                |--- __init__.py
+                |--- controllers
+                |       |--- __init__.py
+                |       |--- hello.py
+                |       |--- pokemon.py
+                |
+                |--- models
+                |       |--- __init__.py
+                |       |--- pokemon_model.py
+                |
+                |--- views                      (1. Create a view directory)
+                        |--- pokemon.tpl        (2. Here is our view)
+                        |--- base.tpl           (3. We will use it later)
+```
+
+Now, modify your `pokemon.py` controller into this:
+
+```python
+    from kokoropy import template
+    import applications.your_app.models.Pokemon_Model
+
+    class Default_Controller(object):
+
+        def action_index(self):
+            pokemon_model = Pokemon_Model()
+            pokemon_list = pokemon_model.fetch_pokemon()
+            return template('your_app/pokemon.tpl', list=pokemon_list)
+```
+
+And modify your `pokemon.tpl` into this:
+```html
+    <strong>Pokemon list:</strong>
+    <ul>
+    %for pokemon in list:
+        <li>{{pokemon}}</li>
+    %end
+    </ul>
+````
+
+Explanation:
+* `return template('your_app/pokemon.tpl', list=pokemon_list)` make `pokemon_list` is passed into `pokemon.tpl` as `list`
+* In your view, you can do some limited python code by using `%` preceeding the code. But, unlike the usual way, you also need to explicitly put `%end` on every block.
+
+Pretty neat isn't it?
+
+View is not only help you separate presentation from the controller, but also help you to make keep yourself DRY.
+For example, if you have a lot of pages, you will ends up writing banner, menu, and other trivial things in every pages.
+That is why we need `rebase`.
+
+Now modify your `pokemon.tpl` into this:
 
 ```html
     <strong>Pokemon list:</strong>
     <ul>
-    %for pokemon in pokemons:
+    %for pokemon in list:
         <li>{{pokemon}}</li>
     %end
     </ul>
-    %rebase example/base title='Pokemon'
+    %rebase your_app/base
 ````
 
-pokemon.tpl will be included in base.tpl and override %include.
-As you see, you can also put some (limitted) python script in the template.
+And modify your `base.tpl` into this:
+
+```html
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="description" content="">
+            <meta name="author" content="">
+            <link rel="stylesheet" type="text/css" href="/assets/static_libraries/bootstrap/css/bootstrap.min.css" />
+            <link rel="stylesheet" type="text/css" href="/assets/example/css/style.css" />
+            <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+            <!--[if lt IE 9]>
+            <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+            <![endif]-->
+            <script type="text/javascript" src="/assets/static_libraries/jquery.tools.min.js"></script>
+            <script type="text/javascript" src="/assets/static_libraries/bootstrap/js/bootstrap.min.js"></script>
+            <script type="text/javascript" src="/assets/example/js/script.js"></script>
+            <title>Kokoropy</title>
+        </head>
+        <body>
+            <div class="navbar navbar-inverse navbar-fixed-top">
+                <div class="navbar-inner">
+                    <div class="container">
+                        <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                            <span class="icon-bar">&nbsp;</span>
+                            <span class="icon-bar">&nbsp;</span>
+                            <span class="icon-bar">&nbsp;</span>
+                        </button>
+                        <a class="brand" href="#">Kokoropy</a>
+                        <div class="nav-collapse collapse">
+                            <ul class="nav">
+                                <li><a href="/example/simple/hello_world">Simple route</a></li>
+                                <li><a href="/example/recommended/index">Recommended route</a></li>
+                                <li><a href="/example/advance/hello">Advance route</a> </li>
+                                <li><a href="/example/recommended/upload">Test upload file</a> </li>
+                            </ul>
+                        </div><!--/.nav-collapse -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="content-container" class="container">
+                <div class="row-fluid">
+                    <div id="layout-banner" class="well hidden-phone span12">
+                        <div class="span2">
+                            <img src ="/assets/images/kokoropy.png" />
+                        </div>
+                        <div class="span10">
+                            <h1>Kokoropy</h1>
+                            <p>心から Python MVC Web Framework</p>
+                        </div>
+                    </div>
+                    <div id="layout-content" class="span12">
+                        <p id="content">%include</p>
+                    </div><!--/#layout-content-->
+                </div><!--/row-->
+                <hr>
+                <footer>GoFrendiAsgard &copy; 2013</footer>
+            </div><!--/.fluid-container-->
+
+        </body>
+    </html>
+```
+
+Now, `pokemon.tpl` will also include `base.tpl`. The original content of `pokemon.tpl` will replace `%include` in `base.tpl`
+
 To know more about template, please visit http://bottlepy.org/docs/dev/stpl.html
