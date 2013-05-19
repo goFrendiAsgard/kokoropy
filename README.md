@@ -572,3 +572,8 @@ And modify your `base.tpl` into this:
 Now, `pokemon.tpl` will also include `base.tpl`. The original content of `pokemon.tpl` will replace `%include` in `base.tpl`
 
 __Note:__ To know more about template, please visit http://bottlepy.org/docs/dev/stpl.html
+
+TODO:
+====
+* Provide `base_url` setting
+* Auto reload when something changed
