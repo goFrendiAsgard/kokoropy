@@ -1,0 +1,21 @@
+<VirtualHost *>
+    DocumentRoot /home/gofrendi/workspace/kokoropy
+    ServerName localhost
+    
+    # if your httpd.conf (or /etc/apache2/sites-available) 
+    # already has virtual host, just add these following instead:
+    # START OF WSGI ============================================================================
+    WSGIDaemonProcess kokoropy user=www-data group=www-data processes=1 threads=5
+    # Change / into /kokoropy  to use http://localhost/kokoropy instead of http://localhost
+    # Change /home/gofrendi/workspace/kokoropy/kokoro.wsgi with path to your kokoro.wsgi script
+    WSGIScriptAlias / /home/gofrendi/workspace/kokoropy/kokoro.wsgi
+    <Directory /home/gofrendi/workspace/kokoropy>
+        WSGIProcessGroup kokoropy
+        WSGIApplicationGroup %{GLOBAL}
+        Options ExecCGI
+        Order deny,allow
+        Allow from all
+    </Directory>
+    # END OF WSGI ==============================================================================
+    
+</VirtualHost>

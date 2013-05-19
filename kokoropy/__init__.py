@@ -211,6 +211,7 @@ def kokoro_init(**kwargs):
     QUIET               = kwargs.pop("quiet",               False               )
     INTERVAL            = kwargs.pop("interval",            1                   )
     PLUGINS             = kwargs.pop("plugins",             None                )
+    RUN                 = kwargs.pop("run",                 True                )
     ###################################################################################################
     # parameters
     ###################################################################################################
@@ -322,5 +323,8 @@ def kokoro_init(**kwargs):
     }
     app = beaker.middleware.SessionMiddleware(APP, session_opts)
     port = int(os.environ.get("PORT", PORT))
-    run(app=app, server=SERVER, reloader=RELOADER, host=HOST, 
-        port=port, quiet=QUIET, interval=INTERVAL, debug=DEBUG, plugins=PLUGINS, **kwargs)
+    if RUN:
+        run(app=app, server=SERVER, reloader=RELOADER, host=HOST, 
+            port=port, quiet=QUIET, interval=INTERVAL, debug=DEBUG, plugins=PLUGINS, **kwargs)
+    else:
+        return app
