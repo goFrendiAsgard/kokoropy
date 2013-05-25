@@ -1,6 +1,7 @@
 import os, sys
 os.chdir(os.path.dirname(__file__))
-sys.path = [os.path.dirname(__file__)] + sys.path
+if os.path.dirname(__file__) not in sys.path:
+    sys.path.append(os.path.dirname(__file__))
 
 from kokoropy import kokoro_init
 
