@@ -1,13 +1,20 @@
+# USING KOKOROPY WITH APACHE (assuming you use ubuntu or debian):
+#
+# * You need to have mod-wsgi enabled.
+# * If you don't have mod-wsgi installed, please do: sudo apt-get install libapache2-mod-wsgi.
+# * If you don't have mod-wsgi enabled, please do: sudo a2enmod wsgi.
+# * Copy this file, put it on /etc/apache2/sites-available/kokoro.apache_conf (On another OS, please append this file contents to httpd.conf).
+# * Enable this configuration by doing: sudo a2ensite kokoro.apache_conf.
+# * Modify /etc/apache2/sites-available/kokoro.apache_conf as follows:
+#     * Replace every "/home/gofrendi/workspace/kokoropy" with your kokoropy directory location.
+#     * In case of you already have php installed, please don't use "localhost" as ServerName. Use another valid ServerName instead.
+#     * You can add valid ServerName by add a line at /etc/hosts (e.g: 127.0.1.1    arcaneSanctum).
+#
 <VirtualHost *>
     DocumentRoot /home/gofrendi/workspace/kokoropy
     ServerName localhost
-    
-    # if your httpd.conf (or /etc/apache2/sites-available) 
-    # already has virtual host, just add these following instead:
-    # START OF WSGI ============================================================================
+
     WSGIDaemonProcess kokoropy user=www-data group=www-data processes=1 threads=5
-    # Change / into /kokoropy  to use http://localhost/kokoropy instead of http://localhost
-    # Change /home/gofrendi/workspace/kokoropy/kokoro.wsgi with path to your kokoro.wsgi script
     WSGIScriptAlias / /home/gofrendi/workspace/kokoropy/kokoro.wsgi
     <Directory /home/gofrendi/workspace/kokoropy>
         WSGIProcessGroup kokoropy
@@ -16,6 +23,5 @@
         Order deny,allow
         Allow from all
     </Directory>
-    # END OF WSGI ==============================================================================
-    
+
 </VirtualHost>

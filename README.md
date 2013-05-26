@@ -573,7 +573,20 @@ Now, `pokemon.tpl` will also include `base.tpl`. The original content of `pokemo
 
 __Note:__ To know more about template, please visit http://bottlepy.org/docs/dev/stpl.html
 
+Tutorial 6: Deploy kokoropy on apache web server
+================================================
+This is how to use kokoropy with apache web server (assuming you use ubuntu or debian):
+* You need to have mod-wsgi enabled.
+* If you do not have mod-wsgi installed, please do: `sudo apt-get install libapache2-mod-wsgi`.
+* If you do not have mod-wsgi enabled, please do: `sudo a2enmod wsgi`.
+* Copy this file, put it on `/etc/apache2/sites-available/kokoro.apache_conf` (On another OS, please append this file contents to `httpd.conf`).
+* Enable this configuration by doing: `sudo a2ensite kokoro.apache_conf`.
+* Modify `/etc/apache2/sites-available/kokoro.apache_conf` as follows:
+  - Replace every `/home/gofrendi/workspace/kokoropy` with your kokoropy directory location.
+  - In case of you already have php installed, please don't use `localhost` as ServerName. Use another valid ServerName instead.
+  - You can add valid ServerName by add a line at /etc/hosts (e.g: `127.0.1.1    arcaneSanctum` will add `arcaneSanctum` as valid ServerName).
+
 TODO:
 ====
-* Provide `base_url` setting
+* Provide `base_url` setting (pending: for now, assume it as `/` as `base_url`)
 * Auto reload when something changed
