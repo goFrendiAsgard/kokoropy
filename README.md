@@ -579,7 +579,7 @@ This is how to use kokoropy with apache web server (assuming you use ubuntu or d
 * You need to have mod-wsgi enabled.
 * If you do not have mod-wsgi installed, please do: `sudo apt-get install libapache2-mod-wsgi`.
 * If you do not have mod-wsgi enabled, please do: `sudo a2enmod wsgi`.
-* Copy this file, put it on `/etc/apache2/sites-available/kokoro.apache_conf` (On another OS, please append this file contents to `httpd.conf`).
+* Copy `kokoro.apache_conf`, put it on `/etc/apache2/sites-available/kokoro.apache_conf` (On another OS, please append this file contents to `httpd.conf`).
 * Enable this configuration by doing: `sudo a2ensite kokoro.apache_conf`.
 * Modify `/etc/apache2/sites-available/kokoro.apache_conf` as follows:
   - Replace every `/home/gofrendi/workspace/kokoropy` with your kokoropy directory location.

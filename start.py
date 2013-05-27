@@ -7,7 +7,7 @@ HOST                = 'localhost'
 PORT                = 8080
 DEBUG               = True
 RELOADER            = False
-SERVER              = 'wsgiref'
+SERVER              = 'kokoro' # or wsgiref or whatever
 APP_DIRECTORY       = 'applications'
 
 ###########################################################################
@@ -17,6 +17,6 @@ if __name__ == '__main__':
     import os
     from kokoropy import kokoro_init
     PWD = os.path.dirname(os.path.abspath(__file__))
-    APPLICATION_PATH    = os.path.join(PWD, APP_DIRECTORY)    
+    APPLICATION_PATH    = os.path.join(PWD, APP_DIRECTORY)
     kokoro_init(application_path = APPLICATION_PATH, debug=DEBUG,
                 port=PORT, reloader=RELOADER, host=HOST, server=SERVER)

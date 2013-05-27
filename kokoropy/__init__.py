@@ -14,7 +14,7 @@ import bottle, sqlalchemy, beaker
 import beaker.middleware
 from bottle import default_app, debug, run, static_file,\
     request, TEMPLATE_PATH, template, route, get, post, put, delete, error, hook, Bottle
-        
+
 ###################################################################################################
 # Hacks & Dirty Tricks :)
 ###################################################################################################  
@@ -25,6 +25,21 @@ if sys.version_info >= (3,0,0):
 if 0:
     request.SESSION = []
 ###################################################################################################
+
+class KokoroWSGIRefServer(bottle.ServerAdapter):
+    server = None
+
+    def run(self, handler):
+        from wsgiref.simple_server import make_server, WSGIRequestHandler
+        if self.quiet:
+            class QuietHandler(WSGIRequestHandler):
+                def log_request(self, *args, **kw): pass
+            self.options['handler_class'] = QuietHandler
+        self.server = make_server(self.host, self.port, handler, **self.options)
+        self.server.serve_forever()
+
+    def stop(self):
+        self.server.server_close()
 
 @hook("before_request")
 def _before_request():
@@ -325,6 +340,8 @@ def kokoro_init(**kwargs):
     app = beaker.middleware.SessionMiddleware(APP, session_opts)
     port = int(os.environ.get("PORT", PORT))
     if RUN:
+        if SERVER == 'kokoro':
+            SERVER = KokoroWSGIRefServer(host=HOST, port=port)
         run(app=app, server=SERVER, reloader=RELOADER, host=HOST, 
             port=port, quiet=QUIET, interval=INTERVAL, debug=DEBUG, plugins=PLUGINS, **kwargs)
     else:
