@@ -347,13 +347,9 @@ def kokoro_init(**kwargs):
     app = beaker.middleware.SessionMiddleware(APP, session_opts)
     port = int(os.environ.get("PORT", PORT))
     if RUN:
-        if SERVER == 'kokoro':   
+        if SERVER == 'kokoro':
             SERVER = KokoroWSGIRefServer(host=HOST, port=port)
-            run(app=app, server=SERVER, reloader=RELOADER, host=HOST, 
-                port=port, quiet=QUIET, interval=INTERVAL, debug=DEBUG, plugins=PLUGINS, **kwargs)
-        else:
-            # just run the server
-            run(app=app, server=SERVER, reloader=RELOADER, host=HOST, 
-                port=port, quiet=QUIET, interval=INTERVAL, debug=DEBUG, plugins=PLUGINS, **kwargs)
+        run(app=app, server=SERVER, reloader=RELOADER, host=HOST, 
+            port=port, quiet=QUIET, interval=INTERVAL, debug=DEBUG, plugins=PLUGINS, **kwargs)
     else:
         return app
