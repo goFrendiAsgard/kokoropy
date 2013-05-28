@@ -10,7 +10,7 @@ if os.path.dirname(__file__) not in sys.path:
 ###################################################################################################
 # Import things
 ###################################################################################################
-import bottle, sqlalchemy, beaker
+import bottle, sqlalchemy, beaker, threading, time
 import beaker.middleware
 from bottle import default_app, debug, run, static_file,\
     request, TEMPLATE_PATH, template, route, get, post, put, delete, error, hook, Bottle
@@ -24,10 +24,14 @@ if sys.version_info >= (3,0,0):
 # Intellisense hack
 if 0:
     request.SESSION = []
+    
 ###################################################################################################
-
+# KokoroWSGIRefServer
+###################################################################################################
 class KokoroWSGIRefServer(bottle.ServerAdapter):
-    server = None
+    def __int__(self, *args, **kwargs):
+        super(bottle.ServerAdapter, self).__init__(*args, **kwargs)
+        self.srv = None
 
     def run(self, handler):
         from wsgiref.simple_server import make_server, WSGIRequestHandler
@@ -35,12 +39,15 @@ class KokoroWSGIRefServer(bottle.ServerAdapter):
             class QuietHandler(WSGIRequestHandler):
                 def log_request(self, *args, **kw): pass
             self.options['handler_class'] = QuietHandler
-        self.server = make_server(self.host, self.port, handler, **self.options)
-        self.server.serve_forever()
+        self.srv = make_server(self.host, self.port, handler, **self.options)
+        self.srv.serve_forever()
 
     def stop(self):
-        self.server.server_close()
-
+        if self.srv is not None:
+            self.srv.shutdown()
+            self.srv.server_close()
+     
+###################################################################################################
 @hook("before_request")
 def _before_request():
     """ Before request event
@@ -216,10 +223,10 @@ def kokoro_init(**kwargs):
      """
     ###################################################################################################
     # kwargs arguments
-    ###################################################################################################
+    ###################################################################################################    
     APPLICATION_PATH    = kwargs.pop("application_path",    "./applications"    )
     APP                 = kwargs.pop("app",                 bottle.app()        )
-    SERVER              = kwargs.pop("server",              "wsgiref"           )
+    SERVER              = kwargs.pop("server",              "kokoro"            )
     DEBUG               = kwargs.pop("debug",               True                )
     PORT                = kwargs.pop("port",                8080                )
     RELOADER            = kwargs.pop("reloader",            True                )
@@ -340,9 +347,13 @@ def kokoro_init(**kwargs):
     app = beaker.middleware.SessionMiddleware(APP, session_opts)
     port = int(os.environ.get("PORT", PORT))
     if RUN:
-        if SERVER == 'kokoro':
+        if SERVER == 'kokoro':   
             SERVER = KokoroWSGIRefServer(host=HOST, port=port)
-        run(app=app, server=SERVER, reloader=RELOADER, host=HOST, 
-            port=port, quiet=QUIET, interval=INTERVAL, debug=DEBUG, plugins=PLUGINS, **kwargs)
+            run(app=app, server=SERVER, reloader=RELOADER, host=HOST, 
+                port=port, quiet=QUIET, interval=INTERVAL, debug=DEBUG, plugins=PLUGINS, **kwargs)
+        else:
+            # just run the server
+            run(app=app, server=SERVER, reloader=RELOADER, host=HOST, 
+                port=port, quiet=QUIET, interval=INTERVAL, debug=DEBUG, plugins=PLUGINS, **kwargs)
     else:
         return app
