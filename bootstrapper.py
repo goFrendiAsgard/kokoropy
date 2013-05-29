@@ -15,7 +15,6 @@ def main_process(host, port, debug, reloader, server, app_directory):
 if __name__ == '__main__':
     import sys, getopt
     args = sys.argv[1:]
-    #args = ['--host=localhost','--p=3306','--appdir=coba', '--server=kokoro', '--debug', '--reload']
     # pass arguments
     options, remainder = getopt.getopt(args, '', ['debug', 'reload', 'host=', 'port=', 'server=', 'appdir='])
     host = 'localhost'
