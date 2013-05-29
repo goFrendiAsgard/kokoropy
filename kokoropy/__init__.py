@@ -241,12 +241,18 @@ def kokoro_init(**kwargs):
     APPLICATION_PACKAGE = os.path.split(APPLICATION_PATH)[-1]
     CURRENT_PATH        = os.path.split(APPLICATION_PATH)[0]
     RUNTIME_PATH        = os.path.join(CURRENT_PATH,".runtime")
+    ASSET_PATH          = os.path.join(RUNTIME_PATH,"assets")
+    VIEW_PATH           = os.path.join(RUNTIME_PATH,"views")
     ###################################################################################################
     # prepare runtime path
     ###################################################################################################
     print ("PREPARE RUNTIME PATH")
     if not os.path.exists(RUNTIME_PATH):
         os.makedirs(RUNTIME_PATH)
+    if not os.path.exists(ASSET_PATH):
+        os.makedirs(ASSET_PATH)
+    if not os.path.exists(VIEW_PATH):
+        os.makedirs(VIEW_PATH)
     ###################################################################################################
     # get all kokoropy module directory_list
     ###################################################################################################
