@@ -20,12 +20,13 @@ FILE_STAT = {}
 def start_server():
     PWD = os.path.dirname(os.path.abspath(__file__))
     SCRIPT_PATH = os.path.join(PWD,'bootstrapper.py')
-    RUN_COMMAND = '%s --host=%s --port=%d --server=%s --appdir=%s' %(SCRIPT_PATH, HOST, PORT, SERVER, APP_DIRECTORY)
+    RUN_COMMAND = 'python %s --host=%s --port=%d --server=%s --appdir=%s' %(SCRIPT_PATH, HOST, PORT, SERVER, APP_DIRECTORY)
     if RELOADER:
         RUN_COMMAND += ' --reload'
     if DEBUG:
         RUN_COMMAND += ' --debug'
-    return subprocess.Popen(SCRIPT_PATH)
+    print (RUN_COMMAND)
+    return subprocess.Popen(RUN_COMMAND)
 
 def modification_date(filename):
     t = os.path.getmtime(filename)
@@ -42,7 +43,7 @@ def is_modified():
         for filename in filenames:
             absolute_filename = os.path.join(dirpath, filename)
             last_change = modification_date(absolute_filename)
-            if (absolute_filename not in FILE_STAT) or (FILE_STAT[absolute_filename] <> last_change):
+            if (absolute_filename not in FILE_STAT) or (FILE_STAT[absolute_filename] != last_change):
                 FILE_STAT[absolute_filename] = last_change
                 MODIFICATION_FLAG = True
             CHECKED_STAT.append(absolute_filename)
@@ -67,7 +68,7 @@ if __name__ == '__main__':
                 if PROCESS is not None:
                     os.kill(PROCESS.pid, signal.SIGINT)
                 PROCESS = start_server()
-            time.sleep(1)            
+            time.sleep(1)
         except(KeyboardInterrupt, SystemExit):
             STOP_FLAG = True
-    print ("\nKokoropy Server Ended")    
+    print ("\nKokoropy Server Ended")
