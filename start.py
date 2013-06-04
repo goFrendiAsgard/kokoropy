@@ -25,7 +25,6 @@ def start_server():
         RUN_COMMAND += ' --reload'
     if DEBUG:
         RUN_COMMAND += ' --debug'
-    print (RUN_COMMAND)
     return subprocess.Popen(RUN_COMMAND, shell=True)
 
 def modification_date(filename):
