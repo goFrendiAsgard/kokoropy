@@ -26,7 +26,7 @@ def start_server():
     if DEBUG:
         RUN_COMMAND += ' --debug'
     print (RUN_COMMAND)
-    return subprocess.Popen(RUN_COMMAND)
+    return subprocess.Popen(RUN_COMMAND, shell=True)
 
 def modification_date(filename):
     t = os.path.getmtime(filename)
