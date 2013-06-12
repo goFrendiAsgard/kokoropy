@@ -588,5 +588,5 @@ This is how to use kokoropy with apache web server (assuming you use ubuntu or d
 
 TODO:
 ====
-* Provide `base_url` setting (pending: for now, assume it as `/` as `base_url`)
-* Auto reload when something changed
+* Provide `base_url` setting (pending: for now, assume `/` as `base_url`)
+* In debugging session (via `python start.py`), auto reload server when something changed (done)
