@@ -13,14 +13,14 @@ APP_DIRECTORY       = 'applications'
 ###########################################################################
 # DON'T TOUCH FOLLOWING CODES
 ###########################################################################
-import os, subprocess, signal, time, datetime
+import sys, os, subprocess, signal, time, datetime
 
 FILE_STAT = {}
 
 def start_server():
     PWD = os.path.dirname(os.path.abspath(__file__))
     SCRIPT_PATH = os.path.join(PWD,'bootstrapper.py')
-    RUN_COMMAND = 'python %s' %(SCRIPT_PATH)
+    RUN_COMMAND = '%s %s' %(sys.executable, SCRIPT_PATH)
     ARGUMENTS = '--host=%s --port=%d --server=%s --appdir=%s' %(HOST, PORT, SERVER, APP_DIRECTORY)
     if RELOADER:
         ARGUMENTS += ' --reload'
