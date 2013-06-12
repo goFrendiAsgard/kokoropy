@@ -13,7 +13,7 @@ if os.path.dirname(__file__) not in sys.path:
 import bottle, sqlalchemy, beaker, threading, time
 import beaker.middleware
 from bottle import default_app, debug, run, static_file,\
-    request, TEMPLATE_PATH, template, route, get, post, put, delete, error, hook, Bottle
+    request, response, TEMPLATE_PATH, template, route, get, post, put, delete, error, hook, Bottle
 
 ###################################################################################################
 # Hacks & Dirty Tricks :)

@@ -31,7 +31,8 @@
                             <li><a href="/example/simple/hello_world">Simple route</a></li>
                             <li><a href="/example/recommended/index">Recommended route</a></li>
                             <li><a href="/example/advance/hello">Advance route</a> </li>
-                            <li><a href="/example/recommended/upload">Test upload file</a> </li>
+                            <li><a href="/example/recommended/upload">Test upload file</a></li>
+                            <li><a href="/example/plotting/index">Matplotlib</a></li>
                         </ul>
                     </div><!--/.nav-collapse -->
                 </div>
