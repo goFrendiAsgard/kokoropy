@@ -345,7 +345,7 @@ Or even better:
             # define pokemon list
             pokemon_list = ['Pikachu', 'Bulbasur', 'Squirtle', 'Charmender', 'Caterpie']
             # return response
-            return '<title>Pokemon</title>' + self.build_ul
+            return '<title>Pokemon</title>' + self.build_ul(pokemon_list)
 
         def build_ul(self, list):
             ul = '<ul>';
