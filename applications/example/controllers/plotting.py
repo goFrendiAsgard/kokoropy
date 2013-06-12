@@ -1,7 +1,7 @@
 from kokoropy import template, response
 
 class Default_Controller(object):
-
+    
     def action_plot(self):
         # import things
         import numpy as np

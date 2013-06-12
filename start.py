@@ -20,12 +20,13 @@ FILE_STAT = {}
 def start_server():
     PWD = os.path.dirname(os.path.abspath(__file__))
     SCRIPT_PATH = os.path.join(PWD,'bootstrapper.py')
-    RUN_COMMAND = 'python %s --host=%s --port=%d --server=%s --appdir=%s' %(SCRIPT_PATH, HOST, PORT, SERVER, APP_DIRECTORY)
+    RUN_COMMAND = 'python %s' %(SCRIPT_PATH)
+    ARGUMENTS = '--host=%s --port=%d --server=%s --appdir=%s' %(HOST, PORT, SERVER, APP_DIRECTORY)
     if RELOADER:
-        RUN_COMMAND += ' --reload'
+        ARGUMENTS += ' --reload'
     if DEBUG:
-        RUN_COMMAND += ' --debug'
-    return subprocess.Popen(RUN_COMMAND, shell=True)
+        ARGUMENTS += ' --debug'
+    return subprocess.Popen([RUN_COMMAND, ARGUMENTS], shell=True, preexec_fn=os.setsid)
 
 def modification_date(filename):
     t = os.path.getmtime(filename)
@@ -59,15 +60,18 @@ def is_modified():
 
 if __name__ == '__main__':
     STOP_FLAG = False
-    PROCESS = None   
+    PROCESS = None
+    print ('KOKOROPY DEBUGGING SESSION\n')
     while not STOP_FLAG:
         try:
             MODIFIED = is_modified()
             if MODIFIED:
                 if PROCESS is not None:
-                    os.kill(PROCESS.pid, signal.SIGINT)
+                    os.killpg(PROCESS.pid, signal.SIGTERM)
                 PROCESS = start_server()
             time.sleep(1)
         except(KeyboardInterrupt, SystemExit):
             STOP_FLAG = True
-    print ("\nKokoropy Server Ended")
+    if PROCESS is not None:
+        os.killpg(PROCESS.pid, signal.SIGTERM)
+    print ("\nEND OF KOKOROPY DEBUGGING SESSION")
