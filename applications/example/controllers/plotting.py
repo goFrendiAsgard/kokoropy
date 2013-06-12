@@ -5,7 +5,9 @@ class Default_Controller(object):
     def action_plot(self):
         # import things
         import numpy as np
-        import StringIO 
+        import StringIO
+        import tempfile, os
+        os.environ['MPLCONFIGDIR'] = tempfile.mkdtemp() # point MPLCONFIGDIR to writable directory
         from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
         from matplotlib.figure import Figure
         # determine x, sin(x) and cos(x)

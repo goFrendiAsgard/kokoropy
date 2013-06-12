@@ -47,7 +47,7 @@
                     </div>
                     <div class="span10">
                         <h1>Kokoropy</h1>
-                        <p>心から Python MVC Web Framework</p>
+                        <p>心から Educational MVC Python Web Framework</p>
                     </div>
                 </div>
                 <div id="layout-content" class="span12">
