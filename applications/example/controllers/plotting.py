@@ -15,7 +15,7 @@ class Default_Controller(object):
         # make figure       
         fig = Figure()
         fig.subplots_adjust(hspace = 0.5, wspace = 0.5)
-        fig.suptitle('The legendary sinus and cosinus curves')
+        fig.suptitle('The legendary sine and cosine curves')
         # first subplot
         ax = fig.add_subplot(2, 1, 1)
         ax.plot(x, y1, 'b')
