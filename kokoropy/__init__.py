@@ -14,6 +14,7 @@ import bottle, sqlalchemy, beaker, threading, time
 import beaker.middleware
 from bottle import default_app, debug, run, static_file,\
     request, response, TEMPLATE_PATH, template, route, get, post, put, delete, error, hook, Bottle
+import pkgutil
 
 ###################################################################################################
 # Hacks & Dirty Tricks :)
@@ -21,6 +22,7 @@ from bottle import default_app, debug, run, static_file,\
 # Python 3 hack for xrange
 if sys.version_info >= (3,0,0):
     xrange = range
+    
 # Intellisense hack
 if 0:
     request.SESSION = []
@@ -48,6 +50,30 @@ class KokoroWSGIRefServer(bottle.ServerAdapter):
             self.srv.server_close()
      
 ###################################################################################################
+_BASE_URL = '/'
+_RUNTIME_PATH = '.runtime/'
+
+def isset(variable):
+    """ PHP favored isset. 
+        Usage: isset("a_variable_name")
+    """
+    return variable in locals() or variable in globals()
+
+def add_trail_slash(string):
+    if string[-1] != '/':
+        string += '/'
+    return string
+
+def remove_trail_slash(string):
+    if string[-1] == '/':
+        string  = string[:-1]
+    return string
+
+def runtime_path(new_runtime_path = None):
+    if new_runtime_path is None:
+        return _RUNTIME_PATH
+    globals()['_RUNTIME_PATH'] = new_runtime_path
+
 @hook("before_request")
 def _before_request():
     """ Before request event
@@ -56,16 +82,17 @@ def _before_request():
     """
     request.SESSION = request.environ["beaker.session"]
 
-@route("/<path:re:(favicon.ico)>")
-@route("/assets/<path:re:.+>")
+@route(_BASE_URL+"<path:re:(favicon.ico)>")
+@route(_BASE_URL+"assets/<path:re:.+>")
 def _serve_assets(path):
     """ Serve static files
         There is no need to call this function manually
     """
-    if os.path.exists(os.path.join(".runtime", "assets", path)):
-        return static_file(path, root=os.path.join(".runtime", "assets"))
+    UNTRAILED_SLASH_RUNTIME_PATH = remove_trail_slash(_RUNTIME_PATH)
+    if os.path.exists(os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets", path)):
+        return static_file(path, root=os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets"))
     else:
-        return static_file(path, root=os.path.join(".runtime", "assets", "index"))
+        return static_file(path, root=os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets", "index"))
 
 def rmtree(path, ignore_errors=False, onerror=None):
     """ Alias for shutil.rmtree
@@ -144,21 +171,21 @@ def _get_basic_routes(directory, controller, function):
     """
     basic_routes = []    
     # basic routes    
-    basic_routes.append("/"+directory+"/"+controller+"/"+function)
+    basic_routes.append(_BASE_URL+directory+"/"+controller+"/"+function)
     if function == "index":
-        basic_routes.append("/"+directory+"/"+controller)
+        basic_routes.append(_BASE_URL+directory+"/"+controller)
     if controller == "index":
-        basic_routes.append("/"+directory+"/"+function)
+        basic_routes.append(_BASE_URL+directory+"/"+function)
         if function == "index":
-            basic_routes.append("/"+directory)            
+            basic_routes.append(_BASE_URL+directory)            
     if directory == "index":
-        basic_routes.append("/"+controller+"/"+function)
+        basic_routes.append(_BASE_URL+controller+"/"+function)
         if function == "index":
-            basic_routes.append("/"+controller)
+            basic_routes.append(_BASE_URL+controller)
         if controller == "index":
-            basic_routes.append("/"+function)
+            basic_routes.append(_BASE_URL+function)
             if function == "index":
-                basic_routes.append("")
+                basic_routes.append(_BASE_URL+"")
     # return
     return basic_routes
 
@@ -178,7 +205,8 @@ def _get_routes(directory, controller, function, parameters):
             parameter_segment = "/".join(parameter_patterns[:i+1])
             routes.append(basic_route+"/"+parameter_segment)
         routes.append(basic_route)
-        routes.append(basic_route+"/")
+        if basic_route[-1] != "/":
+            routes.append(basic_route+"/")
     # return
     return routes
 
@@ -238,21 +266,26 @@ def kokoro_init(**kwargs):
     ###################################################################################################
     # parameters
     ###################################################################################################
+    UNTRAILED_SLASH_RUNTIME_PATH = remove_trail_slash(_RUNTIME_PATH)
     APPLICATION_PACKAGE = os.path.split(APPLICATION_PATH)[-1]
-    CURRENT_PATH        = os.path.split(APPLICATION_PATH)[0]
-    RUNTIME_PATH        = os.path.join(CURRENT_PATH,".runtime")
-    ASSET_PATH          = os.path.join(RUNTIME_PATH,"assets")
-    VIEW_PATH           = os.path.join(RUNTIME_PATH,"views")
+    ASSET_PATH          = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"assets")
+    VIEW_PATH           = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"views")
+    MPL_CONFIG_DIR_PATH = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"mplconfigdir")
     ###################################################################################################
     # prepare runtime path
     ###################################################################################################
-    print ("PREPARE RUNTIME PATH")
-    if not os.path.exists(RUNTIME_PATH):
-        os.makedirs(RUNTIME_PATH)
+    print ("PREPARE RUNTIME PATH " + UNTRAILED_SLASH_RUNTIME_PATH)
+    if not os.path.exists(UNTRAILED_SLASH_RUNTIME_PATH):
+        os.makedirs(UNTRAILED_SLASH_RUNTIME_PATH)
     if not os.path.exists(ASSET_PATH):
         os.makedirs(ASSET_PATH)
     if not os.path.exists(VIEW_PATH):
         os.makedirs(VIEW_PATH)
+    if not os.path.exists(MPL_CONFIG_DIR_PATH):
+        os.makedirs(MPL_CONFIG_DIR_PATH)
+    # set mplconfigdir for matplotlib
+    if ('MPLCONFIGDIR' not in os.environ) or (not os.access(os.environ['MPLCONFIGDIR'], os.W_OK)):
+        os.environ['MPLCONFIGDIR'] = MPL_CONFIG_DIR_PATH # point MPLCONFIGDIR to writable directory
     ###################################################################################################
     # get all kokoropy module directory_list
     ###################################################################################################
@@ -326,8 +359,8 @@ def kokoro_init(**kwargs):
     ###################################################################################################
     # add template & assets path
     ###################################################################################################
-    global_view_path = os.path.join(RUNTIME_PATH, "views")
-    global_asset_path = os.path.join(RUNTIME_PATH, "assets")
+    global_view_path = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "views")
+    global_asset_path = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets")
     rmtree(global_view_path)
     rmtree(global_asset_path)
     # application"s assets & views
@@ -347,7 +380,7 @@ def kokoro_init(**kwargs):
     ###################################################################################################
     session_opts = {
         "session.type": "file",
-        "session.data_dir": os.path.join(RUNTIME_PATH,"session"),
+        "session.data_dir": os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"session"),
         "session.auto": True,
     }
     app = beaker.middleware.SessionMiddleware(APP, session_opts)
@@ -359,3 +392,25 @@ def kokoro_init(**kwargs):
             port=port, quiet=QUIET, interval=INTERVAL, debug=DEBUG, plugins=PLUGINS, **kwargs)
     else:
         return app
+
+def draw_matplotlib_figure(figure):
+    # import FigureCanvas
+    matplotlib_found = False
+    StringIO_found = False
+    for iter_modules in pkgutil.iter_modules():        
+        module_name = iter_modules[1]
+        if module_name == 'matplotlib':            
+            from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+            matplotlib_found = True
+        if module_name == 'StringIO':
+            import StringIO
+            StringIO_found = True
+    if matplotlib_found and StringIO_found:        
+        # return png output
+        canvas = FigureCanvas(figure)
+        png_output = StringIO.StringIO()
+        canvas.print_png(png_output)
+        response.content_type = 'image/png'
+        return png_output.getvalue()
+    else:
+        return False

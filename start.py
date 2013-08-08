@@ -3,12 +3,13 @@
 ###########################################################################
 # CONFIGURATION (Feel free to modify it)
 ###########################################################################
-HOST                = 'localhost'
-PORT                = 8080
-DEBUG               = True
-RELOADER            = False
-SERVER              = 'kokoro' # or wsgiref or whatever
-APP_DIRECTORY       = 'applications'
+HOST                = 'localhost'               # the server name
+PORT                = 8080                      # http port
+DEBUG               = True                      # True or False
+RELOADER            = False                     # True or False
+SERVER              = 'kokoro'                  # or wsgiref or whatever
+APP_DIRECTORY       = 'applications'            # applications package
+_RUNTIME_PATH        = '.development_runtime'    # runtime path
 
 ###########################################################################
 # DON'T TOUCH FOLLOWING CODES
@@ -21,12 +22,13 @@ def start_server():
     PWD = os.path.dirname(os.path.abspath(__file__))
     SCRIPT_PATH = os.path.join(PWD,'bootstrapper.py')
     RUN_COMMAND = '%s %s' %(sys.executable, SCRIPT_PATH)
-    ARGUMENTS = '--host=%s --port=%d --server=%s --appdir=%s' %(HOST, PORT, SERVER, APP_DIRECTORY)
+    ARGUMENTS = '--host=%s --port=%d --server=%s --appdir=%s --runtimepath=%s' %(HOST, PORT, SERVER, APP_DIRECTORY, _RUNTIME_PATH)
     if RELOADER:
         ARGUMENTS += ' --reload'
     if DEBUG:
         ARGUMENTS += ' --debug'
-    return subprocess.Popen([RUN_COMMAND, ARGUMENTS], shell=True, preexec_fn=os.setsid)
+    RUN_COMMAND = RUN_COMMAND + ' ' + ARGUMENTS
+    return subprocess.Popen(RUN_COMMAND, shell=True, preexec_fn=os.setsid)
 
 def modification_date(filename):
     t = os.path.getmtime(filename)

@@ -1,15 +1,10 @@
-from kokoropy import template, response
+from kokoropy import template, draw_matplotlib_figure
 
 class Default_Controller(object):
     
     def action_plot(self):
         # import things
         import numpy as np
-        import StringIO
-        import tempfile, os
-        if ('MPLCONFIGDIR' not in os.environ) or (not os.access(os.environ['MPLCONFIGDIR'], os.W_OK)):
-            os.environ['MPLCONFIGDIR'] = tempfile.mkdtemp() # point MPLCONFIGDIR to writable directory
-        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
         from matplotlib.figure import Figure
         # determine x, sin(x) and cos(x)
         x = np.arange(0, 6.28, 0.1)
@@ -34,11 +29,7 @@ class Default_Controller(object):
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         # make canvas
-        canvas = FigureCanvas(fig)
-        png_output = StringIO.StringIO()
-        canvas.print_png(png_output)
-        response.content_type = 'image/png'
-        return png_output.getvalue()
+        return draw_matplotlib_figure(fig)
     
     def action_index(self):
         return template('example/plotting')
