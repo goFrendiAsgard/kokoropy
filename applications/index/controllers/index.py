@@ -5,7 +5,7 @@ from kokoropy import route, request
 @route('/')
 def index():    
     # return string
-    return '''
-        <title>Kokoropy</title>
-        <h1>It works</h1>
-        <a href="/example/recommended">Check the example</a>'''
+    response  = '<title>Kokoropy</title>'
+    response += '<h1>It works !!!</h1>'
+    response += '<a href="'+request.BASE_URL+'example/recommended">Check the example</a>'
+    return response

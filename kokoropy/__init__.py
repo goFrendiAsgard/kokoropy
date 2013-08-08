@@ -13,7 +13,8 @@ if os.path.dirname(__file__) not in sys.path:
 import bottle, sqlalchemy, beaker, threading, time
 import beaker.middleware
 from bottle import default_app, debug, run, static_file,\
-    request, response, TEMPLATE_PATH, template, route, get, post, put, delete, error, hook, Bottle
+    request, response, TEMPLATE_PATH, template, route, get,\
+    post, put, delete, error, hook, Bottle
 import pkgutil
 
 ###################################################################################################
@@ -24,11 +25,13 @@ if sys.version_info >= (3,0,0):
     xrange = range
     
 # Intellisense hack
-if 0:
+if False:
     request.SESSION = []
+    request.BASE_URL = ''
+    request.RUNTIME_PATH = ''
     
 ###################################################################################################
-# KokoroWSGIRefServer
+# KokoroWSGIRefServer (Do something with this, on future)
 ###################################################################################################
 class KokoroWSGIRefServer(bottle.ServerAdapter):
     def __int__(self, *args, **kwargs):
@@ -50,8 +53,32 @@ class KokoroWSGIRefServer(bottle.ServerAdapter):
             self.srv.server_close()
      
 ###################################################################################################
+# These values can be overridden by using set_base_url & set_runtime_path
+# They will be persistently saved in os.environ
+# and can be retrieved by using request.BASE_URL & request.RUNTIME_PATH
 _BASE_URL = '/'
 _RUNTIME_PATH = '.runtime/'
+
+# This class serve kokoropy static files routing & some injection into request object
+class _Kokoro_Router(object):
+    def before_request(self):
+        """ Before request event
+            Inject request.SESSION as alias of request.environ["beaker.session"]
+            There is no need to call this function manually
+        """
+        request.SESSION = request.environ["beaker.session"]
+        request.BASE_URL = os.environ['__KOKOROPY_BASE_URL__']
+        request.RUNTIME_PATH = os.environ['__KOKOROPY_RUNTIME_PATH__']
+    
+    def serve_assets(self, path):
+        """ Serve static files
+            There is no need to call this function manually
+        """
+        UNTRAILED_SLASH_RUNTIME_PATH = remove_trail_slash(_RUNTIME_PATH)
+        if os.path.exists(os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets", path)):
+            return static_file(path, root=os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets"))
+        else:
+            return static_file(path, root=os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets", "index"))
 
 def isset(variable):
     """ PHP favored isset. 
@@ -60,39 +87,24 @@ def isset(variable):
     return variable in locals() or variable in globals()
 
 def add_trail_slash(string):
+    """ Remove trailing slash
+    """
     if string[-1] != '/':
         string += '/'
     return string
 
 def remove_trail_slash(string):
+    """ Add trailing slash
+    """
     if string[-1] == '/':
         string  = string[:-1]
     return string
 
-def runtime_path(new_runtime_path = None):
-    if new_runtime_path is None:
-        return _RUNTIME_PATH
-    globals()['_RUNTIME_PATH'] = new_runtime_path
+def set_runtime_path(new_runtime_path):
+    globals()['_RUNTIME_PATH'] = add_trail_slash(new_runtime_path)
 
-@hook("before_request")
-def _before_request():
-    """ Before request event
-        Inject request.SESSION as alias of request.environ["beaker.session"]
-        There is no need to call this function manually
-    """
-    request.SESSION = request.environ["beaker.session"]
-
-@route(_BASE_URL+"<path:re:(favicon.ico)>")
-@route(_BASE_URL+"assets/<path:re:.+>")
-def _serve_assets(path):
-    """ Serve static files
-        There is no need to call this function manually
-    """
-    UNTRAILED_SLASH_RUNTIME_PATH = remove_trail_slash(_RUNTIME_PATH)
-    if os.path.exists(os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets", path)):
-        return static_file(path, root=os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets"))
-    else:
-        return static_file(path, root=os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets", "index"))
+def set_base_url(new_base_url):
+    globals()['_BASE_URL'] = add_trail_slash(new_base_url)
 
 def rmtree(path, ignore_errors=False, onerror=None):
     """ Alias for shutil.rmtree
@@ -193,7 +205,7 @@ def _get_routes(directory, controller, function, parameters):
     """ Get complete route string
         This will handle parameters and automatically add trailing slash
     """
-    basic_routes = _get_basic_routes(directory, controller, function)    
+    basic_routes = _get_basic_routes(directory, controller, function)
     # parameter patterns
     parameter_patterns = []
     for parameter in parameters:
@@ -316,7 +328,12 @@ def kokoro_init(**kwargs):
                 continue
             if not directory in controller_module_directory_list:
                 controller_module_directory_list[directory] = []
-            controller_module_directory_list[directory].append(module_name)    
+            controller_module_directory_list[directory].append(module_name)   
+    # some predefined routes
+    kokoro_router = _Kokoro_Router()
+    route(_BASE_URL+"<path:re:(favicon.ico)>")(kokoro_router.serve_assets)
+    route(_BASE_URL+"assets/<path:re:.+>")(kokoro_router.serve_assets)
+    hook('before_request')(kokoro_router.before_request)
     ###################################################################################################
     # Load everything inside controller modules
     ###################################################################################################
@@ -384,6 +401,9 @@ def kokoro_init(**kwargs):
         "session.auto": True,
     }
     app = beaker.middleware.SessionMiddleware(APP, session_opts)
+    # add base_url and runtime_path to os.environ
+    os.environ['__KOKOROPY_BASE_URL__']     = _BASE_URL
+    os.environ['__KOKOROPY_RUNTIME_PATH__'] = _RUNTIME_PATH
     port = int(os.environ.get("PORT", PORT))
     if RUN:
         if SERVER == 'kokoro':

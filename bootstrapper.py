@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
+PWD = os.path.dirname(os.path.abspath(__file__))
 
 ###########################################################################
 # RUN THE SERVER
 ###########################################################################
-def main_process(host, port, debug, reloader, server, app_directory, runtime_path):
-    import os
-    import kokoropy
-    PWD = os.path.dirname(os.path.abspath(__file__))
+def main_process(host, port, debug, reloader, server, app_directory, base_url, runtime_path):
+    import kokoropy    
     application_path      = os.path.join(PWD, app_directory)
-    kokoropy.runtime_path(runtime_path)
+    kokoropy.set_base_url(base_url)
+    kokoropy.set_runtime_path(runtime_path)
     kokoropy.kokoro_init(application_path = application_path, debug=debug,
                 port=port, reloader=reloader, host=host, server=server) 
 
@@ -25,6 +26,7 @@ if __name__ == '__main__':
     server = 'kokoro'
     app_directory = 'applications'
     runtime_path = '.runtime/'
+    base_url = '/'
     for opt, arg in options:
         if opt[0:2] == '--':
             opt = opt[2:]
@@ -42,5 +44,7 @@ if __name__ == '__main__':
             app_directory = arg
         elif opt == 'runtimepath':
             runtime_path = arg
+        elif opt == 'baseurl':
+            base_url = arg        
                 
-    main_process(host, port, debug, reloader, server, app_directory, runtime_path)
+    main_process(host, port, debug, reloader, server, app_directory, base_url, runtime_path)

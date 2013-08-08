@@ -9,7 +9,8 @@ DEBUG               = True                      # True or False
 RELOADER            = False                     # True or False
 SERVER              = 'kokoro'                  # or wsgiref or whatever
 APP_DIRECTORY       = 'applications'            # applications package
-_RUNTIME_PATH        = '.development_runtime'    # runtime path
+RUNTIME_PATH        = '.development_runtime'    # runtime path
+BASE_URL            = '/'                       # base url
 
 ###########################################################################
 # DON'T TOUCH FOLLOWING CODES
@@ -22,7 +23,7 @@ def start_server():
     PWD = os.path.dirname(os.path.abspath(__file__))
     SCRIPT_PATH = os.path.join(PWD,'bootstrapper.py')
     RUN_COMMAND = '%s %s' %(sys.executable, SCRIPT_PATH)
-    ARGUMENTS = '--host=%s --port=%d --server=%s --appdir=%s --runtimepath=%s' %(HOST, PORT, SERVER, APP_DIRECTORY, _RUNTIME_PATH)
+    ARGUMENTS = '--host=%s --port=%d --server=%s --appdir=%s --baseurl=%s --runtimepath=%s' %(HOST, PORT, SERVER, APP_DIRECTORY, BASE_URL, RUNTIME_PATH)
     if RELOADER:
         ARGUMENTS += ' --reload'
     if DEBUG:

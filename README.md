@@ -586,7 +586,12 @@ This is how to use kokoropy with apache web server (assuming you use ubuntu or d
   - In case of you already have php installed, please don't use `localhost` as ServerName. Use another valid ServerName instead.
   - You can add valid ServerName by add a line at /etc/hosts (e.g: `127.0.1.1    arcaneSanctum` will add `arcaneSanctum` as valid ServerName).
 
+Change Log:
+===========
+* Provide `base_url` setting (done, tested, 2013/08/08)
+* In debugging session (via `python start.py`), auto reload server when something changed (done, tested, 2013/08/08)
+
 TODO:
 ====
-* Provide `base_url` setting (pending: for now, assume `/` as `base_url`)
-* In debugging session (via `python start.py`), auto reload server when something changed (done)
+* Add request.BASE_URL to every view & link in the example
+* Do something with `gae.py` since Google App Engine does not support 'file system writing'. Maybe using tempfile (damn, this is just stupid)
