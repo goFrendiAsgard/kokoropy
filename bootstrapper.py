@@ -3,22 +3,21 @@
 import os
 PWD = os.path.dirname(os.path.abspath(__file__))
 
-###########################################################################
+#####################################################################################################
 # RUN THE SERVER
-###########################################################################
+#####################################################################################################
 def main_process(host, port, debug, reloader, server, app_directory, base_url, runtime_path):
     import kokoropy    
-    application_path      = os.path.join(PWD, app_directory)
-    kokoropy.set_base_url(base_url)
-    kokoropy.set_runtime_path(runtime_path)
-    kokoropy.kokoro_init(application_path = application_path, debug=debug,
-                port=port, reloader=reloader, host=host, server=server) 
+    application_path = os.path.join(PWD, app_directory)
+    kokoropy.kokoro_init(application_path=application_path, debug=debug, port=port, reloader=reloader, 
+                         host=host, server=server, base_url=base_url, runtime_path=runtime_path) 
 
 if __name__ == '__main__':
     import sys, getopt
     args = sys.argv[1:]
     # pass arguments
-    options, remainder = getopt.getopt(args, '', ['debug', 'reload', 'host=', 'port=', 'server=', 'appdir=', 'baseurl=', 'runtimepath='])
+    options, remainder = getopt.getopt(args, '', ['debug', 'reload', 'host=', 'port=', 'server=', 
+                                                  'appdir=', 'baseurl=', 'runtimepath='])
     host = 'localhost'
     port = 8080 
     debug = True

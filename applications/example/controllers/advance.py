@@ -1,4 +1,4 @@
-from kokoropy import template, route, request
+from kokoropy import template, route, request, base_url
 
 class Hello_Controller(object):
     """
@@ -24,7 +24,7 @@ class Hello_Controller(object):
 
 # make a Hello_Controller instance and define the manual routing
 hello_controller = Hello_Controller()
-route("/example/advance/hello")(hello_controller.hello)
-route("/example/advance/hello/")(hello_controller.hello)
-route("/example/advance/hello/<name>")(hello_controller.hello)
-route("/example/advance/hello/<name>/")(hello_controller.hello)
+route(base_url("/example/advance/hello"))(hello_controller.hello)
+route(base_url("/example/advance/hello/"))(hello_controller.hello)
+route(base_url("/example/advance/hello/<name>"))(hello_controller.hello)
+route(base_url("/example/advance/hello/<name>/"))(hello_controller.hello)

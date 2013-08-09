@@ -1,12 +1,6 @@
 div#content-container {
     margin-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
 }
-div#layout-content {
-    min-height: 250px;
-    background-repeat: no-repeat;
-    background-image:url('/assets/example/images/programmer.png');
-    background-position: bottom right;
-}
 body{
     color: white;
     background-color:#555;

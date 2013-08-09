@@ -586,12 +586,75 @@ This is how to use kokoropy with apache web server (assuming you use ubuntu or d
   - In case of you already have php installed, please don't use `localhost` as ServerName. Use another valid ServerName instead.
   - You can add valid ServerName by add a line at /etc/hosts (e.g: `127.0.1.1    arcaneSanctum` will add `arcaneSanctum` as valid ServerName).
 
+Tutorial 7: Additional tips & tricks
+====================================
+* In Kokoropy, there is a `base_url` function that return absolute url relative to the BASE URL configuration
+
+    ```python
+        from kokoropy import route, base_url
+        
+        """
+        Simple routing (without OOP)
+        This is great to make a "hello world" or other small applications
+        """
+        @route(base_url('example/simple/hello_world'))
+        def index():
+            html_response  = 'This is just a very simple hello world !!!<br />'
+            html_response += '<a href="'+base_url('/example/recommended')+'">See cooler things here</a>'
+            return html_response
+    ```
+    
+* Using Template function in kokoropy add special tag `{{ BASE_URL }}` and `{{ RUNTIME_PATH }}`, even if you dont define this
+
+    ```python
+        from kokoropy import route, base_url, template
+        @route(base_url('/try'))
+        def action_index(self, name=None):
+            message='I love you'            
+            return template('example/hello', message=message)
+    ```
+    ```html
+        This is the message:  {{ message }}
+        This is the BASE URL: {{ BASE_URL }}
+        This is the RUNTIME PATH: {{ RUNTIME_PATH }}
+        This is a link: <a href="{{ BASE_URL }}example/simple/hello_world">Click Me !!!</a>
+    ```
+    
+* You can use `draw_matplotlib_figure` to draw something by using matplotlib
+
+    ```python
+        from kokoropy import base_url, draw_matplotlib_figure
+        @route(base_url('plot'))
+        def action_plot(self):
+            # import things
+            import numpy as np
+            from matplotlib.figure import Figure
+            # x = {1, 2, 3, ..., 10}; y = x*x
+            x = np.arange(0, 10, 1)
+            y = np.square(x)
+            # make figure       
+            fig = Figure()
+            fig.subplots_adjust(hspace = 0.5, wspace = 0.5)
+            # first subplot
+            ax = fig.add_subplot(1, 1, 1)
+            ax.plot(x, y1, 'b')
+            ax.plot(x, y1, 'ro')
+            ax.set_title ('y = x^2')
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            # make canvas
+            return draw_matplotlib_figure(fig)
+    ``` 
+
+* You can accessing session by using `request['SESSION']` which is basically the same as `request.environ['beaker.session']`
+* You can and encouraged to use automatic routing as described in tutorial 2.
+
 Change Log:
 ===========
 * Provide `base_url` setting (done, tested, 2013/08/08)
 * In debugging session (via `python start.py`), auto reload server when something changed (done, tested, 2013/08/08)
+* Add request.BASE_URL to every view & link in the example (done, tested, 2013/08/09)
 
 TODO:
 ====
-* Add request.BASE_URL to every view & link in the example
 * Do something with `gae.py` since Google App Engine does not support 'file system writing'. Maybe using tempfile (damn, this is just stupid)

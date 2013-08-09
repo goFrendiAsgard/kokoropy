@@ -11,6 +11,5 @@ import kokoropy
 PWD = os.path.dirname(os.path.abspath(__file__))
 APP_DIRECTORY = 'applications'
 APPLICATION_PATH = os.path.join(PWD, APP_DIRECTORY)
-kokoropy.set_runtime_path('.gae_runtime/')
-kokoropy.set_base_url('/')
-application = kokoropy.kokoro_init(server='gae', application_path = APPLICATION_PATH, run = False)
+application = kokoropy.kokoro_init(application_path = APPLICATION_PATH, run = False, 
+                                   runtime_path = '.apache_runtime/', base_url = '/')

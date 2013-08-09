@@ -10,7 +10,7 @@ RELOADER            = False                     # True or False
 SERVER              = 'kokoro'                  # or wsgiref or whatever
 APP_DIRECTORY       = 'applications'            # applications package
 RUNTIME_PATH        = '.development_runtime'    # runtime path
-BASE_URL            = '/'                       # base url
+BASE_URL            = '/kokoropy'                       # base url, start with '/'
 
 ###########################################################################
 # DON'T TOUCH FOLLOWING CODES
