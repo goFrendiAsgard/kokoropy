@@ -35,5 +35,5 @@ application = kokoropy.kokoro_init(server='gunicorn', port=os.environ.get('PORT'
 
 if __name__ == '__main__':
     print "=== Run the server ==="
-    kokoropy.run(app=application, server='gunicorn', port=os.environ.get('PORT', 5000))
+    kokoropy.run(app=application, server='gunicorn', host='0.0.0.0', port=os.environ.get('PORT', 5000))
 
