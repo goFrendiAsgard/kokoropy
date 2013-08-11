@@ -1,7 +1,8 @@
-import os, sys, tempfile
-os.chdir(os.path.dirname(__file__))
-if os.path.dirname(__file__) not in sys.path:
-    sys.path.append(os.path.dirname(__file__))
+import os, tempfile
+# import sys
+# os.chdir(os.path.dirname(__file__))
+# if os.path.dirname(__file__) not in sys.path:
+#     sys.path.append(os.path.dirname(__file__))
 
 import kokoropy
 
