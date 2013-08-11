@@ -1,19 +1,3 @@
-'''
-import os
-from kokoropy.bottle import route, run
-
-@route('/')
-def index(name='World'):
-    return 'Simple example'
-
-
-if __name__ == '__main__':
-    # Get required port, default to 5000.
-    port = os.environ.get('PORT', 5000)
-
-    # Run the app.
-    run(host='0.0.0.0', port=port)
-'''
 import os, sys, tempfile
 import kokoropy
 
@@ -28,8 +12,7 @@ if PWD not in sys.path:
 
 APP_DIRECTORY = 'applications'
 APPLICATION_PATH = os.path.join(PWD, APP_DIRECTORY)
-application = kokoropy.kokoro_init(server='gunicorn', port=os.environ.get('PORT', 5000),
-                                   application_path = APPLICATION_PATH, run = False, 
+application = kokoropy.kokoro_init(application_path = APPLICATION_PATH, run = False, 
                                    runtime_path = os.path.join(tempfile.gettempdir(), '.heroku_runtime/'), 
                                    base_url = '/')
 

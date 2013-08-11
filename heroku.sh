@@ -3,9 +3,11 @@
 
 wget -qO- https://toolbelt.heroku.com/install-ubuntu.sh | sh
 
-virtualenv --no-site-packages env
+virtualenv env
 source env/bin/activate
 pip install gunicorn
+pip install numpy
+pip install matplotlib
 pip freeze > requirements.txt
  
 chmod a+x heroku_app.py
