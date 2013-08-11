@@ -5,7 +5,6 @@ wget -qO- https://toolbelt.heroku.com/install-ubuntu.sh | sh
 
 virtualenv --no-site-packages env
 source env/bin/activate
-pip install gevent
 pip freeze > requirements.txt
  
 chmod a+x heroku_app.py
