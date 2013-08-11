@@ -1,1 +1,1 @@
-web: heroku_app.py
+web: ./heroku_app.py
