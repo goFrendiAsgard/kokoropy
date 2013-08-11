@@ -34,5 +34,5 @@ application = kokoropy.kokoro_init(server='gunicorn', port=os.environ.get('PORT'
                                    base_url = '/')
 
 if __name__ == '__main__':
-    kokoropy.run(application)
+    kokoropy.run(app=application, server='gunicorn', port=os.environ.get('PORT', 5000))
 
