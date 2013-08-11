@@ -1,9 +1,9 @@
 import os
 from kokoropy.bottle import route, run
 
-@route('/hello/:name')
+@route('/')
 def index(name='World'):
-    return '<b>Hello %s!</b>' % name
+    return 'Simple example'
 
 
 if __name__ == '__main__':
