@@ -1,4 +1,4 @@
-'''
+
 import os
 from kokoropy.bottle import route, run
 
@@ -33,3 +33,4 @@ application = kokoropy.kokoro_init(server='gunicorn', port=os.environ.get('PORT'
                                    application_path = APPLICATION_PATH, run = True, 
                                    runtime_path = os.path.join(tempfile.gettempdir(), '.heroku_runtime/'), 
                                    base_url = '/')
+'''
