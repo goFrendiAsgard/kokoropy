@@ -585,6 +585,8 @@ This is how to use kokoropy with apache web server (assuming you use ubuntu or d
   - Replace every `/home/gofrendi/workspace/kokoropy` with your kokoropy directory location.
   - In case of you already have php installed, please don't use `localhost` as ServerName. Use another valid ServerName instead.
   - You can add valid ServerName by add a line at /etc/hosts (e.g: `127.0.1.1    arcaneSanctum` will add `arcaneSanctum` as valid ServerName).
+  - Note, that by default apache will greedily take over every request and left nothing to be handled by your application. If you are using ubuntu/debian, modify `/etc/apache2/sites-enabled/000-default`. Change this part `<VirtualHost *:80>` into `<VirtualHost localhost:80>`
+* Reload your apache by using `sudo service apache2 reload`. If it does not work, restart your apache by using `sudo service apache2 restart`
 
 Tutorial 7: Additional tips & tricks
 ====================================

@@ -39,3 +39,6 @@ nosetests.xml
 .runtime
 .development_runtime
 .apache_runtime
+
+# virtualenv
+env
