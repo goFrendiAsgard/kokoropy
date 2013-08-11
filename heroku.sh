@@ -10,6 +10,8 @@ pip freeze > requirements.txt
  
 chmod a+x heroku_app.py
 
+echo "web: python heroku_app.py" > Procfile
+
 heroku login
  
 git init
