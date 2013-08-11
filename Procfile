@@ -1,1 +1,1 @@
-web: ./heroku_app.py
+web: bin/python ./app.py $PORT
