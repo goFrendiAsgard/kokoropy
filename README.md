@@ -27,7 +27,9 @@ Kokoropy is built based on my experiences with some framework. Here are some com
 
 __PS:__ This is my pet-project, and might be not stable. It is not ready for production purpose (yet)
 
-Kokoropy come with bottlepy 0.12 dev, sqlalchemy 0.7.11, and beaker 1.6.4 included
+Kokoropy come with bottlepy 0.12 dev, sqlalchemy 0.7.11, and beaker 1.6.4 included.
+
+__DEMO:__ http://kokoropy.herokuapp.com
 
 Who Kokoropy is for?
 ====================
