@@ -21,10 +21,9 @@ source env/bin/activate
 
 # install several pre-requisites python packages
 pip install gunicorn
-pip install numpy
-# matplotlib need newest distribute package
-easy_install -U distribute
-pip install matplotlib
+# pip install numpy
+# easy_install -U distribute
+# pip install matplotlib
 
 # freeze... put on requirements.txt
 pip freeze > requirements.txt
