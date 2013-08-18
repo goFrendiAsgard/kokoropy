@@ -70,7 +70,7 @@ class Default_Controller(object):
             # appends upload.filename automatically
             upload_path = os.path.dirname(os.path.dirname(__file__))+'/assets/uploads/'
             upload.save(upload_path) 
-            return template('example/upload', message='upload '+name+ext+' success')
+            return template('example/upload', message='upload '+name+ext+' success. Look at <code>/applications/example/assets/uploads</code>. Your file should be there')
     
     # not routed
     def unpublished_function(self):

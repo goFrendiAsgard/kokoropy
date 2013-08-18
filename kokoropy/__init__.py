@@ -134,7 +134,7 @@ def base_url(url=''):
         BASE_URL = os.environ['__KOKOROPY_BASE_URL__']
     else:
         BASE_URL = '/' 
-    # this is not work   
+    # TODO: this is not work   
     host = bottle.request.get_header('host')
     if host is str:
         BASE_URL = remove_trailing_slash(host) + add_begining_slash(BASE_URL)

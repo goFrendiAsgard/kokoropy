@@ -36,9 +36,14 @@
                     <a class="brand" href="#">Kokoropy</a>
                     <div class="nav-collapse collapse">
                         <ul class="nav">
-                            <li><a href="{{ BASE_URL }}example/simple/hello_world">Simple route</a></li>
-                            <li><a href="{{ BASE_URL }}example/recommended/index">Recommended route</a></li>
-                            <li><a href="{{ BASE_URL }}example/advance/hello">Advance route</a> </li>
+                            <li class="dropdown">
+                                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Routing <span class="caret">&nbsp;</span></a>
+                                <ul class="dropdown-menu">
+                                    <li><a href="{{ BASE_URL }}example/simple/hello_world">Simple route</a></li>
+                                    <li><a href="{{ BASE_URL }}example/recommended/index">Recommended route</a></li>
+                                    <li><a href="{{ BASE_URL }}example/advance/hello">Advance route</a> </li>    
+                                </ul>
+                            </li>                            
                             <li><a href="{{ BASE_URL }}example/recommended/pokemon">Database</a></li>
                             <li><a href="{{ BASE_URL }}example/recommended/upload">Test upload file</a></li>
                             <li><a href="{{ BASE_URL }}example/plotting/index">Matplotlib</a></li>
@@ -47,6 +52,9 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Github ribbon -->
+        <a href="https://github.com/goFrendiAsgard/kokoropy"><img style="position: absolute; top: 40px; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png" alt="Fork me on GitHub"></a>
 
         <div id="content-container" class="container">
             <div class="row-fluid">
