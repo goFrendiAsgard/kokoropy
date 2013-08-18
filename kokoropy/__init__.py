@@ -133,7 +133,11 @@ def base_url(url=''):
     if '__KOKOROPY_BASE_URL__' in os.environ:
         BASE_URL = os.environ['__KOKOROPY_BASE_URL__']
     else:
-        BASE_URL = '/'
+        BASE_URL = '/' 
+    # this is not work   
+    host = bottle.request.get_header('host')
+    if host is str:
+        BASE_URL = remove_trailing_slash(host) + add_begining_slash(BASE_URL)
     return BASE_URL + remove_begining_slash(url)
 
 def rmtree(path, ignore_errors=False, onerror=None):
