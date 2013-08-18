@@ -12,9 +12,8 @@ div#layout-banner{
 p#content{
     font-size:20px;
 }
-div#note{
+div.note{
     margin-top: 20px;
-    display:none;
     background:white;
     color:black;
     max-width: 70%;

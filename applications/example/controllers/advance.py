@@ -20,7 +20,7 @@ class Hello_Controller(object):
         # get say_hello
         say_hello = self.simple_model.say_hello(name)
         message = say_hello+', you have visit this page '+str(request.SESSION['counter'])+' times'
-        return template('example/hello', message=message)
+        return template('example/advance_hello', message=message)
 
 # make a Hello_Controller instance and define the manual routing
 hello_controller = Hello_Controller()

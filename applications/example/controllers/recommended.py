@@ -1,4 +1,4 @@
-from kokoropy import template, request, os
+from kokoropy import template, request, os, base_url
 
 class Default_Controller(object):
     """
@@ -38,7 +38,7 @@ class Default_Controller(object):
         # get say_hello
         say_hello = self.simple_model.say_hello(name)
         message = say_hello+', you have visit this page '+str(request.SESSION['counter'])+' times'
-        return template('example/hello', message=message)
+        return template('example/recommended_hello', message=message)
     
     def action_pokemon(self, keyword=None):
         """
