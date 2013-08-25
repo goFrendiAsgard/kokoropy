@@ -22,11 +22,22 @@ class DB_Model(object):
         self.cursor.executemany(sql, pokemon_list)
         self.conn.commit()
     
+    def get_pokemon_by_id(self, pokemon_id):
+        self.cursor.execute("SELECT id, name FROM pokemon_list WHERE id = '" + str(pokemon_id))
+        result = self.cursor.fetchall()
+        if(len(result)<0):
+            return False
+        else:
+            row = result[0]
+            return {'id':row[0], 'name': row[1]}
+    
     def get_pokemon(self, keyword=""):
-        self.cursor.execute("SELECT name FROM pokemon_list WHERE name LIKE '%"+keyword+"%'")
-        pokemon_list = self.cursor.fetchall()
-        pokemon_names = [x[0] for x in pokemon_list]
-        return pokemon_names
+        self.cursor.execute("SELECT id, name FROM pokemon_list WHERE name LIKE '%" + keyword + "%'")
+        result = self.cursor.fetchall()
+        pokemon_list = []
+        for row in result:
+            pokemon_list.append({'id':row[0], 'name': row[1]})
+        return pokemon_list
     
     def delete_pokemon(self, pokemon_id):
         self.cursor.execute("DELETE FROM pokemon_list WHERE id = "+str(pokemon_id))

@@ -14,7 +14,7 @@ import bottle, sqlalchemy, beaker, threading, time
 import beaker.middleware
 from bottle import default_app, debug, run, static_file,\
     response, request, TEMPLATE_PATH, route, get,\
-    post, put, delete, error, hook, Bottle
+    post, put, delete, error, hook, Bottle, redirect
 
 from bottle import template as _bottle_template
 
@@ -24,6 +24,9 @@ from bottle import template as _bottle_template
 # Python 3 hack for xrange
 if sys.version_info >= (3,0,0):
     xrange = range
+    from urllib.parse import urlparse
+else:
+    from urlparse import urlparse
 
 # intellisense hack
 request.SESSION = []    
@@ -62,8 +65,11 @@ def template(*args, **kwargs):
     You can use a name, a filename or a template string as first parameter.
     Template rendering arguments can be passed as dictionaries
     or directly (as keyword arguments).
-    '''
-    kwargs['BASE_URL'] = base_url()
+    '''    
+    if not request.BASE_URL is None:
+        kwargs['BASE_URL'] = request.BASE_URL
+    else:
+        kwargs['BASE_URL'] = base_url()
     kwargs['RUNTIME_PATH'] = runtime_path()
     return _bottle_template(*args, **kwargs)
 
@@ -75,8 +81,12 @@ class _Kokoro_Router(object):
             There is no need to call this function manually
         """
         request.SESSION = request.environ["beaker.session"]
-        request.BASE_URL = base_url()
         request.RUNTIME_PATH = runtime_path()
+        url = bottle.request.url
+        url_part = urlparse(url)
+        scheme = url_part.scheme
+        host = scheme + '://' + request.get_header('host')
+        request.BASE_URL = add_trailing_slash(host) + remove_begining_slash(add_trailing_slash(base_url()))
     
     def serve_assets(self, path):
         """ Serve static files
@@ -134,11 +144,7 @@ def base_url(url=''):
         BASE_URL = os.environ['__KOKOROPY_BASE_URL__']
     else:
         BASE_URL = '/' 
-    # TODO: this is not work   
-    host = bottle.request.get_header('host')
-    if host is str:
-        BASE_URL = remove_trailing_slash(host) + add_begining_slash(BASE_URL)
-    return BASE_URL + remove_begining_slash(url)
+    return BASE_URL + remove_begining_slash(url)    
 
 def rmtree(path, ignore_errors=False, onerror=None):
     """ Alias for shutil.rmtree

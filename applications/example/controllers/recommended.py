@@ -17,7 +17,7 @@ class Default_Controller(object):
         * For convention, this is the recommended way to do it    
     """
     
-    def __init__(self):
+    def __init__(self):        
         # import models
         from applications.example.models.simple_model import Simple_Model
         from applications.example.models.db_model import DB_Model
@@ -45,16 +45,49 @@ class Default_Controller(object):
         GET, POST & parameter usage example.
         This function is automatically routed to: http://localhost:8080/example/recommended/pokemon/parameter
         """
+        # get keyword
         if 'keyword' in request.GET:
             keyword = request.GET['keyword']
         elif 'keyword' in request.POST:
             keyword = request.POST['keyword']
         if keyword is None:
             keyword = ''
+        
+        # get action
+        action = ''
+        if 'action' in request.POST:
+            action = request.POST['action']
+        
+        # get data
+        pokemon_id = ''
+        pokemon_name = ''
+        if 'pokemon_id' in request.POST:
+            pokemon_id = request.POST['pokemon_id']
+        if 'pokemon_name' in request.POST:
+            pokemon_name = request.POST['pokemon_name']
+        
+        # do the action
+        if action == 'add':
+            self.db_model.insert_pokemon(pokemon_name)
+        elif action == 'edit':
+            self.db_model.update_pokemon(pokemon_id, pokemon_name)
+        elif action == 'delete':
+            self.db_model.delete_pokemon(pokemon_id)
+            
+            
         # get pokemons
         pokemons = self.db_model.get_pokemon(keyword)
-        return template('example/pokemon', pokemons=pokemons)
+        return template('example/pokemon_view', pokemons=pokemons)
     
+    def action_form_add_pokemon(self):
+        pass
+    
+    def action_form_edit_pokemon(self, pokemon_id):
+        name = request.POST['pokemon_name']
+        self.db_model.update_pokemon(pokemon_id, name)
+        self.action_pokemon()
+        
+        
     def action_upload(self):        
         """
         File Upload example.
