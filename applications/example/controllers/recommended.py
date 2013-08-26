@@ -72,6 +72,7 @@ class Default_Controller(object):
         elif action == 'edit':
             self.db_model.update_pokemon(pokemon_id, pokemon_name)
         elif action == 'delete':
+            print action
             self.db_model.delete_pokemon(pokemon_id)
             
             

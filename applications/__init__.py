@@ -2,11 +2,11 @@ from kokoropy import template, error, hook
 
 @hook('before_request')
 def _before_request():
-    print('before request hook')
+    pass
 
 @hook('after_request')
 def _after_request():
-    print('after request hook')
+    pass
 
 @error(404)
 def _error_404(error):

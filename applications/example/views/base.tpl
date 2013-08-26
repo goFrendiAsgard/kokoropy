@@ -69,7 +69,7 @@
                 </div>
                 <div id="layout-content" class="span12">
                     <p id="content">                       
-                        %include
+                        % include
                     </p>
                 </div><!--/#layout-content-->
             </div><!--/row-->

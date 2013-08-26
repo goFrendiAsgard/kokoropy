@@ -13,8 +13,9 @@
            </a>
         </td>
         <td>
-           <form action="{{ BASE_URL }}example/recommended/delete_pokemon" style="margin: 0 0 0 !important">
-              <input name="pokemon_name" value="{{ pokemon['id'] }}" type="hidden" />
+           <form action="{{ BASE_URL }}example/recommended/pokemon" method="post" style="margin: 0 0 0 !important">
+              <input name="pokemon_id" value="{{ pokemon['id'] }}" type="hidden" />
+              <input name="action" value="delete" type="hidden" />
               <input class="btn btn-danger" name="btn_delete" value="Delete" type="submit" /> 
            </form> 
         </td>        
@@ -26,4 +27,4 @@ Also try this:
     <li><a class="btn" href="{{ BASE_URL }}example/recommended/pokemon/pikachu">Access the same page with parameter "pikachu"</a></li>
     <li><a class="btn" href="{{ BASE_URL }}example/recommended/pokemon?keyword=pi">Access the same page with GET query "keyword=pi"</a></li>
 </ul>
-%rebase example/base title='Pokemon List'
+%rebase('example/base', title='Pokemon List')

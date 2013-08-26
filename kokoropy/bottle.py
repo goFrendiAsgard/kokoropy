@@ -2335,12 +2335,26 @@ def _file_iter_range(fp, offset, bytes, maxread=1024*1024):
         yield part
 
 
-def static_file(filename, root, mimetype='auto', download=False):
+def static_file(filename, root, mimetype='auto', download=False, charset='UTF-8'):
     """ Open a file in a safe way and return :exc:`HTTPResponse` with status
-        code 200, 305, 401 or 404. Set Content-Type, Content-Encoding,
-        Content-Length and Last-Modified header. Obey If-Modified-Since header
-        and HEAD requests.
+        code 200, 305, 401 or 404. The ``Content-Type``, ``Content-Encoding``,
+        ``Content-Length`` and ``Last-Modified`` headers are set if possible.
+        Special support for ``If-Modified-Since``, ``Range`` and ``HEAD``
+        requests.
+
+        :param filename: Name or path of the file to send.
+        :param root: Root path for file lookups. Should be an absolute directory
+            path.
+        :param mimetype: Defines the content-type header (default: guess from
+            file extension)
+        :param download: If True, ask the browser to open a `Save as...` dialog
+            instead of opening the file with the associated program. You can
+            specify a custom filename as a string. If not specified, the
+            original filename is used (default: False).
+        :param charset: The charset to use for files with a ``text/*``
+            mime-type. (default: UTF-8)
     """
+
     root = os.path.abspath(root) + os.sep
     filename = os.path.abspath(os.path.join(root, filename.strip('/\\')))
     headers = dict()
@@ -2354,9 +2368,11 @@ def static_file(filename, root, mimetype='auto', download=False):
 
     if mimetype == 'auto':
         mimetype, encoding = mimetypes.guess_type(filename)
-        if mimetype: headers['Content-Type'] = mimetype
         if encoding: headers['Content-Encoding'] = encoding
-    elif mimetype:
+
+    if mimetype:
+        if mimetype[:5] == 'text/' and charset and 'charset' not in mimetype:
+            mimetype += '; charset=%s' % charset
         headers['Content-Type'] = mimetype
 
     if download:
@@ -2635,23 +2651,36 @@ class FlupFCGIServer(ServerAdapter):
 
 
 class WSGIRefServer(ServerAdapter):
-    def run(self, handler): # pragma: no cover
-        from wsgiref.simple_server import make_server, WSGIRequestHandler
+    def run(self, app): # pragma: no cover
+        from wsgiref.simple_server import WSGIRequestHandler, WSGIServer
+        from wsgiref.simple_server import make_server
+        import socket
+
         class FixedHandler(WSGIRequestHandler):
-            def address_string(self):
+            def address_string(self): # Prevent reverse DNS lookups please.
                 return self.client_address[0]
             def log_request(*args, **kw):
                 if not self.quiet:
-                    return super(FixedHandler, self).log_request(*args, **kw)
-        self.options['handler_class'] = FixedHandler
-        srv = make_server(self.host, self.port, handler, **self.options)
+                    return WSGIRequestHandler.log_request(*args, **kw)
+
+        handler_cls = self.options.get('handler_class', FixedHandler)
+        server_cls  = self.options.get('server_class', WSGIServer)
+
+        if ':' in self.host: # Fix wsgiref for IPv6 addresses.
+            if getattr(server_cls, 'address_family') == socket.AF_INET:
+                class server_cls(server_cls):
+                    address_family = socket.AF_INET6
+
+        srv = make_server(self.host, self.port, app, server_cls, handler_cls)
         srv.serve_forever()
 
 
 class CherryPyServer(ServerAdapter):
     def run(self, handler): # pragma: no cover
         from cherrypy import wsgiserver
-        server = wsgiserver.CherryPyWSGIServer((self.host, self.port), handler)
+        self.options['bind_addr'] = (self.host, self.port)
+        self.options['wsgi_app'] = handler
+        server = wsgiserver.CherryPyWSGIServer(**self.options)
         try:
             server.start()
         finally:
@@ -3226,7 +3255,7 @@ class SimpleTemplate(BaseTemplate):
         if env.get('_rebase'):
             subtpl, rargs = env.pop('_rebase')
             rargs['body'] = ''.join(_stdout) #copy stdout
-            del _stdout[:] # clear stdout
+            del _stdout[:] # clear stdout   
             return self._include(env, subtpl, **rargs)
         return env
 
@@ -3375,12 +3404,12 @@ class StplParser(object):
         return '_escape(%s)' % chunk
 
     def write_code(self, line, comment=''):
-        line, comment = self.fix_brackward_compatibility(line, comment)
+        line, comment = self.fix_backward_compatibility(line, comment)
         code  = '  ' * (self.indent+self.indent_mod)
         code += line.lstrip() + comment + '\n'
         self.code_buffer.append(code)
 
-    def fix_brackward_compatibility(self, line, comment):
+    def fix_backward_compatibility(self, line, comment):
         parts = line.strip().split(None, 2)
         if parts and parts[0] in ('include', 'rebase'):
             depr('The include and rebase keywords are functions now.')
@@ -3551,10 +3580,11 @@ if __name__ == '__main__':
     sys.modules.setdefault('bottle', sys.modules['__main__'])
 
     host, port = (opt.bind or 'localhost'), 8080
-    if ':' in host:
+    if ':' in host and host.rfind(']') < host.rfind(':'):
         host, port = host.rsplit(':', 1)
+    host = host.strip('[]')
 
-    run(args[0], host=host, port=port, server=opt.server,
+    run(args[0], host=host, port=int(port), server=opt.server,
         reloader=opt.reload, plugins=opt.plugin, debug=opt.debug)
 
 

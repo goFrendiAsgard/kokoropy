@@ -44,4 +44,4 @@
     <p>For more information about routing, please visit <a href="https://github.com/goFrendiAsgard/kokoropy">Kokoropy github repository and tutorials</a></p>
 </div>
 
-%rebase example/base title='Hello'
+%rebase('example/base',title='Hello')
