@@ -81,12 +81,12 @@ class Default_Controller(object):
         return template('example/pokemon_view', pokemons=pokemons)
     
     def action_form_add_pokemon(self):
-        pass
+        return template('example/pokemon_add_form')
     
     def action_form_edit_pokemon(self, pokemon_id):
-        name = request.POST['pokemon_name']
-        self.db_model.update_pokemon(pokemon_id, name)
-        self.action_pokemon()
+        row = self.db_model.get_pokemon_by_id(pokemon_id)
+        pokemon_name = row['name']
+        return template('example/pokemon_edit_form', pokemon_id=pokemon_id, pokemon_name=pokemon_name)
         
         
     def action_upload(self):        

@@ -23,7 +23,7 @@ class DB_Model(object):
         self.conn.commit()
     
     def get_pokemon_by_id(self, pokemon_id):
-        self.cursor.execute("SELECT id, name FROM pokemon_list WHERE id = '" + str(pokemon_id))
+        self.cursor.execute("SELECT id, name FROM pokemon_list WHERE id = " + str(pokemon_id))
         result = self.cursor.fetchall()
         if(len(result)<0):
             return False
@@ -46,4 +46,4 @@ class DB_Model(object):
         self.cursor.execute("INSERT INTO pokemon_list(name) VALUES ('"+str(name)+"')")
     
     def update_pokemon(self, pokemon_id, name):
-        self.cursor.execute("UPDATE pokemon_list(name) SET name='"+str(name)+"' WHERE id="+str(pokemon_id))
+        self.cursor.execute("UPDATE pokemon_list SET name='"+str(name)+"' WHERE id="+str(pokemon_id))

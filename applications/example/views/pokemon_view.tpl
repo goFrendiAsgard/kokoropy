@@ -8,7 +8,7 @@
     <tr>
         <td>{{ pokemon['name'] }}</td>
         <td>
-           <a class="btn btn-warning btn-edit" record_id="{{ pokemon['id] }}" >
+           <a class="btn btn-warning" href="{{ BASE_URL }}example/recommended/form_edit_pokemon/{{ pokemon['id'] }}" >
                Edit
            </a>
         </td>
@@ -22,6 +22,10 @@
     </tr>
 %end    
 </table>
+<a class="btn btn-success" href="{{ BASE_URL }}example/recommended/form_add_pokemon" >
+    Add
+</a>
+<br />
 Also try this:
 <ul>
     <li><a class="btn" href="{{ BASE_URL }}example/recommended/pokemon/pikachu">Access the same page with parameter "pikachu"</a></li>
