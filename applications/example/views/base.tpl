@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <link rel="icon" href="{{BASE_URL}}assets/index/favicon.ico" />
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="description" content="">
@@ -68,8 +69,9 @@
                     </div>
                 </div>
                 <div id="layout-content" class="span12">
-                    <p id="content">                       
-                        % include
+                    <p id="content">
+                        % setdefault('base', 'nothing')  
+                        {{!base}}!
                     </p>
                 </div><!--/#layout-content-->
             </div><!--/row-->
