@@ -71,7 +71,7 @@
                 <div id="layout-content" class="span12">
                     <p id="content">
                         % setdefault('base', 'nothing')  
-                        {{!base}}!
+                        {{!base}}
                     </p>
                 </div><!--/#layout-content-->
             </div><!--/row-->
