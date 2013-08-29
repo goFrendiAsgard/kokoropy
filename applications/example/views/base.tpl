@@ -60,7 +60,7 @@
         
         <!-- Github ribbon -->
         <a href="https://github.com/goFrendiAsgard/kokoropy"><img style="position: absolute; top: 40px; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png" alt="Fork me on GitHub"></a>
-        
+       
         <!-- Jumbotron -->
         <div class="jumbotron hidden-phone">
           <div class="container">
@@ -92,5 +92,6 @@
         <script type="text/javascript" src="{{ BASE_URL }}assets/static_libraries/jquery-2.0.3.min.js"></script>
         <script type="text/javascript" src="{{ BASE_URL }}assets/static_libraries/bootstrap-3.0.0/js/bootstrap.min.js"></script>
         <script type="text/javascript" src="{{ BASE_URL }}assets/example/js/script.js"></script>
+
     </body>
 </html>
