@@ -1,25 +1,4 @@
-div#content-container {
-    margin-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
-}
 body{
-    color: white;
-    background-color:#555;
-}
-div#layout-banner{
-    background-color:#222;
-    border:none;
-}
-p#content{
-    font-size:20px;
-}
-div.note{
-    margin-top: 20px;
-    background:white;
-    color:black;
-    max-width: 70%;
-    padding: 10px;
-    border-radius:10px;
-}
-span.method{
-    font-size:16px;
+    padding-top:50px;
+    padding-bottom:20px;
 }

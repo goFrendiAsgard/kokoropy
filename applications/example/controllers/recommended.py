@@ -1,4 +1,5 @@
-from kokoropy import template, request, os, base_url
+from kokoropy import template, request, os
+import random, hashlib
 
 class Default_Controller(object):
     """
@@ -34,11 +35,17 @@ class Default_Controller(object):
         if 'counter' in request.SESSION:
             request.SESSION['counter'] += 1
         else:
-            request.SESSION['counter'] = 1
+            request.SESSION['counter'] = 1        
         # get say_hello
         say_hello = self.simple_model.say_hello(name)
-        message = say_hello+', you have visit this page '+str(request.SESSION['counter'])+' times'
+        message = say_hello+', the session said that you have visit routing demo page '+str(request.SESSION['counter'])+' times'
         return template('example/recommended_hello', message=message)
+    
+    def generate_private_code(self):
+        num = random.random()
+        private_code = str(hashlib.md5(str(num)))
+        request.SESSION['__private_code'] = private_code
+        return private_code
     
     def action_pokemon(self, keyword=None):
         """
@@ -59,34 +66,41 @@ class Default_Controller(object):
             action = request.POST['action']
         
         # get data
+        private_code = ''
         pokemon_id = ''
         pokemon_name = ''
         if 'pokemon_id' in request.POST:
             pokemon_id = request.POST['pokemon_id']
         if 'pokemon_name' in request.POST:
             pokemon_name = request.POST['pokemon_name']
+        if '__private_code' in request.POST:
+            private_code = request.POST['__private_code']
+        elif '__private_code' in request.GET:
+            private_code = request.GET['__private_code']
         
         # do the action
-        if action == 'add':
-            self.db_model.insert_pokemon(pokemon_name)
-        elif action == 'edit':
-            self.db_model.update_pokemon(pokemon_id, pokemon_name)
-        elif action == 'delete':
-            print action
-            self.db_model.delete_pokemon(pokemon_id)
-            
-            
+        if '__private_code' in request.SESSION and private_code == request.SESSION['__private_code']:
+            if action == 'add':
+                self.db_model.insert_pokemon(pokemon_name)
+            elif action == 'edit':
+                self.db_model.update_pokemon(pokemon_id, pokemon_name)
+            elif action == 'delete':
+                self.db_model.delete_pokemon(pokemon_id)
+        
+        private_code = self.generate_private_code()
         # get pokemons
         pokemons = self.db_model.get_pokemon(keyword)
-        return template('example/pokemon_view', pokemons=pokemons)
+        return template('example/pokemon_view', pokemons=pokemons, __private_code = private_code)
     
     def action_form_add_pokemon(self):
-        return template('example/pokemon_add_form')
+        private_code  = self.generate_private_code()
+        return template('example/pokemon_add_form', __private_code = private_code)
     
     def action_form_edit_pokemon(self, pokemon_id):
         row = self.db_model.get_pokemon_by_id(pokemon_id)
         pokemon_name = row['name']
-        return template('example/pokemon_edit_form', pokemon_id=pokemon_id, pokemon_name=pokemon_name)
+        private_code  = self.generate_private_code()
+        return template('example/pokemon_edit_form', pokemon_id=pokemon_id, pokemon_name=pokemon_name, __private_code = private_code)
         
         
     def action_upload(self):        
