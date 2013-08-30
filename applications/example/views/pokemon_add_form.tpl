@@ -1,4 +1,4 @@
-<form action="{{ BASE_URL }}example/recommended/pokemon" method="post" class="form-horizontal" role="form">
+<form action="{{ BASE_URL }}example/recommended/pokemon" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
   <div class="form-group">
     <label for="pokemon_name" class="col-lg-2 control-label">Pokemon Name</label>
     <div class="col-lg-10">

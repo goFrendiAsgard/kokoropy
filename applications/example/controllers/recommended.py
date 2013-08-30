@@ -1,4 +1,4 @@
-from kokoropy import template, request, os
+from kokoropy import template, request, os, redirect, base_url
 import random, hashlib
 
 class Default_Controller(object):
@@ -68,11 +68,13 @@ class Default_Controller(object):
         # get data
         private_code = ''
         pokemon_id = ''
-        pokemon_name = ''
+        pokemon_name = ''        
         if 'pokemon_id' in request.POST:
             pokemon_id = request.POST['pokemon_id']
         if 'pokemon_name' in request.POST:
             pokemon_name = request.POST['pokemon_name']
+        
+        # rely on private_code and keep calm on accidental refresh
         if '__private_code' in request.POST:
             private_code = request.POST['__private_code']
         elif '__private_code' in request.GET:
@@ -80,10 +82,14 @@ class Default_Controller(object):
         
         # do the action
         if '__private_code' in request.SESSION and private_code == request.SESSION['__private_code']:
+            # upload image
+            if action == 'add' or action == 'edit':
+                pokemon_image = self.upload_image()
+            # save the data
             if action == 'add':
-                self.db_model.insert_pokemon(pokemon_name)
+                self.db_model.insert_pokemon(pokemon_name, pokemon_image)
             elif action == 'edit':
-                self.db_model.update_pokemon(pokemon_id, pokemon_name)
+                self.db_model.update_pokemon(pokemon_id, pokemon_name, pokemon_image)
             elif action == 'delete':
                 self.db_model.delete_pokemon(pokemon_id)
         
@@ -98,28 +104,24 @@ class Default_Controller(object):
     
     def action_form_edit_pokemon(self, pokemon_id):
         row = self.db_model.get_pokemon_by_id(pokemon_id)
+        if row == False:
+            redirect(base_url('example/recommended/pokemon'))
         pokemon_name = row['name']
+        pokemon_image = row['image']
         private_code  = self.generate_private_code()
-        return template('example/pokemon_edit_form', pokemon_id=pokemon_id, pokemon_name=pokemon_name, __private_code = private_code)
+        return template('example/pokemon_edit_form', pokemon_id=pokemon_id, pokemon_name=pokemon_name, 
+                        pokemon_image=pokemon_image, __private_code = private_code)
         
-        
-    def action_upload(self):        
-        """
-        File Upload example.
-        This function is automatically routed to: http://localhost:8080/example/recommended/upload
-        """
-        upload =  request.files.get('upload')
+    # not routed    
+    def upload_image(self):
+        upload =  request.files.get('pokemon_image')
         if upload is None:
-            return template('example/upload', message='upload image file (png, jpg or jpeg)')
+            return ''
         else:
             name, ext = os.path.splitext(upload.filename)
             if ext not in ('.png','.jpg','.jpeg'):
                 return template('example/upload', message='invalid file extension '+ext)
             # appends upload.filename automatically
-            upload_path = os.path.dirname(os.path.dirname(__file__))+'/assets/uploads/'
+            upload_path = os.path.dirname(os.path.dirname(__file__))+'/assets/uploads/'            
             upload.save(upload_path) 
-            return template('example/upload', message='upload '+name+ext+' success. Look at <code>/applications/example/assets/uploads</code>. Your file should be there')
-    
-    # not routed
-    def unpublished_function(self):
-        return 'this is not published'
+            return name+ext

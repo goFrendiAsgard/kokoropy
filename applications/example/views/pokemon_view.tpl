@@ -11,7 +11,13 @@
         %for pokemon in pokemons:
         <tr>
             <td>{{ pokemon['name'] }}</td>
-            <td><img src="{{ BASE_URL }}assets/example/uploads/{{ pokemon['image'] }}" style="height:65px;" /></td>
+            <td>
+                %if pokemon['image'] == '':
+                <img src="{{ BASE_URL }}assets/example/images/pokemon-no-image.png" style="height:65px;" />
+                %else:
+                <img src="{{ BASE_URL }}assets/example/uploads/{{ pokemon['image'] }}" style="height:65px;" />
+                %end
+            </td>
             <td width="50px">
                <a class="btn btn-warning" href="{{ BASE_URL }}example/recommended/form_edit_pokemon/{{ pokemon['id'] }}" >
                    Edit
