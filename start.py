@@ -46,11 +46,12 @@ def is_modified():
         for filename in filenames:
             absolute_filename = os.path.join(dirpath, filename)
             last_change = modification_date(absolute_filename)
+            # check if there are some added or edited files
             if (absolute_filename not in FILE_STAT) or (FILE_STAT[absolute_filename] != last_change):
                 FILE_STAT[absolute_filename] = last_change
                 MODIFICATION_FLAG = True
             CHECKED_STAT.append(absolute_filename)
-    # check if there are deleted file
+    # check if there are some deleted files
     for absolute_filename in FILE_STAT:
         if absolute_filename not in CHECKED_STAT:
             REMOVED_STAT.append(absolute_filename)

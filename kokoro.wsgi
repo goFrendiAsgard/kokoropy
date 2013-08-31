@@ -1,13 +1,17 @@
-import os, sys, tempfile
-os.chdir(os.path.dirname(__file__))
-if os.path.dirname(__file__) not in sys.path:
-    sys.path.append(os.path.dirname(__file__))
-
+import os, sys
 import kokoropy
 
-PWD = os.path.dirname(os.path.abspath(__file__))
+PWD = './'
+if os.path.dirname(__file__) == '':
+    PWD = os.path.abspath(os.getcwd())
+else:
+    PWD = os.path.dirname(os.path.abspath(__file__))
+os.chdir(PWD)
+if PWD not in sys.path:
+    sys.path.append(PWD)
+
 APP_DIRECTORY = 'applications'
 APPLICATION_PATH = os.path.join(PWD, APP_DIRECTORY)
 application = kokoropy.kokoro_init(application_path = APPLICATION_PATH, run = False, 
-                                   runtime_path = os.path.join(tempfile.gettempdir(), '.apache_runtime/'), 
+                                   runtime_path = '.apache_runtime/', 
                                    base_url = '/')

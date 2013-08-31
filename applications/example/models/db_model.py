@@ -6,7 +6,8 @@ class DB_Model(object):
     """
     
     def __init__(self):
-        self.open_connection()
+        self.conn = sqlite3.connect("db/pokemon.db") # or use :memory: to put it in RAM 
+        self.cursor = self.conn.cursor()
         
         # check table existance
         table_exists = False
@@ -14,8 +15,6 @@ class DB_Model(object):
         result = self.cursor.fetchall()
         if len(result)>0:
             table_exists = True
-        
-        print(("TABLE EXISTS : ",table_exists))
             
         
         if not table_exists:
@@ -32,49 +31,32 @@ class DB_Model(object):
             self.cursor.executemany(sql, pokemon_list)
             # commit things
             self.conn.commit()
-        
-        self.close_connection()
-    
-    def open_connection(self):
-        # define conn
-        self.conn = sqlite3.connect("db/pokemon.db") # or use :memory: to put it in RAM 
-        self.cursor = self.conn.cursor()
-    
-    def close_connection(self):
-        self.conn.commit()
-        self.conn.close()
     
     def get_pokemon_by_id(self, pokemon_id):
-        self.open_connection()
         self.cursor.execute("SELECT id, name, image FROM pokemon_list WHERE id = " + str(pokemon_id))
         result = self.cursor.fetchall()
         if(len(result)==0):
-            self.close_connection()
+            self.conn.commit()
             return False
         else:
             row = result[0]
-            self.close_connection()
             return {'id':row[0], 'name': row[1], 'image':row[2]}
     
     def get_pokemon(self, keyword=""):
-        self.open_connection()
         self.cursor.execute("SELECT id, name, image FROM pokemon_list WHERE name LIKE '%" + keyword + "%'")
         result = self.cursor.fetchall()
         pokemon_list = []
         for row in result:
             pokemon_list.append({'id':row[0], 'name': row[1], 'image':row[2]})
-        self.close_connection()
         return pokemon_list
     
     def delete_pokemon(self, pokemon_id):
-        self.open_connection()
         self.cursor.execute("DELETE FROM pokemon_list WHERE id = "+str(pokemon_id))
-        self.close_connection()
+        self.conn.commit()
     
     def insert_pokemon(self, name, image=''):
-        self.open_connection()
         self.cursor.execute("INSERT INTO pokemon_list(name, image) VALUES (?, ?)", (name,image))
-        self.close_connection()
+        self.conn.commit()
     
     def update_pokemon(self, pokemon_id, name, image=''):
         self.open_connection()
@@ -82,4 +64,4 @@ class DB_Model(object):
             row = self.get_pokemon_by_id(pokemon_id)
             image = row['image']
         self.cursor.execute("UPDATE pokemon_list SET name=?, image=? WHERE id=?", (name,image,pokemon_id))
-        self.close_connection()
+        self.conn.commit()

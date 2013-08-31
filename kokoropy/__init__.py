@@ -10,7 +10,7 @@ if os.path.dirname(__file__) not in sys.path:
 ###################################################################################################
 # Import things
 ###################################################################################################
-import bottle, sqlalchemy, beaker, threading, time
+import bottle, sqlalchemy, beaker, threading, time, tempfile
 import beaker.middleware
 from bottle import default_app, debug, run, static_file,\
     response, request, TEMPLATE_PATH, route, get,\
@@ -70,7 +70,8 @@ def template(*args, **kwargs):
         kwargs['BASE_URL'] = request.BASE_URL
     else:
         kwargs['BASE_URL'] = base_url()
-    kwargs['RUNTIME_PATH'] = runtime_path()
+    kwargs['RUNTIME_PATH']      = runtime_path()
+    kwargs['APPLICATION_PATH']  = application_path()
     return _bottle_template(*args, **kwargs)
 
 # This class serve kokoropy static files routing & some injection into request object
@@ -82,6 +83,7 @@ class _Kokoro_Router(object):
         """
         request.SESSION = request.environ["beaker.session"]
         request.RUNTIME_PATH = runtime_path()
+        request.APPLICATION_PATH = application_path()
         url = bottle.request.url
         url_part = urlparse(url)
         scheme = url_part.scheme
@@ -139,12 +141,19 @@ def runtime_path(path=''):
         RUNTIME_PATH = '.runtime/'
     return RUNTIME_PATH + remove_begining_slash(path)
 
+def application_path(path=''):
+    if '__KOKOROPY_APPLICATION_PATH__' in os.environ:
+        APPLICATION_PATH = os.environ['__KOKOROPY_APPLICATION_PATH__']
+    else:
+        APPLICATION_PATH = '.applications/'
+    return APPLICATION_PATH + remove_begining_slash(path)
+
 def base_url(url=''):
     if '__KOKOROPY_BASE_URL__' in os.environ:
         BASE_URL = os.environ['__KOKOROPY_BASE_URL__']
     else:
         BASE_URL = '/' 
-    return BASE_URL + remove_begining_slash(url)    
+    return BASE_URL + remove_begining_slash(url)  
 
 def rmtree(path, ignore_errors=False, onerror=None):
     """ Alias for shutil.rmtree
@@ -320,16 +329,18 @@ def kokoro_init(**kwargs):
     ###################################################################################################
     # parameters
     ###################################################################################################
-    BASE_URL            = add_trailing_slash(add_begining_slash(BASE_URL))
-    RUNTIME_PATH        = add_trailing_slash(RUNTIME_PATH)    
-    UNTRAILED_SLASH_RUNTIME_PATH = remove_trailing_slash(RUNTIME_PATH)
-    APPLICATION_PACKAGE = os.path.split(APPLICATION_PATH)[-1]
-    ASSET_PATH          = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"assets")
-    VIEW_PATH           = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"views")
-    MPL_CONFIG_DIR_PATH = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"mplconfigdir")
+    APPLICATION_PATH                = add_trailing_slash(os.path.abspath(APPLICATION_PATH))
+    BASE_URL                        = add_trailing_slash(add_begining_slash(BASE_URL))
+    RUNTIME_PATH                    = add_trailing_slash(os.path.join(tempfile.gettempdir(), RUNTIME_PATH))
+    UNTRAILED_SLASH_RUNTIME_PATH    = remove_trailing_slash(RUNTIME_PATH)
+    APPLICATION_PACKAGE             = os.path.split(remove_trailing_slash(APPLICATION_PATH))[-1]
+    ASSET_PATH                      = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"assets")
+    VIEW_PATH                       = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"views")
+    MPL_CONFIG_DIR_PATH             = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"mplconfigdir")
     # save BASE_URL and RUNTIME_PATH to os.environ
-    os.environ['__KOKOROPY_BASE_URL__'] = BASE_URL
-    os.environ['__KOKOROPY_RUNTIME_PATH__'] = RUNTIME_PATH
+    os.environ['__KOKOROPY_BASE_URL__']         = BASE_URL
+    os.environ['__KOKOROPY_RUNTIME_PATH__']     = RUNTIME_PATH
+    os.environ['__KOKOROPY_APPLICATION_PATH__'] = APPLICATION_PATH
     ###################################################################################################
     # prepare runtime path
     ###################################################################################################
@@ -479,3 +490,32 @@ def draw_matplotlib_figure(figure):
         return png_output.getvalue()
     else:
         return False
+
+def _asset_path_list(path, application_name):
+    ''' return a list contains real asset path & runtime asset path
+    '''
+    asset_path_list = []
+    asset_path_list.append(application_path(os.path.join(application_name, 'assets', path)))
+    asset_path_list.append(runtime_path(os.path.join('assets', application_name, path)))
+    return asset_path_list
+
+def save_uploaded_asset(upload_key_name, path='', application_name='index'):
+    upload =  request.files.get(upload_key_name)
+    if upload is None:
+        return False
+    else:
+        file_name = upload.filename
+        remove_asset(os.path.join(path, file_name), application_name)
+        # appends upload.filename automatically
+        upload_path_list = _asset_path_list(path, application_name)
+        for upload_path in upload_path_list:         
+            upload.save(upload_path)
+        return True
+
+def remove_asset(path, application_name='index'):
+    asset_path_list = _asset_path_list(path, application_name)
+    for asset_path in asset_path_list:
+        try:
+            os.remove(asset_path)
+        except OSError:
+            pass

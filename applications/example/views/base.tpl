@@ -20,7 +20,10 @@
                 padding:10px;
                 border-radius: 10px;
             }
-        </style>        
+        </style>
+        <script type="text/javascript" src="{{ BASE_URL }}assets/static_libraries/jquery-2.0.3.min.js"></script>
+        <script type="text/javascript" src="{{ BASE_URL }}assets/static_libraries/bootstrap-3.0.0/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="{{ BASE_URL }}assets/example/js/script.js"></script>      
         <title>{{ title or 'Kokoropy' }}</title>
     </head>
     <body>
@@ -87,11 +90,6 @@
             <footer>
               <p>&copy; Go Frendi Gunawan 2013</p>
             </footer>
-        </div>
-        
-        <script type="text/javascript" src="{{ BASE_URL }}assets/static_libraries/jquery-2.0.3.min.js"></script>
-        <script type="text/javascript" src="{{ BASE_URL }}assets/static_libraries/bootstrap-3.0.0/js/bootstrap.min.js"></script>
-        <script type="text/javascript" src="{{ BASE_URL }}assets/example/js/script.js"></script>
-
+        </div>        
     </body>
 </html>

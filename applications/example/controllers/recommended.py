@@ -1,4 +1,4 @@
-from kokoropy import template, request, os, redirect, base_url
+from kokoropy import template, request, os, redirect, base_url, save_uploaded_asset, remove_asset
 import random, hashlib
 
 class Default_Controller(object):
@@ -91,6 +91,10 @@ class Default_Controller(object):
             elif action == 'edit':
                 self.db_model.update_pokemon(pokemon_id, pokemon_name, pokemon_image)
             elif action == 'delete':
+                row = self.db_model.get_pokemon_by_id(pokemon_id)
+                if row != False:
+                    image = row['image']
+                    remove_asset(os.path.join('uploads', image), 'example')
                 self.db_model.delete_pokemon(pokemon_id)
         
         private_code = self.generate_private_code()
@@ -120,8 +124,9 @@ class Default_Controller(object):
         else:
             name, ext = os.path.splitext(upload.filename)
             if ext not in ('.png','.jpg','.jpeg'):
-                return template('example/upload', message='invalid file extension '+ext)
+                return ''
             # appends upload.filename automatically
-            upload_path = os.path.dirname(os.path.dirname(__file__))+'/assets/uploads/'            
-            upload.save(upload_path) 
-            return name+ext
+            if save_uploaded_asset('pokemon_image', path='uploads', application_name='example'):
+                return name+ext
+            else:
+                return ''
