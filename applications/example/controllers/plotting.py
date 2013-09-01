@@ -1,13 +1,16 @@
-from kokoropy import template, draw_matplotlib_figure
+from kokoropy import template, request, draw_matplotlib_figure
 
 class Default_Controller(object):
     
     def action_plot(self):
+        max_range = 6.28
+        if 'range' in request.GET:
+            max_range = float(request.GET['range'])
         # import things
         import numpy as np
         from matplotlib.figure import Figure
         # determine x, sin(x) and cos(x)
-        x = np.arange(0, 6.28, 0.1)
+        x = np.arange(0, max_range, 0.1)
         y1 = np.sin(x)
         y2 = np.cos(x)
         # make figure       
