@@ -59,7 +59,6 @@ class DB_Model(object):
         self.conn.commit()
     
     def update_pokemon(self, pokemon_id, name, image=''):
-        self.open_connection()
         if image=='':
             row = self.get_pokemon_by_id(pokemon_id)
             image = row['image']
