@@ -1,7 +1,7 @@
 Kokoropy
 =========
 
-A MVC python web framework, from my heart <3
+A 心から Educational MVC Python Web Framework.
 
 In japanese, kokoro means heart.
 I make Kokoropy because I can not find any python web-framework which I really comfort with.
@@ -16,10 +16,10 @@ If you've once ever use my another open source project, No-CMS (http://getnocms.
 
 Kokoropy is built based on my experiences with some framework. Here are some comparison between kokoropy and other framework
 
-* Kokoropy is explicit. There is no such a "magic" like in web2py.
-* You can use route directive in bottle.py, since bottle.py is the core of kokoropy.
-* Kokoropy is built based on HMVC pattern, like laravel, fuelPHP and CodeIgniter+HMVC.
-* Kokoropy doesn't have any other dependencies. You can even run it without Apache or nginx, just like web2py.
+* Kokoropy is explicit & transparent. There is no magic in kokoropy. If you need something, you need to import it.
+* You can use route directive just like in `bottle.py` (http://bottlepy.org), since bottle.py is the core of kokoropy.
+* Kokoropy is built based on HMVC pattern. You can make unlimited number of separated MVC triad. This is good to make your application maintainable.
+* Kokoropy doesn't have any other dependencies beside python-standard-library. You can even run it without Apache or nginx.
 * Kokoropy support many database system. Every model can has its own database.
 * Kokoropy support REST.
 * Kokoropy support both, automatic and manual routing.
@@ -45,7 +45,18 @@ Kokoropy is for you if you:
 Configuration & Getting Started
 ===============================
 
-Configuring Kokoropy is very easy. Just open up start.py, and do some modification.
+Kokoropy is a python web framework. Therefore you need to have python installed in your computer.
+
+Linux & MacOS user does not need to worry anything since those OS have python pre-installed by default.
+Optionally, you can also install numpy & matplotlib.
+```
+sudo apt-get install python-numpy
+sudo apt-get install python-matplotlib
+```
+
+Windows user should download and install python. Personally, I suggest you to use `Enthought Canopy Distribution` (https://www.enthought.com/products/canopy/) since it already has some libraries such as numpy & matplotlib.
+
+Configuring Kokoropy is very easy. Just open up `start.py`, and do some modification.
 For development purpose, it is recommended to leave the configuration as it is.
 
 ```python
@@ -59,7 +70,7 @@ For development purpose, it is recommended to leave the configuration as it is.
 APP_DIRECTORY contains of your applications directory.
 Other configuration are just like bottlepy configuration.
 
-You can start the server by using this command:
+You can start the server by using this command (if you are using windows, click run and type cmd, if you are using mac or linux, I think you know what to do):
 ```
     python start.py
 ```
