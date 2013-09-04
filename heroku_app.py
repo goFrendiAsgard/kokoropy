@@ -18,4 +18,4 @@ application = kokoropy.kokoro_init(application_path = APPLICATION_PATH, run = Fa
 
 if __name__ == '__main__':
     print "=== Run the server ==="
-    kokoropy.run(app=application, server='gunicorn', host='0.0.0.0', port=os.environ.get('PORT', 5000))
+    kokoropy.run(app=application, server='gunicorn', host='0.0.0.0', port=os.environ.get('PORT', 5000), workers=3)
