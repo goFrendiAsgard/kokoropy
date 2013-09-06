@@ -4,6 +4,7 @@
 # Add this directory to sys.path
 ###################################################################################################
 import os, inspect, sys, shutil
+from datetime import datetime
 if os.path.dirname(__file__) not in sys.path:
     sys.path.append(os.path.dirname(__file__))
 
@@ -94,6 +95,15 @@ class _Kokoro_Router(object):
         """ Serve static files
             There is no need to call this function manually
         """
+        # get date & set header (doesn't work)
+        '''
+        now = datetime.utcnow()
+        hours = 0.25
+        then = now+int(hours/24.0)
+        response.set_header('Expires',then.rfc822())
+        response.set_header('Cache-Control', 'public,max-age=%d' % int(3600*hours))
+        '''
+        # return things
         UNTRAILED_SLASH_RUNTIME_PATH = remove_trailing_slash(runtime_path())
         if os.path.exists(os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets", path)):
             return static_file(path, root=os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets"))

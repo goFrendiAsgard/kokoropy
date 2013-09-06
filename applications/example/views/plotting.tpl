@@ -1,5 +1,5 @@
 <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}assets/index/static_libraries/jquery-ui-1.10.3/themes/base/minified/jquery-ui.min.css" />
-<h4>You should have matplotlib and StringIO installed</h4>
+<h4>Matplotlib and StringIO should be installed on server</h4>
 <div>
     <label>Range : </label>
     <input type="text" name="range" id="range" class="spinner" value="6.28" />    

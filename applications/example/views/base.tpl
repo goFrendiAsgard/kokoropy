@@ -7,11 +7,7 @@
         <meta name="description" content="">
         <meta name="author" content="">
         <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}assets/static_libraries/bootstrap-3.0.0/css/bootstrap.min.css" />
-        <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}assets/example/css/style.css" />
-        <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
-        <!--[if lt IE 9]>
-          <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-        <![endif]-->
+        <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}assets/example/css/style.css" />        
         <style type="text/css">        
             #layout-content {
                 min-height: 250px;
@@ -20,10 +16,7 @@
                 padding:10px;
                 border-radius: 10px;
             }
-        </style>
-        <script type="text/javascript" src="{{ BASE_URL }}assets/static_libraries/jquery-2.0.3.min.js"></script>
-        <script type="text/javascript" src="{{ BASE_URL }}assets/static_libraries/bootstrap-3.0.0/js/bootstrap.min.js"></script>
-        <script type="text/javascript" src="{{ BASE_URL }}assets/example/js/script.js"></script>      
+        </style>              
         <title>{{ title or 'Kokoropy' }}</title>
     </head>
     <body>
@@ -81,6 +74,13 @@
         <div class="container">
             <!-- content -->
             <div  id="layout-content">
+                <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+                <!--[if lt IE 9]>
+                  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+                <![endif]-->
+                <script type="text/javascript" src="{{ BASE_URL }}assets/static_libraries/jquery-2.0.3.min.js"></script>
+                <script type="text/javascript" src="{{ BASE_URL }}assets/static_libraries/bootstrap-3.0.0/js/bootstrap.min.js"></script>
+                <script type="text/javascript" src="{{ BASE_URL }}assets/example/js/script.js"></script>
                 % setdefault('base', 'nothing')  
                 {{!base}}
             </div>

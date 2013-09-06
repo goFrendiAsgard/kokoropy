@@ -18,13 +18,13 @@
         Recommended routing mechanism works easily with such following code in your controllers:
     </p>
     <pre>
-    # file: /application/<b>example</b>/controllers/<b>recommended</b>.py 
-    class <b>Default_Controller</b>(object):
-        def <b>act_index</b>(self, name=None):
-            if name is None:
-                name = 'Mami Sasazaki'
-            message  = 'Hello '+name
-            return message
+# file: /application/<b>example</b>/controllers/<b>recommended</b>.py 
+class <b>Default_Controller</b>(object):
+    def <b>act_index</b>(self, name=None):
+        if name is None:
+            name = 'Mami Sasazaki'
+        message  = 'Hello '+name
+        return message
     </pre>
     <p>
         Notice that the class name should be <code>Default_Controller</code> and case sensitive.<br />
