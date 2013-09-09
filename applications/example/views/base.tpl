@@ -61,7 +61,7 @@
         <div class="jumbotron hidden-phone">
           <div class="container">
             <div class="col-md-2">
-                <img src ="{{ BASE_URL }}assets/images/kokoropy.png" />
+                <img src ="{{ BASE_URL }}index/assets/images/kokoropy.png" />
             </div>
             <div class="col-md-10">
                 <h1>Kokoropy</h1>

@@ -73,6 +73,14 @@ def template(*args, **kwargs):
         kwargs['BASE_URL'] = base_url()
     kwargs['RUNTIME_PATH']      = runtime_path()
     kwargs['APPLICATION_PATH']  = application_path()
+    # adjust args[0]
+    path_list = os.path.split(args[0])
+    if len(path_list) >= 2 and path_list[1] != 'views':
+        path_list = (path_list[0],) + ('views',) + path_list[1:]
+        args_list = list(args)
+        args_list[0] = os.path.join(*path_list)
+        args = tuple(args_list)
+    print args
     return _bottle_template(*args, **kwargs)
 
 # This class serve kokoropy static files routing & some injection into request object
@@ -91,24 +99,17 @@ class _Kokoro_Router(object):
         host = scheme + '://' + request.get_header('host')
         request.BASE_URL = add_trailing_slash(host) + remove_begining_slash(add_trailing_slash(base_url()))
     
-    def serve_assets(self, path):
+    def serve_assets(self, path, application='index'):
         """ Serve static files
             There is no need to call this function manually
         """
-        # get date & set header (doesn't work)
-        '''
-        now = datetime.utcnow()
-        hours = 0.25
-        then = now+int(hours/24.0)
-        response.set_header('Expires',then.rfc822())
-        response.set_header('Cache-Control', 'public,max-age=%d' % int(3600*hours))
-        '''
         # return things
-        UNTRAILED_SLASH_RUNTIME_PATH = remove_trailing_slash(runtime_path())
-        if os.path.exists(os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets", path)):
-            return static_file(path, root=os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets"))
+        APP_PATH = application_path()
+        APP_PATH = remove_trailing_slash(APP_PATH)
+        if os.path.exists(os.path.join(APP_PATH, application, "assets", path)):
+            return static_file(path, root=os.path.join(APP_PATH, application, "assets"))
         else:
-            return static_file(path, root=os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets", "index"))
+            return static_file(path, root=os.path.join(APP_PATH, application, "assets", "index"))
 
 def isset(variable):
     """ PHP favored isset. 
@@ -344,8 +345,6 @@ def kokoro_init(**kwargs):
     RUNTIME_PATH                    = add_trailing_slash(os.path.join(tempfile.gettempdir(), RUNTIME_PATH))
     UNTRAILED_SLASH_RUNTIME_PATH    = remove_trailing_slash(RUNTIME_PATH)
     APPLICATION_PACKAGE             = os.path.split(remove_trailing_slash(APPLICATION_PATH))[-1]
-    ASSET_PATH                      = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"assets")
-    VIEW_PATH                       = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"views")
     MPL_CONFIG_DIR_PATH             = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH,"mplconfigdir")
     # save BASE_URL and RUNTIME_PATH to os.environ
     os.environ['__KOKOROPY_BASE_URL__']         = BASE_URL
@@ -357,10 +356,6 @@ def kokoro_init(**kwargs):
     print ("PREPARE RUNTIME PATH " + UNTRAILED_SLASH_RUNTIME_PATH)
     if not os.path.exists(UNTRAILED_SLASH_RUNTIME_PATH):
         os.makedirs(UNTRAILED_SLASH_RUNTIME_PATH)
-    if not os.path.exists(ASSET_PATH):
-        os.makedirs(ASSET_PATH)
-    if not os.path.exists(VIEW_PATH):
-        os.makedirs(VIEW_PATH)
     if not os.path.exists(MPL_CONFIG_DIR_PATH):
         os.makedirs(MPL_CONFIG_DIR_PATH)
     # set mplconfigdir for matplotlib
@@ -400,7 +395,8 @@ def kokoro_init(**kwargs):
     # some predefined routes
     kokoro_router = _Kokoro_Router()
     route(base_url("<path:re:(favicon.ico)>"))(kokoro_router.serve_assets)
-    route(base_url("assets/<path:re:.+>"))(kokoro_router.serve_assets)
+    route(base_url("<application>/assets/<path:re:.+>"))(kokoro_router.serve_assets)
+    route(base_url("asets/<application>/<path:re:.+>"))(kokoro_router.serve_assets)
     hook('before_request')(kokoro_router.before_request)
     ###################################################################################################
     # Load everything inside controller modules
@@ -444,22 +440,7 @@ def kokoro_init(**kwargs):
     ###################################################################################################
     # add template & assets path
     ###################################################################################################
-    global_view_path = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "views")
-    global_asset_path = os.path.join(UNTRAILED_SLASH_RUNTIME_PATH, "assets")
-    rmtree(global_view_path)
-    rmtree(global_asset_path)
-    # application"s assets & views
-    for directory in directory_list:
-        print("REGISTER TEMPLATE PATH : "+directory+"/views/")
-        old_path = os.path.join(APPLICATION_PATH, directory, "views")
-        app_view_path = os.path.join(global_view_path, directory)
-        copytree(old_path, app_view_path)
-        print("REGISTER ASSETS PATH : "+directory+"/assets/")
-        old_path = os.path.join(APPLICATION_PATH, directory, "assets")
-        app_asset_path = os.path.join(global_asset_path, directory)
-        copytree(old_path, app_asset_path)
-    # register template path
-    TEMPLATE_PATH.append(global_view_path)
+    TEMPLATE_PATH.append(APPLICATION_PATH)
     ###################################################################################################
     # run the application
     ###################################################################################################
@@ -502,12 +483,9 @@ def draw_matplotlib_figure(figure):
         return False
 
 def _asset_path_list(path, application_name):
-    ''' return a list contains real asset path & runtime asset path
+    ''' return asset path
     '''
-    asset_path_list = []
-    asset_path_list.append(application_path(os.path.join(application_name, 'assets', path)))
-    asset_path_list.append(runtime_path(os.path.join('assets', application_name, path)))
-    return asset_path_list
+    return application_path(os.path.join(application_name, 'assets', path))
 
 def save_uploaded_asset(upload_key_name, path='', application_name='index'):
     upload =  request.files.get(upload_key_name)
@@ -517,15 +495,13 @@ def save_uploaded_asset(upload_key_name, path='', application_name='index'):
         file_name = upload.filename
         remove_asset(os.path.join(path, file_name), application_name)
         # appends upload.filename automatically
-        upload_path_list = _asset_path_list(path, application_name)
-        for upload_path in upload_path_list:         
-            upload.save(upload_path)
+        upload_path = _asset_path_list(path, application_name)
+        upload.save(upload_path)
         return True
 
 def remove_asset(path, application_name='index'):
-    asset_path_list = _asset_path_list(path, application_name)
-    for asset_path in asset_path_list:
-        try:
-            os.remove(asset_path)
-        except OSError:
-            pass
+    asset_path = _asset_path_list(path, application_name)
+    try:
+        os.remove(asset_path)
+    except OSError:
+        pass

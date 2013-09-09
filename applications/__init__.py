@@ -1,5 +1,5 @@
 from kokoropy import template, error, hook
-
+'''
 @hook('before_request')
 def _before_request():
     pass
@@ -24,7 +24,8 @@ def _error_404(error):
     error_message = error_messages[message_index]
     data = {
        'error_title'  : '404, Page not found',
-       'error_message' : error_message
+       'error_message' : error_message,
+       'error' : error
     }
     return template('example/error', data = data)
 
@@ -41,7 +42,8 @@ def _error_403(error):
     error_message = error_messages[message_index]
     data = {
        'error_title'  : '403, Forbidden',
-       'error_message' : error_message
+       'error_message' : error_message,
+       'error' : error
     }
     return template('example/error', data = data)
 
@@ -59,6 +61,8 @@ def _error_500(error):
     error_message = error_messages[message_index]
     data = {
        'error_title'  : '500, Internal Server Error',
-       'error_message' : error_message
+       'error_message' : error_message,
+       'error' : error
     }
     return template('example/error', data = data)
+'''

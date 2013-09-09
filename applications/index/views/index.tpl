@@ -1,4 +1,4 @@
-%rebase('example/base.tpl', title='start')
+%rebase('example/views/base.tpl', title='start')
 <h1>It works !!!</h1>
 <p>
 If you see this, it means that kokoropy has been installed and running as expected.</br>
