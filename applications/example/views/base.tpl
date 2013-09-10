@@ -80,7 +80,7 @@
                 <![endif]-->
                 <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-2.0.3.min.js"></script>
                 <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/bootstrap-3.0.0/js/bootstrap.min.js"></script>
-                <script type="text/javascript" src="{{ BASE_URL }}index/assets/example/js/script.js"></script>
+                <script type="text/javascript" src="{{ BASE_URL }}example/assets/js/script.js"></script>
                 % setdefault('base', 'nothing')  
                 {{!base}}
             </div>
