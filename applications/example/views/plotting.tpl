@@ -2,7 +2,7 @@
 <h4>Matplotlib and StringIO should be installed on server</h4>
 <div>
     <label>Range : </label>
-    <input type="text" name="range" id="range" class="spinner" value="6.28" />    
+    <input type="text" name="range" id="range" class="spinner" value="6.3" />    
 </div>
 <br />
 <div id="plot">
@@ -13,10 +13,10 @@
     $(document).ready(function(){
         // mutate normal text into spinner
         var range_spinner = $('.spinner').spinner({
-            step: 0.01,
+            step: 0.1,
             numberFormat: "n",
-            max: (8.0*22.0/7.0).toFixed(2),
-            min: (0.5*22.0/7.0).toFixed(2),
+            max: (8.0*22.0/7.0).toFixed(1),
+            min: (0.5*22.0/7.0).toFixed(1),
         }); 
         
         // hack to trigger input change whenever spinner button clicked:

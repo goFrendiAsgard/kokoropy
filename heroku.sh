@@ -6,7 +6,7 @@
 # init a git repo
 git init
 
-# login to heroku (make sure you have an account on heroku.com)
+# login to heroku (make sure you already have an account on heroku.com)
 heroku login
 
 # if need scipy etc, we should use a buildpack
@@ -14,19 +14,6 @@ heroku create --buildpack https://github.com/dbrgn/heroku-buildpack-python-sklea
 
 # if you already make an heroku app without specifying buildpack, please don't worry, use this command
 # heroku config:set BUILDPACK_URL=https://github.com/dbrgn/heroku-buildpack-python-sklearn/
-
-# set a virtual env
-virtualenv env
-source env/bin/activate
-
-# install several pre-requisites python packages
-pip install gunicorn
-# pip install numpy
-# easy_install -U distribute
-# pip install matplotlib
-
-# freeze... put on requirements.txt
-pip freeze > requirements.txt
 
 # make heroku_app.py installable
 chmod a+x heroku_app.py

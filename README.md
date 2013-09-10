@@ -60,12 +60,14 @@ Configuring Kokoropy is very easy. Just open up `start.py`, and do some modifica
 For development purpose, it is recommended to leave the configuration as it is.
 
 ```python
-    HOST                = 'localhost'
-    PORT                = 8080
-    DEBUG               = True
-    RELOADER            = False
-    SERVER              = 'wsgiref'
-    APP_DIRECTORY       = 'applications'
+    HOST                = 'localhost'               # the server name
+    PORT                = 8080                      # http port
+    DEBUG               = True                      # True or False
+    RELOADER            = False                     # True or False
+    SERVER              = 'kokoro'                  # or wsgiref or whatever
+    APP_DIRECTORY       = 'applications'            # applications package
+    RUNTIME_PATH        = '.development_runtime'    # runtime path
+    BASE_URL            = '/kokoropy'               # base url, start with '/'
 ```
 APP_DIRECTORY contains of your applications directory.
 Other configuration are just like bottlepy configuration.
@@ -77,7 +79,7 @@ You can start the server by using this command (if you are using windows, click 
 
 Once the server started up, you can access your web application by using any browser.
 ```
-    http://localhost:8080
+    http://localhost:8080/kokoropy
 ```
 
 Overview
@@ -219,12 +221,12 @@ Run kokoropy server (if it is already started, then restart it by pressing ctrl+
 
 Open your browser, and access these addresses:
 ```
-    http://localhost:8080/your_app/hello/
-    http://localhost:8080/your_app/hello/index
-    http://localhost:8080/your_app/hello/welcome
-    http://localhost:8080/your_app/hello/welcome/John
-    http://localhost:8080/your_app/hello/welcome/John%20Titor
-    http://localhost:8080/your_app/hello/welcome/Ryuzaki
+    http://localhost:8080/kokoropy/your_app/hello/
+    http://localhost:8080/kokoropy/your_app/hello/index
+    http://localhost:8080/kokoropy/your_app/hello/welcome
+    http://localhost:8080/kokoropy/your_app/hello/welcome/John
+    http://localhost:8080/kokoropy/your_app/hello/welcome/John%20Titor
+    http://localhost:8080/kokoropy/your_app/hello/welcome/Ryuzaki
 ```
 
 Explanation:
@@ -233,8 +235,8 @@ Explanation:
 * In ```hello.py``` you have a class named ```Default_Controller```. This make Kokoropy's automatic routing works
 * Since automatic routing works, you don't need to import route from Kokoropy. So, in this tutorial, you don't see any ```from kokoropy import route```
 * In Default_Controller, you have 2 functions with ```action_``` prefix. ```action_index``` and ```action_welcome``` are published as ```index``` and ```welcome``` respectively.
-* ```action_welcome``` has ```name``` parameter. The parameter has default value ```None```. So when you access ```http://localhost:8080/your_app/hello/welcome/John``` the name parameter will be ```"John"```,
-  but when you access ```http://localhost:8080/your_app/hello/welcome```, the name will be ```None``` as its default value.
+* ```action_welcome``` has ```name``` parameter. The parameter has default value ```None```. So when you access ```http://localhost:8080/kokoropy/your_app/hello/welcome/John``` the name parameter will be ```"John"```,
+  but when you access ```http://localhost:8080/kokoropy/your_app/hello/welcome```, the name will be ```None``` as its default value.
 
 __Note:__ When you work with team, automatic routing is recommended. It make things simple and easy to be tracked
 
@@ -280,7 +282,7 @@ Modify ```hello.py``` into this:
 
 Make a html file or another function that return a html code of form upload:
 ```html
-    <form action="http://localhost:8080/your_app/hello/upload" method="post" enctype="multipart/form-data">
+    <form action="{{ BASE_URL }}hello/upload" method="post" enctype="multipart/form-data">
       Select a file: <input type="file" name="uploaded_file" />
       <input type="submit" value="Start upload" />
     </form>
@@ -481,7 +483,7 @@ Now, modify your `pokemon.py` controller into this:
         def action_index(self):
             pokemon_model = Pokemon_Model()
             pokemon_list = pokemon_model.fetch_pokemon()
-            return template('your_app/pokemon.tpl', list=pokemon_list)
+            return template('your_app/views/pokemon.tpl', list=pokemon_list)
 ```
 
 And modify your `pokemon.tpl` into this:
@@ -526,73 +528,63 @@ And modify your `base.tpl` into this:
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <meta name="description" content="">
             <meta name="author" content="">
-            <link rel="stylesheet" type="text/css" href="/assets/static_libraries/bootstrap/css/bootstrap.min.css" />
-            <link rel="stylesheet" type="text/css" href="/assets/example/css/style.css" />
-            <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
-            <!--[if lt IE 9]>
-            <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-            <![endif]-->
-            <script type="text/javascript" src="/assets/static_libraries/jquery.tools.min.js"></script>
-            <script type="text/javascript" src="/assets/static_libraries/bootstrap/js/bootstrap.min.js"></script>
-            <script type="text/javascript" src="/assets/example/js/script.js"></script>
+            <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/bootstrap-3.0.0/css/bootstrap.min.css" />            
             <title>Kokoropy</title>
         </head>
         <body>
+            <!-- Menu -->
             <div class="navbar navbar-inverse navbar-fixed-top">
-                <div class="navbar-inner">
-                    <div class="container">
-                        <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-                            <span class="icon-bar">&nbsp;</span>
-                            <span class="icon-bar">&nbsp;</span>
-                            <span class="icon-bar">&nbsp;</span>
-                        </button>
-                        <a class="brand" href="#">Kokoropy</a>
-                        <div class="nav-collapse collapse">
-                            <ul class="nav">
-                                <li><a href="/example/simple/hello_world">Simple route</a></li>
-                                <li><a href="/example/recommended/index">Recommended route</a></li>
-                                <li><a href="/example/advance/hello">Advance route</a> </li>
-                                <li><a href="/example/recommended/upload">Test upload file</a> </li>
-                            </ul>
-                        </div><!--/.nav-collapse -->
-                    </div>
+              <div class="container">
+                <div class="navbar-header">
+                  <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="icon-bar">&nbsp;</span>
+                    <span class="icon-bar">&nbsp;</span>
+                    <span class="icon-bar">&nbsp;</span>
+                  </button>
+                  <a class="navbar-brand" href="#">Kokoropy</a>
                 </div>
-            </div>
-
-            <div id="content-container" class="container">
-                <div class="row-fluid">
-                    <div id="layout-banner" class="well hidden-phone span12">
-                        <div class="span2">
-                            <img src ="/assets/images/kokoropy.png" />
-                        </div>
-                        <div class="span10">
-                            <h1>Kokoropy</h1>
-                            <p>心から Python MVC Web Framework</p>
-                        </div>
-                    </div>
-                    <div id="layout-content" class="span12">
-                        <p id="content">%include</p>
-                    </div><!--/#layout-content-->
-                </div><!--/row-->
-                <hr>
-                <footer>GoFrendiAsgard &copy; 2013</footer>
-            </div><!--/.fluid-container-->
-
+                <div class="navbar-collapse collapse">
+                  <ul class="nav navbar-nav">
+                    <li><a href="{{ BASE_URL }}index">Home</a></li>
+                  </ul>
+                </div><!--/.navbar-collapse -->
+              </div>
+            </div>           
+            
+            <div class="container">
+                <!-- content -->
+                <div  id="layout-content">
+                    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+                    <!--[if lt IE 9]>
+                      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+                    <![endif]-->
+                    <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-2.0.3.min.js"></script>
+                    <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/bootstrap-3.0.0/js/bootstrap.min.js"></script>
+                    % setdefault('base', 'nothing')  
+                    {{!base}}
+                </div>
+                
+                <!-- footer -->
+                <hr>              
+                <footer>
+                  <p>&copy; Go Frendi Gunawan 2013</p>
+                </footer>
+            </div>        
         </body>
     </html>
 ```
 
-Now, `pokemon.tpl` will also include `base.tpl`. The original content of `pokemon.tpl` will replace `%include` in `base.tpl`
+Now, `pokemon.tpl` will also include `base.tpl`. The original content of `pokemon.tpl` will replace `{{!base}}` in `base.tpl`
 
 __Note:__ To know more about template, please visit http://bottlepy.org/docs/dev/stpl.html
 
 Tutorial 6: Deploy kokoropy on apache web server
 ================================================
-This is how to use kokoropy with apache web server (assuming you use ubuntu or debian):
+This is how to deploy kokoropy on apache web server (assuming you use ubuntu or debian):
 * You need to have mod-wsgi enabled.
 * If you do not have mod-wsgi installed, please do: `sudo apt-get install libapache2-mod-wsgi`.
 * If you do not have mod-wsgi enabled, please do: `sudo a2enmod wsgi`.
-* Copy `kokoro.apache_conf`, put it on `/etc/apache2/sites-available/kokoro.apache_conf` (On another OS, please append this file contents to `httpd.conf`).
+* Copy `kokoro.apache_conf`, put it on `/etc/apache2/sites-available/kokoro.apache_conf` (For other OS, please append this file contents to `httpd.conf`).
 * Enable this configuration by doing: `sudo a2ensite kokoro.apache_conf`.
 * Modify `/etc/apache2/sites-available/kokoro.apache_conf` as follows:
   - Replace every `/home/gofrendi/workspace/kokoropy` with your kokoropy directory location.
@@ -601,7 +593,25 @@ This is how to use kokoropy with apache web server (assuming you use ubuntu or d
   - Note, that by default apache will greedily take over every request and left nothing to be handled by your application. If you are using ubuntu/debian, modify `/etc/apache2/sites-enabled/000-default`. Change this part `<VirtualHost *:80>` into `<VirtualHost localhost:80>`
 * Reload your apache by using `sudo service apache2 reload`. If it does not work, restart your apache by using `sudo service apache2 restart`
 
-Tutorial 7: Additional tips & tricks
+Tutorial 7: Deploy kokoropy on heroku
+=====================================
+This is how to deploy kokoropy on heroku (assuming you use ubuntu):
+* Make heroku account, and visit https://devcenter.heroku.com/articles/python for more detail instruction
+* get and install heroku toolbelt by using this command: `wget -qO- https://toolbelt.heroku.com/install-ubuntu.sh | sh`. For other OS, please visit the heroku website for more information.
+* init a git repo by using this command: `git init`
+* login to heroku (make sure you already have an account on heroku.com) by using this command: `heroku login`
+* Set up heroku with a special buildpack (needed for matplotlib demo) by using this command `heroku create --buildpack https://github.com/dbrgn/heroku-buildpack-python-sklearn/`
+* If you do not need matplotlib at all, just do `heroku create`
+* If you have already do `heroku create` but change your mind later, and think that you need matplotlib, do this: `heroku config:set BUILDPACK_URL=https://github.com/dbrgn/heroku-buildpack-python-sklearn/`
+* make heroku_app.py installable by using this command `chmod a+x heroku_app.py`
+* detect all changes and deploy by using commit & push
+```
+    git add . -A
+    git commit -m "Initial commit for heroku deployment"
+    git push heroku master
+```
+
+Tutorial 8: Additional tips & tricks
 ====================================
 * In Kokoropy, there is a `base_url` function that return absolute url relative to the BASE URL configuration
 
@@ -672,4 +682,4 @@ Change Log:
 
 TODO:
 ====
-* Do something with `gae.py` since Google App Engine does not support 'file system writing'. Maybe using tempfile (damn, this is just stupid)
+* Make CRUD generator

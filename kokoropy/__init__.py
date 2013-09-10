@@ -74,11 +74,11 @@ def template(*args, **kwargs):
     kwargs['RUNTIME_PATH']      = runtime_path()
     kwargs['APPLICATION_PATH']  = application_path()
     # adjust args[0]
-    path_list = args[0].split('/')
+    path_list = list(args[0].split('/'))
     if len(path_list) >= 2 and path_list[1] != 'views':
-        path_list = (path_list[0],) + ('views',) + path_list[1:]
+        path_list = [path_list[0],] + ['views',] + path_list[1:]
         args_list = list(args)
-        args_list[0] = '/'.join(*path_list)
+        args_list[0] = '/'.join(path_list)
         args = tuple(args_list)
     return _bottle_template(*args, **kwargs)
 
@@ -103,9 +103,7 @@ class _Kokoro_Router(object):
             There is no need to call this function manually
         """
         # return things
-        print ''
-        print(path, application)
-        print ''
+        
         APP_PATH = application_path()
         APP_PATH = remove_trailing_slash(APP_PATH)
         if os.path.exists(os.path.join(APP_PATH, application, "assets", path)):

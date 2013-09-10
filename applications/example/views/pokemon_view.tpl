@@ -13,9 +13,9 @@
             <td>{{ pokemon['name'] }}</td>
             <td>
                 %if pokemon['image'] == '':
-                <img src="{{ BASE_URL }}assets/example/images/pokemon-no-image.png" style="height:65px;" />
+                <img src="{{ BASE_URL }}example/assets/images/pokemon-no-image.png" style="height:65px;" />
                 %else:
-                <img src="{{ BASE_URL }}assets/example/uploads/{{ pokemon['image'] }}" style="height:65px;" />
+                <img src="{{ BASE_URL }}example/assets/uploads/{{ pokemon['image'] }}" style="height:65px;" />
                 %end
             </td>
             <td width="50px">
