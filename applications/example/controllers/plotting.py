@@ -35,4 +35,4 @@ class Default_Controller(object):
         return draw_matplotlib_figure(fig)
     
     def action_index(self):
-        return template('example/plotting')
+        return template('example/views/plotting')

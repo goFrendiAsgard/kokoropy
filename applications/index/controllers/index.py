@@ -6,4 +6,4 @@ from kokoropy import route, base_url, template, remove_trailing_slash
 @route(base_url())
 def index():    
     # return string
-    return template('index/index.tpl')
+    return template('index/views/index.tpl')

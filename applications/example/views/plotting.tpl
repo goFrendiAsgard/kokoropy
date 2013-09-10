@@ -31,4 +31,4 @@
         });
     });    
 </script>
-%rebase('example/base',title='Plot')
+%rebase('example/views/base',title='Plot')

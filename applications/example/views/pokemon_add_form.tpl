@@ -19,4 +19,4 @@
     </div>
   </div>
 </form>
-%rebase('example/base', title='Pokemon List')
+%rebase('example/views/base', title='Pokemon List')

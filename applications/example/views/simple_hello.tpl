@@ -10,4 +10,4 @@ def index():
 </pre>
 This mechanism is good for testing and simple "hello world" application<br />'
 To see more advance routing mechanism, <a href="'+base_url('/example/recommended')+'">click here</a>'
-%rebase('example/base',title='Hello')
+%rebase('example/views/base',title='Hello')

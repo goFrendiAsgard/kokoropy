@@ -13,4 +13,4 @@ def index():
     # get say_hello
     message  = 'The session said that you have visit routing demo page '+str(request.SESSION['counter'])+' times'
     
-    return template('example/simple_hello', message=message)
+    return template('example/views/simple_hello', message=message)

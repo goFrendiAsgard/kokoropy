@@ -43,4 +43,4 @@
     <li><a class="btn" href="{{ BASE_URL }}example/recommended/pokemon/pikachu">Access the same page with parameter "pikachu"</a></li>
     <li><a class="btn" href="{{ BASE_URL }}example/recommended/pokemon?keyword=pi">Access the same page with GET query "keyword=pi"</a></li>
 </ul>
-%rebase('example/base', title='Pokemon List')
+%rebase('example/views/base', title='Pokemon List')

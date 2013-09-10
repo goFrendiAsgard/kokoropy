@@ -74,13 +74,12 @@ def template(*args, **kwargs):
     kwargs['RUNTIME_PATH']      = runtime_path()
     kwargs['APPLICATION_PATH']  = application_path()
     # adjust args[0]
-    path_list = os.path.split(args[0])
+    path_list = args[0].split('/')
     if len(path_list) >= 2 and path_list[1] != 'views':
         path_list = (path_list[0],) + ('views',) + path_list[1:]
         args_list = list(args)
-        args_list[0] = os.path.join(*path_list)
+        args_list[0] = '/'.join(*path_list)
         args = tuple(args_list)
-    print args
     return _bottle_template(*args, **kwargs)
 
 # This class serve kokoropy static files routing & some injection into request object
@@ -104,6 +103,9 @@ class _Kokoro_Router(object):
             There is no need to call this function manually
         """
         # return things
+        print ''
+        print(path, application)
+        print ''
         APP_PATH = application_path()
         APP_PATH = remove_trailing_slash(APP_PATH)
         if os.path.exists(os.path.join(APP_PATH, application, "assets", path)):
@@ -360,7 +362,7 @@ def kokoro_init(**kwargs):
         os.makedirs(MPL_CONFIG_DIR_PATH)
     # set mplconfigdir for matplotlib
     if ('MPLCONFIGDIR' not in os.environ) or (not os.access(os.environ['MPLCONFIGDIR'], os.W_OK)):
-        os.environ['MPLCONFIGDIR'] = MPL_CONFIG_DIR_PATH # point MPLCONFIGDIR to writable directory
+        os.environ['MPLCONFIGDIR'] = MPL_CONFIG_DIR_PATH # point MPLCONFIGDIR to writable directory    
     ###################################################################################################
     # get all kokoropy module directory_list
     ###################################################################################################
@@ -392,11 +394,15 @@ def kokoro_init(**kwargs):
             if not directory in controller_module_directory_list:
                 controller_module_directory_list[directory] = []
             controller_module_directory_list[directory].append(module_name)   
+    ###################################################################################################
     # some predefined routes
+    ###################################################################################################
+    controller_pattern = "|".join(controller_module_directory_list)
     kokoro_router = _Kokoro_Router()
-    route(base_url("<path:re:(favicon.ico)>"))(kokoro_router.serve_assets)
-    route(base_url("<application>/assets/<path:re:.+>"))(kokoro_router.serve_assets)
-    route(base_url("asets/<application>/<path:re:.+>"))(kokoro_router.serve_assets)
+    route(base_url("<path:re:(favicon.ico)>"))(kokoro_router.serve_assets)    
+    route(base_url("assets/<application:re:"+controller_pattern+">/<path:re:.+>"))(kokoro_router.serve_assets)    
+    route(base_url("<application:re:"+controller_pattern+">/assets/<path:re:.+>"))(kokoro_router.serve_assets)
+    route(base_url("assets/<path:re:.+>"))(kokoro_router.serve_assets)
     hook('before_request')(kokoro_router.before_request)
     ###################################################################################################
     # Load everything inside controller modules
