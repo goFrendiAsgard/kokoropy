@@ -6,7 +6,7 @@
 </div>
 <br />
 <div id="plot">
-    <img src="{{ BASE_URL }}example/plotting/plot" />
+    <p>Image will be loaded here ... </p>
 </div>
 <script type="text/javascript" src="{{ BASE_URL }}assets/index/static_libraries/jquery-ui-1.10.3/ui/minified/jquery-ui.min.js"></script>
 <script type="text/javascript">
@@ -17,18 +17,25 @@
             numberFormat: "n",
             max: (8.0*22.0/7.0).toFixed(1),
             min: (0.5*22.0/7.0).toFixed(1),
-        }); 
+        });
         
-        // hack to trigger input change whenever spinner button clicked:
+        // show the image plot for the first time
+        show_plot(6.28);
+        
+        // hack to trigger input keyup whenever spinner button clicked:
         $('.ui-spinner-button').click(function() { $(this).siblings('input').keyup(); });   
         
+        // keyup event
         $('#range').keyup(function(){
            range = range_spinner.spinner('value');
-           // change image
-           if(range!==null){
-                $('#plot').html('<img src="{{ BASE_URL }}example/plotting/plot?range='+range+'" />');
-           }
+           show_plot(range);
         });
-    });    
+    });
+    
+    function show_plot(range){
+        if(range!==null){
+            $('#plot').html('<img src="{{ BASE_URL }}example/plotting/plot?range='+range+'" />');
+        }
+    }    
 </script>
 %rebase('example/views/base',title='Plot')
