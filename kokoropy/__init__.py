@@ -103,7 +103,7 @@ class _Kokoro_Router(object):
             There is no need to call this function manually
         """
         # return things
-        
+        response.headers['Cache-Control'] = 'public, max-age='+str(60*60*3)
         APP_PATH = application_path()
         APP_PATH = remove_trailing_slash(APP_PATH)
         if os.path.exists(os.path.join(APP_PATH, application, "assets", path)):
