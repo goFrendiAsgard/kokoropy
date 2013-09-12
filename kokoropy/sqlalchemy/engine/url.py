@@ -7,13 +7,16 @@
 """Provides the :class:`~sqlalchemy.engine.url.URL` class which encapsulates
 information about a database connection specification.
 
-The URL object is created automatically when :func:`~sqlalchemy.engine.create_engine` is called
-with a string argument; alternatively, the URL is a public-facing construct which can
+The URL object is created automatically when
+:func:`~sqlalchemy.engine.create_engine` is called with a string
+argument; alternatively, the URL is a public-facing construct which can
 be used directly and is also accepted directly by ``create_engine()``.
 """
 
-import re, urllib
-from sqlalchemy import exc, util
+import re
+from .. import exc, util
+from . import Dialect
+from ..dialects import registry
 
 
 class URL(object):
@@ -64,7 +67,7 @@ class URL(object):
         if self.username is not None:
             s += self.username
             if self.password is not None:
-                s += ':' + urllib.quote_plus(self.password)
+                s += ':' + util.quote_plus(self.password)
             s += "@"
         if self.host is not None:
             s += self.host
@@ -73,7 +76,7 @@ class URL(object):
         if self.database is not None:
             s += '/' + self.database
         if self.query:
-            keys = self.query.keys()
+            keys = list(self.query)
             keys.sort()
             s += '?' + "&".join("%s=%s" % (k, self.query[k]) for k in keys)
         return s
@@ -96,49 +99,20 @@ class URL(object):
         to this URL's driver name.
         """
 
-        try:
-            if '+' in self.drivername:
-                dialect, driver = self.drivername.split('+')
-            else:
-                dialect, driver = self.drivername, 'base'
-
-            module = __import__('sqlalchemy.dialects.%s' % (dialect, )).dialects
-            module = getattr(module, dialect)
-            if hasattr(module, driver):
-                module = getattr(module, driver)
-            else:
-                module = self._load_entry_point()
-                if module is None:
-                    raise exc.ArgumentError(
-                        "Could not determine dialect for '%s'." %
-                        self.drivername)
-
-            return module.dialect
-        except ImportError:
-            module = self._load_entry_point()
-            if module is not None:
-                return module
-            else:
-                raise exc.ArgumentError(
-                    "Could not determine dialect for '%s'." % self.drivername)
-
-    def _load_entry_point(self):
-        """attempt to load this url's dialect from entry points, or return None
-        if pkg_resources is not installed or there is no matching entry point.
-
-        Raise ImportError if the actual load fails.
-
-        """
-        try:
-            import pkg_resources
-        except ImportError:
-            return None
-
-        for res in pkg_resources.iter_entry_points('sqlalchemy.dialects'):
-            if res.name == self.drivername.replace("+", "."):
-                return res.load()
+        if '+' not in self.drivername:
+            name = self.drivername
         else:
-            return None
+            name = self.drivername.replace('+', '.')
+        cls = registry.load(name)
+        # check for legacy dialects that
+        # would return a module with 'dialect' as the
+        # actual class
+        if hasattr(cls, 'dialect') and \
+            isinstance(cls.dialect, type) and \
+            issubclass(cls.dialect, Dialect):
+            return cls.dialect
+        else:
+            return cls
 
     def translate_connect_args(self, names=[], **kw):
         """Translate url attributes into a dictionary of connection arguments.
@@ -150,8 +124,8 @@ class URL(object):
 
         :param \**kw: Optional, alternate key names for url attributes.
 
-        :param names: Deprecated.  Same purpose as the keyword-based alternate names,
-            but correlates the name to the original positionally.
+        :param names: Deprecated.  Same purpose as the keyword-based alternate
+            names, but correlates the name to the original positionally.
         """
 
         translated = {}
@@ -167,6 +141,7 @@ class URL(object):
                 translated[name] = getattr(self, sname)
         return translated
 
+
 def make_url(name_or_url):
     """Given a string or unicode instance, produce a new URL instance.
 
@@ -174,10 +149,11 @@ def make_url(name_or_url):
     existing URL object is passed, just returns the object.
     """
 
-    if isinstance(name_or_url, basestring):
+    if isinstance(name_or_url, util.string_types):
         return _parse_rfc1738_args(name_or_url)
     else:
         return name_or_url
+
 
 def _parse_rfc1738_args(name):
     pattern = re.compile(r'''
@@ -191,8 +167,7 @@ def _parse_rfc1738_args(name):
                 (?::(?P<port>[^/]*))?
             )?
             (?:/(?P<database>.*))?
-            '''
-            , re.X)
+            ''', re.X)
 
     m = pattern.match(name)
     if m is not None:
@@ -201,16 +176,15 @@ def _parse_rfc1738_args(name):
             tokens = components['database'].split('?', 2)
             components['database'] = tokens[0]
             query = (len(tokens) > 1 and dict(util.parse_qsl(tokens[1]))) or None
-            # Py2K
-            if query is not None:
+            if util.py2k and query is not None:
                 query = dict((k.encode('ascii'), query[k]) for k in query)
-            # end Py2K
         else:
             query = None
         components['query'] = query
 
         if components['password'] is not None:
-            components['password'] = urllib.unquote_plus(components['password'])
+            components['password'] = \
+                util.unquote_plus(components['password'])
 
         name = components.pop('name')
         return URL(name, **components)
@@ -218,11 +192,12 @@ def _parse_rfc1738_args(name):
         raise exc.ArgumentError(
             "Could not parse rfc1738 URL from string '%s'" % name)
 
+
 def _parse_keyvalue_args(name):
-    m = re.match( r'(\w+)://(.*)', name)
+    m = re.match(r'(\w+)://(.*)', name)
     if m is not None:
         (name, args) = m.group(1, 2)
-        opts = dict( util.parse_qsl( args ) )
+        opts = dict(util.parse_qsl(args))
         return URL(name, *opts)
     else:
         return None

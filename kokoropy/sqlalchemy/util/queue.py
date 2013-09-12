@@ -5,17 +5,26 @@
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
 """An adaptation of Py2.3/2.4's Queue module which supports reentrant
-behavior, using RLock instead of Lock for its mutex object.
+behavior, using RLock instead of Lock for its mutex object.  The
+Queue object is used exclusively by the sqlalchemy.pool.QueuePool
+class.
 
 This is to support the connection pool's usage of weakref callbacks to return
 connections to the underlying Queue, which can in extremely
 rare cases be invoked within the ``get()`` method of the Queue itself,
 producing a ``put()`` inside the ``get()`` and therefore a reentrant
-condition."""
+condition.
+
+An additional change includes a special "abort" method which can be used
+to immediately raise a special exception for threads that are blocking
+on get().  This is to accommodate a rare race condition that can occur
+within QueuePool.
+
+"""
 
 from collections import deque
 from time import time as _time
-from sqlalchemy.util import threading
+from .compat import threading
 import sys
 
 if sys.version_info < (2, 6):
@@ -25,23 +34,26 @@ else:
     def notify_all(condition):
         condition.notify_all()
 
+__all__ = ['Empty', 'Full', 'Queue', 'SAAbort']
 
-__all__ = ['Empty', 'Full', 'Queue']
 
 class Empty(Exception):
     "Exception raised by Queue.get(block=0)/get_nowait()."
 
     pass
 
+
 class Full(Exception):
     "Exception raised by Queue.put(block=0)/put_nowait()."
 
     pass
 
+
 class SAAbort(Exception):
     "Special SQLA exception to abort waiting"
     def __init__(self, context):
         self.context = context
+
 
 class Queue:
     def __init__(self, maxsize=0):

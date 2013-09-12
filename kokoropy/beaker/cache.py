@@ -59,7 +59,7 @@ class _backends(object):
     def __getitem__(self, key):
         try:
             return self._clsmap[key]
-        except KeyError, e:
+        except (KeyError, e):
             if not self.initialized:
                 self._mutex.acquire()
                 try:
@@ -564,6 +564,8 @@ def _cache_decorate(deco_args, manager, kwargs, region):
             else:
                 key_length = kwargs.pop('key_length', 250)
             if len(cache_key) + len(namespace) > int(key_length):
+                if util.py3k:
+                    cache_key = cache_key.encode('utf-8')
                 cache_key = sha1(cache_key).hexdigest()
 
             def go():
@@ -585,5 +587,7 @@ def _cache_decorator_invalidate(cache, key_length, args):
     except UnicodeEncodeError:
         cache_key = " ".join(map(unicode, args))
     if len(cache_key) + len(cache.namespace_name) > key_length:
+        if util.py3k:
+            cache_key = cache_key.encode('utf-8')
         cache_key = sha1(cache_key).hexdigest()
     cache.remove_value(cache_key)

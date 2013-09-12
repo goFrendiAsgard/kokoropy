@@ -6,13 +6,14 @@
 
 """Exceptions used with SQLAlchemy.
 
-The base exception class is :class:`.SQLAlchemyError`.  Exceptions which are raised as a
-result of DBAPI exceptions are all subclasses of
+The base exception class is :class:`.SQLAlchemyError`.  Exceptions which are
+raised as a result of DBAPI exceptions are all subclasses of
 :class:`.DBAPIError`.
 
 """
 
 import traceback
+
 
 class SQLAlchemyError(Exception):
     """Generic error class."""
@@ -24,6 +25,16 @@ class ArgumentError(SQLAlchemyError):
     This error generally corresponds to construction time state errors.
 
     """
+
+
+class NoForeignKeysError(ArgumentError):
+    """Raised when no foreign keys can be located between two selectables
+    during a join."""
+
+
+class AmbiguousForeignKeysError(ArgumentError):
+    """Raised when more than one foreign key matching can be located
+    between two selectables during a join."""
 
 
 class CircularDependencyError(SQLAlchemyError):
@@ -57,29 +68,38 @@ class CircularDependencyError(SQLAlchemyError):
         return self.__class__, (None, self.cycles,
                             self.edges, self.args[0])
 
+
 class CompileError(SQLAlchemyError):
     """Raised when an error occurs during SQL compilation"""
+
+class UnsupportedCompilationError(CompileError):
+    """Raised when an operation is not supported by the given compiler.
+
+
+    .. versionadded:: 0.8.3
+
+    """
+
+    def __init__(self, compiler, element_type):
+        super(UnsupportedCompilationError, self).__init__(
+                    "Compiler %r can't render element of type %s" %
+                                (compiler, element_type))
 
 class IdentifierError(SQLAlchemyError):
     """Raised when a schema name is beyond the max character limit"""
 
-# Moved to orm.exc; compatibility definition installed by orm import until 0.6
-ConcurrentModificationError = None
 
 class DisconnectionError(SQLAlchemyError):
     """A disconnect is detected on a raw DB-API connection.
 
     This error is raised and consumed internally by a connection pool.  It can
-    be raised by the :meth:`.PoolEvents.checkout` event
-    so that the host pool forces a retry; the exception will be caught
-    three times in a row before the pool gives up and raises
-    :class:`~sqlalchemy.exc.InvalidRequestError` regarding the connection attempt.
+    be raised by the :meth:`.PoolEvents.checkout` event so that the host pool
+    forces a retry; the exception will be caught three times in a row before
+    the pool gives up and raises :class:`~sqlalchemy.exc.InvalidRequestError`
+    regarding the connection attempt.
 
     """
 
-
-# Moved to orm.exc; compatibility definition installed by orm import until 0.6
-FlushError = None
 
 class TimeoutError(SQLAlchemyError):
     """Raised when a connection pool times out on getting a connection."""
@@ -92,19 +112,30 @@ class InvalidRequestError(SQLAlchemyError):
 
     """
 
+
+class NoInspectionAvailable(InvalidRequestError):
+    """A subject passed to :func:`sqlalchemy.inspection.inspect` produced
+    no context for inspection."""
+
+
 class ResourceClosedError(InvalidRequestError):
     """An operation was requested from a connection, cursor, or other
     object that's in a closed state."""
 
+
 class NoSuchColumnError(KeyError, InvalidRequestError):
     """A nonexistent column is requested from a ``RowProxy``."""
+
 
 class NoReferenceError(InvalidRequestError):
     """Raised by ``ForeignKey`` to indicate a reference cannot be resolved."""
 
-class NoReferencedTableError(NoReferenceError):
-    """Raised by ``ForeignKey`` when the referred ``Table`` cannot be located."""
 
+class NoReferencedTableError(NoReferenceError):
+    """Raised by ``ForeignKey`` when the referred ``Table`` cannot be
+    located.
+
+    """
     def __init__(self, message, tname):
         NoReferenceError.__init__(self, message)
         self.table_name = tname
@@ -112,9 +143,12 @@ class NoReferencedTableError(NoReferenceError):
     def __reduce__(self):
         return self.__class__, (self.args[0], self.table_name)
 
-class NoReferencedColumnError(NoReferenceError):
-    """Raised by ``ForeignKey`` when the referred ``Column`` cannot be located."""
 
+class NoReferencedColumnError(NoReferenceError):
+    """Raised by ``ForeignKey`` when the referred ``Column`` cannot be
+    located.
+
+    """
     def __init__(self, message, tname, cname):
         NoReferenceError.__init__(self, message)
         self.table_name = tname
@@ -123,6 +157,7 @@ class NoReferencedColumnError(NoReferenceError):
     def __reduce__(self):
         return self.__class__, (self.args[0], self.table_name,
                             self.column_name)
+
 
 class NoSuchTableError(InvalidRequestError):
     """Table does not exist or is not visible to a connection."""
@@ -138,6 +173,7 @@ class DontWrapMixin(object):
     emitted within the process of executing a statement.
 
     E.g.::
+
         from sqlalchemy.exc import DontWrapMixin
 
         class MyCustomException(Exception, DontWrapMixin):
@@ -158,6 +194,7 @@ if sys.version_info < (2, 5):
 
 # Moved to orm.exc; compatibility definition installed by orm import until 0.6
 UnmappedColumnError = None
+
 
 class StatementError(SQLAlchemyError):
     """An error occurred during execution of a SQL statement.
@@ -197,6 +234,9 @@ class StatementError(SQLAlchemyError):
         return ' '.join((SQLAlchemyError.__str__(self),
                          repr(self.statement), repr(params_repr)))
 
+    def __unicode__(self):
+        return self.__str__()
+
 
 class DBAPIError(StatementError):
     """Raised when the execution of a database operation fails.
@@ -210,13 +250,14 @@ class DBAPIError(StatementError):
     raise the same exception type for any given error condition.
 
     :class:`DBAPIError` features :attr:`~.StatementError.statement`
-    and :attr:`~.StatementError.params` attributes which supply context regarding
-    the specifics of the statement which had an issue, for the
+    and :attr:`~.StatementError.params` attributes which supply context
+    regarding the specifics of the statement which had an issue, for the
     typical case when the error was raised within the context of
     emitting a SQL statement.
 
-    The wrapped exception object is available in the :attr:`~.StatementError.orig` attribute.
-    Its type and properties are DB-API implementation specific.
+    The wrapped exception object is available in the
+    :attr:`~.StatementError.orig` attribute. Its type and properties are
+    DB-API implementation specific.
 
     """
 
@@ -234,11 +275,12 @@ class DBAPIError(StatementError):
             # not a DBAPI error, statement is present.
             # raise a StatementError
             if not isinstance(orig, dbapi_base_err) and statement:
+                msg = traceback.format_exception_only(
+                    orig.__class__, orig)[-1].strip()
                 return StatementError(
-                            "%s (original cause: %s)" % (
-                                str(orig),
-                                traceback.format_exception_only(orig.__class__, orig)[-1].strip()
-                            ), statement, params, orig)
+                    "%s (original cause: %s)" % (str(orig), msg),
+                    statement, params, orig
+                )
 
             name, glob = orig.__class__.__name__, globals()
             if name in glob and issubclass(glob[name], DBAPIError):
@@ -255,7 +297,7 @@ class DBAPIError(StatementError):
             text = str(orig)
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception, e:
+        except Exception as e:
             text = 'Error in str() of DB-API-generated exception: ' + str(e)
         StatementError.__init__(
                 self,

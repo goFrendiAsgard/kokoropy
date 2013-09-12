@@ -3,7 +3,7 @@ from beaker.container import NamespaceManager, Container
 from beaker.crypto.util import sha1
 from beaker.exceptions import InvalidCacheBackendError, MissingCacheParameter
 from beaker.synchronization import file_synchronizer
-from beaker.util import verify_directory, SyncDict, parse_memcached_behaviors
+from beaker.util import verify_directory, SyncDict, parse_memcached_behaviors, py3k
 import warnings
 
 MAX_KEY_LENGTH = 250
@@ -33,8 +33,13 @@ def _load_client(name='auto'):
         import memcache
         return memcache
 
+    def _bmemcached():
+        global bmemcached
+        import bmemcached
+        return bmemcached
+
     def _auto():
-        for _client in (_pylibmc, _cmemcache, _memcache):
+        for _client in (_pylibmc, _cmemcache, _memcache, _bmemcached):
             try:
                 return _client()
             except ImportError:
@@ -48,6 +53,7 @@ def _load_client(name='auto'):
         'pylibmc': _pylibmc,
         'cmemcache': _cmemcache,
         'memcache': _memcache,
+        'bmemcached': _bmemcached,
         'auto': _auto
     }
     _client_libs[name] = clib = clients[name]()
@@ -85,6 +91,8 @@ class MemcachedNamespaceManager(NamespaceManager):
         if not url:
             raise MissingCacheParameter("url is required")
 
+        self.lock_dir = None
+
         if lock_dir:
             self.lock_dir = lock_dir
         elif data_dir:
@@ -111,6 +119,8 @@ class MemcachedNamespaceManager(NamespaceManager):
             key = key.decode('ascii')
         formated_key = (self.namespace + '_' + key).replace(' ', '\302\267')
         if len(formated_key) > MAX_KEY_LENGTH:
+            if py3k:
+                formated_key = formated_key.encode('utf-8')
             formated_key = sha1(formated_key).hexdigest()
         return formated_key
 

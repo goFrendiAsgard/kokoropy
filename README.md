@@ -27,7 +27,10 @@ Kokoropy is built based on my experiences with some framework. Here are some com
 
 __PS:__ This is my pet-project, and might be not stable. It is not ready for production purpose (yet)
 
-Kokoropy come with bottlepy 0.12 dev, sqlalchemy 0.7.11, and beaker 1.6.4 included.
+Kokoropy come with 
+* bottlepy 0.12 dev (https://github.com/defnull/bottle)
+* sqlalchemy 0.9.0 dev (https://github.com/zzzeek/sqlalchemy)
+* beaker 1.6.4 (https://github.com/bbangert/beaker)
 
 __DEMO:__ http://kokoropy.herokuapp.com
 
@@ -45,7 +48,7 @@ Kokoropy is for you if you:
 Configuration & Getting Started
 ===============================
 
-Kokoropy is a python web framework. Therefore you need to have python installed in your computer.
+Kokoropy is a python web framework. Therefore you need to have python (recommended python 2.7) installed in your computer.
 
 Linux & MacOS user does not need to worry anything since those OS have python pre-installed by default.
 Optionally, you can also install numpy & matplotlib.
@@ -55,6 +58,11 @@ sudo apt-get install python-matplotlib
 ```
 
 Windows user should download and install python. Personally, I suggest you to use `Enthought Canopy Distribution` (https://www.enthought.com/products/canopy/) since it already has some libraries such as numpy & matplotlib.
+
+If you are using python 3, you need to install python3-beaker package
+```
+sudo apt-get install python3-beaker
+```
 
 Configuring Kokoropy is very easy. Just open up `start.py`, and do some modification.
 For development purpose, it is recommended to leave the configuration as it is.
@@ -100,27 +108,56 @@ Below is Kokoropy directory structure.
 
 ```
     kokoropy
-        |--- applications                (contains your applications)
-        |       |--- __init__.py         (application's bootstrap)
-        |       |--- [an_application]    (an application)
-        |               |--- assets      (application's static files)
-        |               |--- models      (application's models)
-        |               |--- controllers (application's controllers)
-        |               |--- views       (application's views)
-        |               |--- __init__.py (application's bootstrap)
+        |--- /applications                THIS IS WHERE YOUR APPLICATIONS LAID
+        |       |--- __init__.py          * application's bootstrap
+        |       |
+        |       |--- /example             * an example application
+        |       |       |--- /assets      * application's static files
+        |       |       |--- /models      * application's models
+        |       |       |--- /controllers * application's controllers
+        |       |       |--- /views       * application's views
+        |       |       |--- __init__.py  * application's bootstrap
+        |       |
+        |       |--- /index               * index application
+        |       |       |--- /assets      * application's static files
+        |       |       |--- /models      * application's models
+        |       |       |--- /controllers * application's controllers
+        |       |       |--- /views       * application's views
+        |       |       |--- __init__.py  * application's bootstrap
+        |       |
+        |       |--- /[your_application]  * your application
+        |       |       |--- /assets      * application's static files
+        |       |       |--- /models      * application's models
+        |       |       |--- /controllers * application's controllers
+        |       |       |--- /views       * application's views
+        |       |       |--- __init__.py  * application's bootstrap
         |
-        |--- kokoropy                    (the core of kokoropy, you
-        |       |                         probably don't need to be here)
-        |       |--- __init__.py         (Kokoropy's core script)
-        |       |--- beaker              (beaker package)
-        |       |--- sqlalchemy          (sqlalchemy package)
-        |       |--- bottle.py           (bottle module)
+        |--- /kokoropy                    THIS IS WHERE KOKOROPY'S CORE LAID
+        |       |--- __init__.py          * Kokoropy's core script
+        |       |--- /beaker              * beaker package
+        |       |--- /sqlalchemy          * sqlalchemy package
+        |       |--- bottle.py            * bottle module
         |
-        |--- start.py                    (application starter script)
-        |--- db                          (sample database used for
-        |                                 example application)
-        |--- .runtime                    (runtime directory, contains
-                                          copy of all assets, view, and session)
+        |--- /db                          DATABASE EXAMPLE 
+        |       
+        |--- README.md                    DOCUMENTATION & TUTORIAL
+        |
+        |                                 DEVELOPMENT & DEBUGGING 
+        |--- start.py                     * script to run bootstrapper.py
+        |--- bootstrapper.py              * bootstrapper
+        |
+        |                                 APACHE DEPLOYMENT FILES
+        |--- kokoro.wsgi                  * bootstrapper for apache
+        |--- kokoro.apache_conf           * configuration example
+        |
+        |                                 HEROKU DEPLOYMENT FILES
+        |--- heroku.sh                    * heroku command example
+        |--- heroku_app.py                * bootstrapper for heroku
+        |--- Procfile                     * heroku specific file
+        |--- runtime.txt                  * heroku specific file
+        |--- requirements.txt             * heroku specific file
+        
+                                          
 ```
 
 __Note :__ applications, models and controllers are python packages. It shall contains at least ```___init__.py``` file.
@@ -133,13 +170,13 @@ In Kokoropy make a "hello world" is very simple.
 You only need to make an application that consists of a controller.
 
 ```
-    applications
-        |--- index
-        |--- example
-        |--- your_app                    (1. Create this directory)
+    applications/
+        |--- /index
+        |--- /example
+        |--- /your_app                   (1. Create this directory)
                 |--- __init__.py         (2. Create empty __init__.py file
                 |                            to turn your_app into python package)
-                |--- controllers         (3. Create this directory)
+                |--- /controllers        (3. Create this directory)
                         |--- __init__.py (4. Create empty __init__.py file
                         |                    to turn controllers into python package)
                         |--- hello.py    (5. This is your controller)

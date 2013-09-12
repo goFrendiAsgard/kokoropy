@@ -4,12 +4,8 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
-import inspect
-import sys
 
-import sqlalchemy.exc as exceptions
-
-from sqlalchemy.sql import (
+from .sql import (
     alias,
     and_,
     asc,
@@ -49,7 +45,7 @@ from sqlalchemy.sql import (
     update,
     )
 
-from sqlalchemy.types import (
+from .types import (
     BIGINT,
     BINARY,
     BLOB,
@@ -94,12 +90,11 @@ from sqlalchemy.types import (
     )
 
 
-from sqlalchemy.schema import (
+from .schema import (
     CheckConstraint,
     Column,
     ColumnDefault,
     Constraint,
-    DDL,
     DefaultClause,
     FetchedValue,
     ForeignKey,
@@ -112,17 +107,25 @@ from sqlalchemy.schema import (
     Table,
     ThreadLocalMetaData,
     UniqueConstraint,
-    )
+    DDL,
+)
 
-from sqlalchemy.engine import create_engine, engine_from_config
 
+from .inspection import inspect
+from .engine import create_engine, engine_from_config
 
-__all__ = sorted(name for name, obj in locals().items()
-                 if not (name.startswith('_') or inspect.ismodule(obj)))
+__version__ = '0.9.0'
 
-__version__ = '0.7.11'
+def __go(lcls):
+    global __all__
 
-del inspect, sys
+    from . import events
+    from . import util as _sa_util
 
-from sqlalchemy import util as _sa_util
-_sa_util.importlater.resolve_all()
+    import inspect as _inspect
+
+    __all__ = sorted(name for name, obj in lcls.items()
+                 if not (name.startswith('_') or _inspect.ismodule(obj)))
+
+    _sa_util.dependencies.resolve_all("sqlalchemy")
+__go(locals())

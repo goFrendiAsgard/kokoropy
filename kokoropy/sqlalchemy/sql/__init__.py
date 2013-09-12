@@ -4,7 +4,7 @@
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
-from sqlalchemy.sql.expression import (
+from .expression import (
     Alias,
     ClauseElement,
     ColumnCollection,
@@ -62,8 +62,26 @@ from sqlalchemy.sql.expression import (
     update,
     )
 
-from sqlalchemy.sql.visitors import ClauseVisitor
+from .visitors import ClauseVisitor
 
-__tmp = locals().keys()
-__all__ = sorted([i for i in __tmp if not i.startswith('__')])
+
+def __go(lcls):
+    global __all__
+    from .. import util as _sa_util
+
+    import inspect as _inspect
+
+    __all__ = sorted(name for name, obj in lcls.items()
+                 if not (name.startswith('_') or _inspect.ismodule(obj)))
+
+    from .annotation import _prepare_annotations, Annotated
+    from .elements import AnnotatedColumnElement, ClauseList
+    from .selectable import AnnotatedFromClause
+    _prepare_annotations(ColumnElement, AnnotatedColumnElement)
+    _prepare_annotations(FromClause, AnnotatedFromClause)
+    _prepare_annotations(ClauseList, Annotated)
+
+    _sa_util.dependencies.resolve_all("sqlalchemy.sql")
+
+__go(locals())
 
