@@ -103,13 +103,20 @@ class _Kokoro_Router(object):
             There is no need to call this function manually
         """
         # return things
-        response.headers['Cache-Control'] = 'public, max-age='+str(60*60*3)
         APP_PATH = application_path()
-        APP_PATH = remove_trailing_slash(APP_PATH)
+        APP_PATH = remove_trailing_slash(APP_PATH)        
+        
+        output = {}
         if os.path.exists(os.path.join(APP_PATH, application, "assets", path)):
-            return static_file(path, root=os.path.join(APP_PATH, application, "assets"))
+            output = static_file(path, root=os.path.join(APP_PATH, application, "assets"))
         else:
-            return static_file(path, root=os.path.join(APP_PATH, application, "assets", "index"))
+            output = static_file(path, root=os.path.join(APP_PATH, application, "assets", "index"))
+        # inject some headers
+        '''
+        output._headers['Connection'] = 'keep-alive'
+        output._headers['Cache-Control'] = 'public, max-age='+str(60*60*3)
+        '''
+        return output
 
 def isset(variable):
     """ PHP favored isset. 
