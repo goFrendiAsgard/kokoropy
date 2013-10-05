@@ -11,7 +11,7 @@ if os.path.dirname(__file__) not in sys.path:
 ###################################################################################################
 # Import things
 ###################################################################################################
-import bottle, sqlalchemy, beaker, threading, time, tempfile
+import bottle, beaker, threading, time, tempfile
 import beaker.middleware
 from bottle import default_app, debug, run, static_file,\
     response, request, TEMPLATE_PATH, route, get,\
