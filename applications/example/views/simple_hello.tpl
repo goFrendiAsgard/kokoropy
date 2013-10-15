@@ -8,6 +8,6 @@ def index():
     html_response  = 'Hello world'
     return html_response
 </pre>
-This mechanism is good for testing and simple "hello world" application<br />'
-To see more advance routing mechanism, <a href="'+base_url('/example/recommended')+'">click here</a>'
+This mechanism is good for testing and simple "hello world" application<br />
+To see more advance routing mechanism, <a href="{{ BASE_URL }}example/recommended">click here</a>
 %rebase('example/views/base',title='Hello')
