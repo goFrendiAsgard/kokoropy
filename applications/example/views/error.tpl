@@ -1,5 +1,5 @@
 <head>
-    <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}assets/static_libraries/bootstrap-3.0.0/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}assets/static_libraries/bootstrap-3.0.3/css/bootstrap.min.css" />
     <style>
         body{
             padding-top: 5px;
@@ -35,6 +35,8 @@
 </head>
 <body>
     <div id="error-container">
+        <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-2.0.3.min.js"></script>
+        <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/bootstrap-3.0.3/js/bootstrap.min.js"></script>
         <div class="jumbotron">
             <h1 id="error-title">{{ data['error_title'] }}</h1>
             <p>{{ data['error_message'] }}</p>

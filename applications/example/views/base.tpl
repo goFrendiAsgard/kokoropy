@@ -6,7 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="description" content="">
         <meta name="author" content="">
-        <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/bootstrap-3.0.0/css/bootstrap.min.css" />
+        <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/bootstrap-3.0.3/css/bootstrap.min.css" />
         <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}example/assets/css/style.css" />        
         <style type="text/css">        
             #layout-content {
@@ -79,7 +79,7 @@
                   <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
                 <![endif]-->
                 <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-2.0.3.min.js"></script>
-                <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/bootstrap-3.0.0/js/bootstrap.min.js"></script>
+                <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/bootstrap-3.0.3/js/bootstrap.min.js"></script>
                 <script type="text/javascript" src="{{ BASE_URL }}example/assets/js/script.js"></script>
                 % setdefault('base', 'nothing')  
                 {{!base}}
