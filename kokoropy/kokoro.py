@@ -24,8 +24,8 @@ from bottle import template as _bottle_template
 ###################################################################################################  
 # Python 3 hack for xrange
 if sys.version_info >= (3,0,0):
-    xrange = range
-    from urllib.parse import urlparse
+    exec('xrange = range')
+    exec('from urllib.parse import urlparse')
 else:
     from urlparse import urlparse
 
@@ -53,13 +53,15 @@ class KokoroWSGIRefServer(bottle.ServerAdapter):
         if self.srv is not None:
             self.srv.shutdown()
             self.srv.server_close()
-     
-###################################################################################################
-# These values can be overridden by using set_base_url & set_runtime_path
-# They will be persistently saved in os.environ
-# and can be retrieved by using request.BASE_URL & request.RUNTIME_PATH
 
-# Override template function
+###################################################################################################
+# KokoroWSGIRefServer (Do something with this, on future)
+###################################################################################################
+class Autoroute_Controller(object):
+    def action_index(self):
+        return ''
+
+# Override bottle's template function
 def template(*args, **kwargs):
     '''
     Get a rendered template as a string iterator.
@@ -82,6 +84,36 @@ def template(*args, **kwargs):
         args = tuple(args_list)
     return _bottle_template(*args, **kwargs)
 
+# load model
+def load_model(application_name, model_name, object_name):
+    '''
+    return function or class in your model file
+    '''
+    result = None
+    alias  =  "__MODEL_"+application_name+"_"+object_name
+    exec("from " + application_package() + "." + application_name + ".models." +\
+        model_name + " import " + object_name+" as "+alias)
+    exec("result = " + alias)
+    return result
+
+def load_controller(application_name, controller_name, object_name):
+    '''
+    return function or class in your controller file
+    '''
+    result = None
+    alias  =  "__CONTROLLER_"+application_name+"_"+object_name
+    exec("from " + application_package() + "." + application_name + ".controllers." +\
+        controller_name + " import " + object_name+" as "+alias)
+    exec("result = " + alias)
+    return result
+
+# load view
+def load_view(application_name, view_name, *args, **kwargs):
+    args_list = list(args)
+    args_list.insert(0, application_name + "/views/"+view_name)
+    args = tuple(args_list)
+    return template(*args, **kwargs)
+
 # This class serve kokoropy static files routing & some injection into request object
 class _Kokoro_Router(object):
     def before_request(self):
@@ -96,6 +128,7 @@ class _Kokoro_Router(object):
         url_part = urlparse(url)
         scheme = url_part.scheme
         host = scheme + '://' + request.get_header('host')
+        request.HOST = host
         request.BASE_URL = add_trailing_slash(host) + remove_begining_slash(add_trailing_slash(base_url()))
     
     def serve_assets(self, path, application='index'):
@@ -104,8 +137,7 @@ class _Kokoro_Router(object):
         """
         # return things
         APP_PATH = application_path()
-        APP_PATH = remove_trailing_slash(APP_PATH)        
-        
+        APP_PATH = remove_trailing_slash(APP_PATH)
         output = {}
         if os.path.exists(os.path.join(APP_PATH, application, "assets", path)):
             output = static_file(path, root=os.path.join(APP_PATH, application, "assets"))
@@ -125,28 +157,28 @@ def isset(variable):
     return variable in locals() or variable in globals()
 
 def add_trailing_slash(string):
-    """ Remove trailing slash
+    """ Add trailing slash
     """
     if len(string)>0 and string[-1] != '/':
         string += '/'
     return string
 
 def remove_trailing_slash(string):
-    """ Add trailing slash
+    """ Remove trailing slash
     """
     if len(string)>0 and string[-1] == '/':
             string  = string[:-1]
     return string
 
 def add_begining_slash(string):
-    """ Remove trailing slash
+    """ Add begining slash
     """
     if len(string)>0 and string[0] != '/':
         string = '/'+string
     return string
 
 def remove_begining_slash(string):
-    """ Add trailing slash
+    """ Remove begining slash
     """
     if len(string)>0 and string[0] == '/':
             string  = string[1:]
@@ -165,6 +197,13 @@ def application_path(path=''):
     else:
         APPLICATION_PATH = '.applications/'
     return APPLICATION_PATH + remove_begining_slash(path)
+
+def application_package():
+    if '__KOKOROPY_APPLICATION_PACKAGE__' in os.environ:
+        APPLICATION_PACKAGE = os.environ['__KOKOROPY_APPLICATION_PACKAGE__']
+    else:
+        APPLICATION_PACKAGE = os.path.split(remove_trailing_slash(application_path()))[-1]
+    return APPLICATION_PACKAGE
 
 def base_url(url=''):
     if '__KOKOROPY_BASE_URL__' in os.environ:
@@ -367,27 +406,27 @@ def kokoro_init(**kwargs):
         os.makedirs(MPL_CONFIG_DIR_PATH)
     # set mplconfigdir for matplotlib
     if ('MPLCONFIGDIR' not in os.environ) or (not os.access(os.environ['MPLCONFIGDIR'], os.W_OK)):
-        os.environ['MPLCONFIGDIR'] = MPL_CONFIG_DIR_PATH # point MPLCONFIGDIR to writable directory    
+        os.environ['MPLCONFIGDIR'] = MPL_CONFIG_DIR_PATH # point MPLCONFIGDIR to writable directory   
     ###################################################################################################
-    # get all kokoropy module directory_list
+    # get all kokoropy application
     ###################################################################################################
-    # init directory_list
+    # init application_list
     print ("INIT APPLICATION DIRECTORIES")
-    directory_list = []
-    for directory in os.listdir(APPLICATION_PATH):
-        if os.path.isfile(os.path.join(APPLICATION_PATH, directory, "__init__.py")) and \
-        os.path.isfile(os.path.join(APPLICATION_PATH, directory, "controllers", "__init__.py")):
-            directory_list.append(directory)
-    directory_list = _sort_names(directory_list)    
+    application_list = []
+    for application in os.listdir(APPLICATION_PATH):
+        if os.path.isfile(os.path.join(APPLICATION_PATH, application, "__init__.py")) and \
+        os.path.isfile(os.path.join(APPLICATION_PATH, application, "controllers", "__init__.py")):
+            application_list.append(application)
+    application_list = _sort_names(application_list)    
     ###################################################################################################
-    # get directory controller modules
+    # get application controller modules
     ###################################################################################################
-    # controller_module_directory_list is a dictionary with directory name as key 
+    # controller_dict_list is a dictionary with application name as key 
     # and array of controller as value
-    controller_module_directory_list = {}
-    for directory in directory_list:
-        for file_name in os.listdir(APPLICATION_PATH+"/"+directory+"/controllers"):
-            # get module inside directory"s controller
+    controller_dict_list = {}
+    for application in application_list:
+        for file_name in os.listdir(os.path.join(APPLICATION_PATH, application, "controllers")):
+            # get application inside application"s controller
             file_name_segments = file_name.split(".")
             first_segment = file_name_segments[0]
             last_segment = file_name_segments[-1]
@@ -396,58 +435,63 @@ def kokoro_init(**kwargs):
             module_name = inspect.getmodulename(file_name)
             if module_name is None:
                 continue
-            if not directory in controller_module_directory_list:
-                controller_module_directory_list[directory] = []
-            controller_module_directory_list[directory].append(module_name)   
+            if not application in controller_dict_list:
+                controller_dict_list[application] = []
+            controller_dict_list[application].append(module_name)   
     ###################################################################################################
     # some predefined routes
     ###################################################################################################
-    controller_pattern = "|".join(controller_module_directory_list)
+    application_pattern = "|".join(application_list)
     kokoro_router = _Kokoro_Router()
     route(base_url("<path:re:(favicon.ico)>"))(kokoro_router.serve_assets)    
-    route(base_url("assets/<application:re:"+controller_pattern+">/<path:re:.+>"))(kokoro_router.serve_assets)    
-    route(base_url("<application:re:"+controller_pattern+">/assets/<path:re:.+>"))(kokoro_router.serve_assets)
+    route(base_url("<application:re:"+application_pattern+">/assets/<path:re:.+>"))(kokoro_router.serve_assets)
     route(base_url("assets/<path:re:.+>"))(kokoro_router.serve_assets)
     hook('before_request')(kokoro_router.before_request)
-    ###################################################################################################
-    # Load everything inside controller modules
-    ###################################################################################################
+    
     exec("import "+APPLICATION_PACKAGE)
-    for directory in controller_module_directory_list:
-        for controller_module in controller_module_directory_list[directory]:
-            # load everything inside the controllers
-            print("LOAD CONTROLLER : "+controller_module)
-            exec("from "+APPLICATION_PACKAGE+"."+directory+".controllers."+controller_module+" import *")                
     ###################################################################################################
-    # Load Default_Controller inside controller modules
+    # Load routes
     ###################################################################################################
-    for directory in controller_module_directory_list:
-        for controller_module in controller_module_directory_list[directory]:
+    for application in application_list:
+        if os.path.isfile(os.path.join(APPLICATION_PATH, application, "routes.py")):
+            print("LOAD ROUTES : "+application)
+            exec("from "+APPLICATION_PACKAGE+"."+application+".routes import *")
+    ###################################################################################################
+    # Load Autoroute inside controller modules
+    ###################################################################################################
+    for application in controller_dict_list:
+        for controller in controller_dict_list[application]:
+            print("INSPECT CONTROLLER : "+application+".controllers."+controller)
             module_obj = None
-            exec("import "+APPLICATION_PACKAGE+"."+directory+".controllers."+controller_module+" as module_obj")
+            exec("import "+APPLICATION_PACKAGE+"."+application+".controllers."+controller+" as module_obj")
             members = inspect.getmembers(module_obj, inspect.isclass)
-            # determine if default_controller exists
-            default_controller_found = False
-            Default_Controller = None
+            # determine if autoroute_controller exists
+            autoroute_controller_found = False
+            autoroute_controller_name  = "";
+            Controller = None            
             for member in members:
-                if member[0] == "Default_Controller":
-                    default_controller_found = True
-                    Default_Controller = member[1]
+                # descendant of Autoroute_Controller and not Autoroute_Controller itself
+                if member[1] != Autoroute_Controller and issubclass(member[1], Autoroute_Controller):
+                    autoroute_controller_found = True
+                    autoroute_controller_name  = member[0]
+                    Controller = member[1]
                     break
-            # skip if there is no default_controller
-            if not default_controller_found:
+            # skip if there is no autoroute_controller
+            if not autoroute_controller_found:
                 continue
             # make an instance of Default_Controller
-            default_controller = Default_Controller()            
-            methods = inspect.getmembers(default_controller, inspect.ismethod)
+            autoroute_controller = Controller()            
+            methods = inspect.getmembers(autoroute_controller, inspect.ismethod)
             # publish all methods with REST prefix (get, post, put and delete)
-            _publish_methods(directory, controller_module, "act_get",    methods, [get]              )
-            _publish_methods(directory, controller_module, "act_post",   methods, [post]             )
-            _publish_methods(directory, controller_module, "act_put",    methods, [put]              )
-            _publish_methods(directory, controller_module, "act_delete", methods, [delete]           )
+            _publish_methods(application, controller, "get",    methods, [get]              )
+            _publish_methods(application, controller, "post",   methods, [post]             )
+            _publish_methods(application, controller, "put",    methods, [put]              )
+            _publish_methods(application, controller, "delete", methods, [delete]           )
             # publish all methods with action prefix
-            _publish_methods(directory, controller_module, "action", methods, [route, get, post, 
-                                                                               put, delete]      )
+            _publish_methods(application, controller, "action", methods, [route, get, post,
+                                                                          put, delete]      )
+            print("LOAD AUTOROUTE CONTROLLER : "+application+".controllers."+\
+                  controller+"."+autoroute_controller_name)
     ###################################################################################################
     # add template & assets path
     ###################################################################################################
@@ -483,7 +527,7 @@ def draw_matplotlib_figure(figure):
         if module_name == 'StringIO':
             import StringIO
             StringIO_found = True
-    if matplotlib_found and StringIO_found:        
+    if matplotlib_found and StringIO_found:
         # return png output
         canvas = FigureCanvas(figure)
         png_output = StringIO.StringIO()

@@ -5,14 +5,13 @@ A 心から Educational MVC Python Web Framework.
 
 In japanese, kokoro means heart.
 I make Kokoropy because I can not find any python web-framework which I really comfort with.
-Some are too verbose, while some others have too many "magic". Most of them force me to learn about the framework, and not allow me to focus on my job.
-Basically I expect an easy framework like CodeIgniter (of course, with more features) in python.
+Some are too verbose, while some others have too many "magic". Most of them force me to learn about the framework, and do not allow me to directly focus on my job.
+Basically I expect an easy-to-use framework like CodeIgniter (with more features) in python.
 
-If you are in the same boat with me, then kokoropy is for you.
+If you are in the same boat with me, then kokoropy is also for you.
 
-Kokoropy is built in top of Bottle.py (http://bottlepy.org/docs/dev/), a very great python micro-framework.
+Kokoropy is built in top of Bottle.py (http://bottlepy.org/docs/dev/), a very great python micro-web-framework.
 While bottle.py focus on how to make things as simple as possible, kokoropy focus on how to make things as easy as possible.
-If you've once ever use my another open source project, No-CMS (http://getnocms.com), you will know what I mean by easy.
 
 Kokoropy is built based on my experiences with some framework. Here are some comparison between kokoropy and other framework
 
@@ -23,14 +22,24 @@ Kokoropy is built based on my experiences with some framework. Here are some com
 * Kokoropy support many database system. Every model can has its own database.
 * Kokoropy support REST.
 * Kokoropy support both, automatic and manual routing.
-* Kokoropy support SESSION out of the box
+* Kokoropy support SESSION and COOKIES out of the box
 
 __PS:__ This is my pet-project, and might be not stable. It is not ready for production purpose (yet)
 
-Kokoropy come with 
+Kokoropy stands in the shoulder of the giants. Here are projects that make kokoropy possible:
 * bottlepy 0.12 dev (https://github.com/defnull/bottle)
 * sqlalchemy 0.9.0 dev (https://github.com/zzzeek/sqlalchemy)
 * beaker 1.6.4 (https://github.com/bbangert/beaker)
+
+Also, kokoropy come with several third-party css & javascript framework (so you do not need to download them anymore):
+* jquery 1.11.0
+* jquery-ui 1.10.4
+* jquery-mobile 1.4.0
+* bootstrap 3.0.3
+* colorbox 1.4.33
+* chosen 1.0.0
+* leaflet 0.7.2
+* alertify.js 0.3.1.1
 
 __DEMO:__ http://kokoropy.herokuapp.com
 
@@ -225,10 +234,10 @@ Kokoropy support automatic routing. Using automatic routing is very easy:
 * In controller there should be a class named ```Default_Controller```
 * Any published function should has ```action_``` prefix
 * Beside ```action_``` prefix, you can also use REST prefixes:
-    - ```act_get_``` : only accept get request
-    - ```act_post_``` : only accept post request
-    - ```act_delete_``` : only accept delete request
-    - ```act_put_``` : only accept put request
+    - ```get_``` : only accept get request
+    - ```post_``` : only accept post request
+    - ```delete_``` : only accept delete request
+    - ```put_``` : only accept put request
 * Every automatic routed
 * Automatic routing works this way: ```http://domain:port/application/controller_filename/action_function_without_prefix/parameter_1/parameter_2
 * If ```application```, ```controller_filename``` or, ```action_function_without_prefix``` is equal to "index", it can be omitted

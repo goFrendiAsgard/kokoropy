@@ -1,6 +1,6 @@
-from kokoropy import template, request, response
+from kokoropy import template, request, response, Autoroute_Controller
 
-class Default_Controller(object):
+class Default_Controller(Autoroute_Controller):
     def action_index(self):
         from applications.test.models.test_model import test_things
         test_things()

@@ -1,6 +1,6 @@
-from kokoropy import template, request, draw_matplotlib_figure
+from kokoropy import template, request, draw_matplotlib_figure, Autoroute_Controller, load_view
 
-class Default_Controller(object):
+class Default_Controller(Autoroute_Controller):
     
     def action_plot(self):
         max_range = 6.28
@@ -35,4 +35,4 @@ class Default_Controller(object):
         return draw_matplotlib_figure(fig)
     
     def action_index(self):
-        return template('example/views/plotting')
+        return load_view('example','plotting')

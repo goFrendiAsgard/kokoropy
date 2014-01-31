@@ -1,7 +1,8 @@
-from kokoropy import template, request, os, redirect, base_url, save_uploaded_asset, remove_asset
+from kokoropy import template, request, os, redirect, base_url, save_uploaded_asset, remove_asset,\
+    Autoroute_Controller, load_view, load_model
 import random, hashlib
 
-class Default_Controller(object):
+class Default_Controller(Autoroute_Controller):
     """
      RECOMMENDED APPROACH (Automagically route) 
     
@@ -18,13 +19,10 @@ class Default_Controller(object):
         * For convention, this is the recommended way to do it    
     """
     
-    def __init__(self):        
+    def __init__(self):
         # import models
-        from applications.example.models.simple_model import Simple_Model
-        from applications.example.models.db_model import DB_Model
-        # make instance of models      
-        self.simple_model = Simple_Model()
-        self.db_model = DB_Model()
+        self.simple_model = load_model('example', 'simple_model', 'Simple_Model')
+        self.db_model = load_model('example', 'db_model', 'DB_Model')
     
     def action_index(self, name=None):
         """
@@ -39,7 +37,7 @@ class Default_Controller(object):
         # get say_hello
         say_hello = self.simple_model.say_hello(name)
         message = say_hello+', the session said that you have visit routing demo page '+str(request.SESSION['counter'])+' times'
-        return template('example/views/recommended_hello', message=message)
+        return load_view('example', 'recommended_hello', message=message)
     
     def generate_private_code(self):
         num = random.random()
@@ -100,11 +98,11 @@ class Default_Controller(object):
         private_code = self.generate_private_code()
         # get pokemons
         pokemons = self.db_model.get_pokemon(keyword)
-        return template('example/views/pokemon_view', pokemons=pokemons, __private_code = private_code)
+        return load_view('example', 'pokemon_view', pokemons=pokemons, __private_code = private_code)
     
     def action_form_add_pokemon(self):
         private_code  = self.generate_private_code()
-        return template('example/views/pokemon_add_form', __private_code = private_code)
+        return load_view('example', 'pokemon_add_form', __private_code = private_code)
     
     def action_form_edit_pokemon(self, pokemon_id):
         row = self.db_model.get_pokemon_by_id(pokemon_id)
@@ -113,7 +111,7 @@ class Default_Controller(object):
         pokemon_name = row['name']
         pokemon_image = row['image']
         private_code  = self.generate_private_code()
-        return template('example/views/pokemon_edit_form', pokemon_id=pokemon_id, pokemon_name=pokemon_name, 
+        return load_view('example','pokemon_edit_form', pokemon_id=pokemon_id, pokemon_name=pokemon_name,
                         pokemon_image=pokemon_image, __private_code = private_code)
         
     # not routed    
