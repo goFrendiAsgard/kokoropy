@@ -1,0 +1,1 @@
+%rebase('index/views/base.tpl', title='kokoropy | getting started')

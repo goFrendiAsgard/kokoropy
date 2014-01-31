@@ -1,6 +1,6 @@
 import sqlite3
 
-class DB_Model(object):
+class Db_Model(object):
     """
     A very simple database model. You can also use sqlalchemy if you are familiar with it.
     """

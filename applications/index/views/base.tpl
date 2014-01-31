@@ -1,3 +1,4 @@
+% setdefault('active_page', 'home')
 <!DOCTYPE html>
 <html>
     <head>
@@ -92,10 +93,10 @@
         <div class="container">
             <div class="header">
                 <ul class="nav nav-pills pull-right">
-                    <li class="active"><a href="{{ BASE_URL }}">Home</a></li>
-                    <li><a href="#">Getting Started</a></li>
-                    <li><a href="#">Documentation</a></li>
-                    <li><a href="{{ BASE_URL }}example/recommended/index">example</a></li>
+                    <li class="{{ 'active' if active_page == 'home' else '' }}"><a href="{{ BASE_URL }}">Home</a></li>
+                    <li class="{{ 'active' if active_page == 'getting_started' else '' }}"><a href="{{ BASE_URL }}getting_started">Getting Started</a></li>
+                    <li class="{{ 'active' if active_page == 'documentation' else '' }}"><a href="#">Documentation</a></li>
+                    <li class="{{ 'active' if active_page == 'example' else '' }}"><a href="{{ BASE_URL }}example/recommended/index">example</a></li>
                 </ul>
                 <h3 class="text-muted">Kokoropy</h3>
             </div>
@@ -115,13 +116,13 @@
                 <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery.min.js"></script>
                 <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/bootstrap/js/bootstrap.min.js"></script>
                 <script type="text/javascript" src="{{ BASE_URL }}example/assets/js/script.js"></script>
-                % setdefault('base', 'nothing')  
+                % setdefault('base', 'nothing')
                 {{!base}}
             </div>
             
             <!-- footer -->
             <div class="footer">
-              <p>&copy; Go Frendi Gunawan 2013</p>
+              <p>&copy; Go Frendi Gunawan 2014</p>
             </div>
         </div>
     </body>

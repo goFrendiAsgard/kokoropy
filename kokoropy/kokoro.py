@@ -85,26 +85,38 @@ def template(*args, **kwargs):
     return _bottle_template(*args, **kwargs)
 
 # load model
-def load_model(application_name, model_name, object_name):
+def load_model(application_name, model_name, object_name = None):
     '''
     return function or class in your model file
     '''
     result = None
+    import_location = application_package() + "." + application_name + ".models." + model_name
+    if object_name is None:
+        object_name = model_name.title()
     alias  =  "__MODEL_"+application_name+"_"+object_name
-    exec("from " + application_package() + "." + application_name + ".models." +\
-        model_name + " import " + object_name+" as "+alias)
-    exec("result = " + alias)
+    try:
+        exec("from " + import_location + " import " + object_name+" as "+alias)
+        exec("result = " + alias)
+    except:
+        raise ImportError(import_location + "." + object_name + " doesn't exist")
     return result
 
-def load_controller(application_name, controller_name, object_name):
+# load controller
+def load_controller(application_name, controller_name, object_name = None):
     '''
     return function or class in your controller file
     '''
     result = None
+    import_location = application_package() + "." + application_name + ".controllers." + controller_name
+    if object_name is None:
+        object_name = controller_name.title()
     alias  =  "__CONTROLLER_"+application_name+"_"+object_name
-    exec("from " + application_package() + "." + application_name + ".controllers." +\
-        controller_name + " import " + object_name+" as "+alias)
-    exec("result = " + alias)
+    try:
+        exec("from " + application_package() + "." + application_name + ".controllers." +\
+            controller_name + " import " + object_name+" as "+alias)
+        exec("result = " + alias)
+    except:
+        raise ImportError(import_location + "." + object_name + " doesn't exist")
     return result
 
 # load view

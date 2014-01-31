@@ -27,7 +27,13 @@ if FIRST_TIME:
     @route(base_url())
     def index():    
         # return string
-        return load_view('index', 'index.tpl')
+        return load_view('index', 'index.tpl', active_page = 'home')
+    
+    @route(remove_trailing_slash(base_url('getting_started')))
+    @route(base_url('getting_started'))
+    def index():    
+        # return string
+        return load_view('index', 'getting_started.tpl', active_page = 'getting_started')
 
 if CUSTOM_ERROR:
     @hook('before_request')

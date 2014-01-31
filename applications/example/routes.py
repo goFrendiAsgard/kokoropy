@@ -15,7 +15,7 @@ def index():
     return load_view("example", "simple_hello", message=message)
 
 # make a My_Controller instance and define the manual routing
-My_Controller = load_controller('example', 'advance', 'My_Controller')
+My_Controller = load_controller('example', 'my_controller')
 my_controller = My_Controller()
 route(base_url("/example/advance/hello"))(my_controller.hello)
 route(base_url("/example/advance/hello/"))(my_controller.hello)
