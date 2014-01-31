@@ -94,9 +94,8 @@
             <div class="header">
                 <ul class="nav nav-pills pull-right">
                     <li class="{{ 'active' if active_page == 'home' else '' }}"><a href="{{ BASE_URL }}">Home</a></li>
-                    <li class="{{ 'active' if active_page == 'getting_started' else '' }}"><a href="{{ BASE_URL }}getting_started">Getting Started</a></li>
-                    <li class="{{ 'active' if active_page == 'documentation' else '' }}"><a href="#">Documentation</a></li>
-                    <li class="{{ 'active' if active_page == 'example' else '' }}"><a href="{{ BASE_URL }}example/recommended/index">example</a></li>
+                    <li class="{{ 'active' if active_page == 'getting_started' else '' }}"><a href="{{ BASE_URL }}getting_started">Getting Started (til finished)</a></li>
+                    <li class="{{ 'active' if active_page == 'example' else '' }}"><a href="{{ BASE_URL }}example/recommended/index">Example</a></li>
                 </ul>
                 <h3 class="text-muted">Kokoropy</h3>
             </div>
