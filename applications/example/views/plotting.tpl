@@ -1,4 +1,4 @@
-<link rel="stylesheet" type="text/css" href="{{ BASE_URL }}assets/index/static_libraries/jquery-ui-1.10.3/themes/base/minified/jquery-ui.min.css" />
+<link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/jquery-ui/css/ui-lightness/jquery-ui-1.10.4.custom.min.css" />
 <h4>Matplotlib and StringIO should be installed on server</h4>
 <div>
     <label>Range : </label>
@@ -8,7 +8,7 @@
 <div id="plot">
     <p>Image will be loaded here ... </p>
 </div>
-<script type="text/javascript" src="{{ BASE_URL }}assets/index/static_libraries/jquery-ui-1.10.3/ui/minified/jquery-ui.min.js"></script>
+<script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-ui/js/jquery-ui-1.10.4.custom.min.js"></script>
 <script type="text/javascript">
     $(document).ready(function(){
         // mutate normal text into spinner

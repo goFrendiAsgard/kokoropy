@@ -21,8 +21,10 @@ class Default_Controller(Autoroute_Controller):
     
     def __init__(self):
         # import models
-        self.simple_model = load_model('example', 'simple_model', 'Simple_Model')
-        self.db_model = load_model('example', 'db_model', 'DB_Model')
+        Simple_Model = load_model('example', 'simple_model', 'Simple_Model')
+        DB_Model = load_model('example', 'db_model', 'DB_Model')
+        self.simple_model = Simple_Model()
+        self.db_model = DB_Model()
     
     def action_index(self, name=None):
         """
