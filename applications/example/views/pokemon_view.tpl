@@ -10,23 +10,23 @@
     <tbody>
         %for pokemon in pokemons:
         <tr>
-            <td>{{ pokemon['name'] }}</td>
+            <td>{{ pokemon.name }}</td>
             <td>
-                %if pokemon['image'] == '':
+                %if pokemon.image == '':
                 <img src="{{ BASE_URL }}example/assets/images/pokemon-no-image.png" style="height:65px;" />
                 %else:
-                <img src="{{ BASE_URL }}example/assets/uploads/{{ pokemon['image'] }}" style="height:65px;" />
+                <img src="{{ BASE_URL }}example/assets/uploads/{{ pokemon.image }}" style="height:65px;" />
                 %end
             </td>
             <td width="50px">
-               <a class="btn btn-warning" href="{{ BASE_URL }}example/recommended/form_edit_pokemon/{{ pokemon['id'] }}" >
+               <a class="btn btn-warning" href="{{ BASE_URL }}example/recommended/form_edit_pokemon/{{ pokemon.id }}" >
                    Edit
                </a>
             </td>
             <td width="50px">
                <form action="{{ BASE_URL }}example/recommended/pokemon" method="post" style="margin: 0 0 0 !important">
                   <input name="__private_code" value="{{ __private_code }}" type="hidden" />
-                  <input name="pokemon_id" value="{{ pokemon['id'] }}" type="hidden" />
+                  <input name="pokemon_id" value="{{ pokemon.id }}" type="hidden" />
                   <input name="action" value="delete" type="hidden" />
                   <input class="btn btn-danger" name="btn_delete" value="Delete" type="submit" /> 
                </form> 

@@ -1,66 +1,54 @@
-import sqlite3
+from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+
+############################### SQL ALCHEMY SCRIPT ####################################
+
+# create Base
+Base = declarative_base()
+
+# create Pokemon class
+class Pokemon(Base):
+    __tablename__ = 'pokemon'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    image = Column(String)
+    
+    def __init__(self, name, image):
+        self.name = name
+        self.image = image
+
+# create engine
+engine = create_engine('sqlite:///db/pokemon.db', echo=True)
+
+# create db session
+db_session = scoped_session(sessionmaker(bind=engine))
 
 class Db_Model(object):
-    """
-    A very simple database model. You can also use sqlalchemy if you are familiar with it.
-    """
-    
+    '''
+    Create, Update & Delete Pokemon data
+    '''
     def __init__(self):
-        self.conn = sqlite3.connect("db/pokemon.db") # or use :memory: to put it in RAM 
-        self.cursor = self.conn.cursor()
-        
-        # check table existance
-        table_exists = False
-        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='pokemon_list';")
-        result = self.cursor.fetchall()
-        if len(result)>0:
-            table_exists = True
-            
-        
-        if not table_exists:
-            # create a table if not exists
-            self.cursor.execute("CREATE TABLE pokemon_list (id INTEGER PRIMARY KEY, name TEXT, image TEXT)")
-            # insert data
-            pokemon_list = [
-                            ("pikachu", "pikachu.png",), 
-                            ("bubasaur", "bubasaur.png",), 
-                            ("charmender", "charmender.png",), 
-                            ("squirtle", "squirtle.png",), 
-                            ("caterpie", "caterpie.png",)]
-            sql = "INSERT INTO pokemon_list(name, image) VALUES(?,?)"
-            self.cursor.executemany(sql, pokemon_list)
-            # commit things
-            self.conn.commit()
+        Base.metadata.create_all(bind=engine)
     
     def get_pokemon_by_id(self, pokemon_id):
-        self.cursor.execute("SELECT id, name, image FROM pokemon_list WHERE id = " + str(pokemon_id))
-        result = self.cursor.fetchall()
-        if(len(result)==0):
-            self.conn.commit()
-            return False
-        else:
-            row = result[0]
-            return {'id':row[0], 'name': row[1], 'image':row[2]}
+        return db_session.query(Pokemon).filter(Pokemon.id == pokemon_id).first()
     
-    def get_pokemon(self, keyword=""):
-        self.cursor.execute("SELECT id, name, image FROM pokemon_list WHERE name LIKE '%" + keyword + "%'")
-        result = self.cursor.fetchall()
-        pokemon_list = []
-        for row in result:
-            pokemon_list.append({'id':row[0], 'name': row[1], 'image':row[2]})
-        return pokemon_list
+    def get_pokemon(self, keyword=''):
+        return db_session.query(Pokemon).filter(Pokemon.name.like('%'+keyword+'%')).all()
     
     def delete_pokemon(self, pokemon_id):
-        self.cursor.execute("DELETE FROM pokemon_list WHERE id = "+str(pokemon_id))
-        self.conn.commit()
+        pokemon = self.get_pokemon_by_id(pokemon_id)
+        db_session.remove(pokemon)
+        db_session.commit()
     
     def insert_pokemon(self, name, image=''):
-        self.cursor.execute("INSERT INTO pokemon_list(name, image) VALUES (?, ?)", (name,image))
-        self.conn.commit()
+        pokemon = Pokemon(name, image)
+        db_session.add(pokemon)
+        db_session.commit()
     
     def update_pokemon(self, pokemon_id, name, image=''):
-        if image=='':
-            row = self.get_pokemon_by_id(pokemon_id)
-            image = row['image']
-        self.cursor.execute("UPDATE pokemon_list SET name=?, image=? WHERE id=?", (name,image,pokemon_id))
-        self.conn.commit()
+        pokemon = self.get_pokemon_by_id(pokemon_id)
+        pokemon.name = name
+        pokemon.image = image
+        db_session.commit()

@@ -107,14 +107,9 @@ class Default_Controller(Autoroute_Controller):
         return load_view('example', 'pokemon_add_form', __private_code = private_code)
     
     def action_form_edit_pokemon(self, pokemon_id):
-        row = self.db_model.get_pokemon_by_id(pokemon_id)
-        if row == False:
-            redirect(base_url('example/recommended/pokemon'))
-        pokemon_name = row['name']
-        pokemon_image = row['image']
+        pokemon = self.db_model.get_pokemon_by_id(pokemon_id)
         private_code  = self.generate_private_code()
-        return load_view('example','pokemon_edit_form', pokemon_id=pokemon_id, pokemon_name=pokemon_name,
-                        pokemon_image=pokemon_image, __private_code = private_code)
+        return load_view('example','pokemon_edit_form', pokemon=pokemon, __private_code = private_code)
         
     # not routed    
     def upload_image(self):
