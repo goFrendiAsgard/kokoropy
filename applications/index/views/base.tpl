@@ -8,6 +8,7 @@
         <meta name="description" content="">
         <meta name="author" content="">
         <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/bootstrap/css/bootstrap.min.css" />
+        <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/bootstrap/css/bootstrap-theme.min.css" />
         <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}example/assets/css/style.css" /> 
         <title>{{ title or 'Kokoropy' }}</title>
         <style type="text/css">
@@ -49,16 +50,6 @@
                 border-top: 1px solid #e5e5e5;
             }
             
-            /* Customize container */
-            @media (min-width: 768px) {
-                .container {
-                    max-width: 730px;
-                }
-            }
-            .container-narrow > hr {
-                margin: 30px 0;
-            }
-            
             /* Main marketing message and sign up button */
             .jumbotron {
                 text-align: center;
@@ -89,12 +80,11 @@
         </style>
     </head>
     <body>
-        <!-- Github ribbon -->
-        <div class="container">
+        <div class="container" role="main">
             <div class="header">
                 <ul class="nav nav-pills pull-right">
                     <li class="{{ 'active' if active_page == 'home' else '' }}"><a href="{{ BASE_URL }}">Home</a></li>
-                    <li class="{{ 'active' if active_page == 'getting_started' else '' }}"><a href="{{ BASE_URL }}getting_started">Getting Started (til finished)</a></li>
+                    <li class="{{ 'active' if active_page == 'getting_started' else '' }}"><a href="{{ BASE_URL }}getting_started">Getting Started (And Master it)</a></li>
                     <li class="{{ 'active' if active_page == 'example' else '' }}"><a href="{{ BASE_URL }}example/recommended/index">Example</a></li>
                 </ul>
                 <h3 class="text-muted">Kokoropy</h3>
@@ -102,7 +92,6 @@
             
             <div class="jumbotron">
                 <img src ="{{ BASE_URL }}index/assets/images/kokoropy.png" />
-                <h1>Kokoropy</h1>
                 <p class="lead">心から MVC Web Framework in Python</p>
             </div>
             

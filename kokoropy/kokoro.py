@@ -90,13 +90,15 @@ def load_model(application_name, model_name, object_name = None):
     return function or class in your model file
     '''
     result = None
-    import_location = application_package() + "." + application_name + ".models." + model_name
+    import_location = ".".join((application_package() , application_name , "models" , model_name))
     if object_name is None:
         object_name = model_name.title()
     alias  =  "__MODEL_"+application_name+"_"+object_name
     try:
-        exec("from " + import_location + " import " + object_name+" as "+alias)
-        exec("result = " + alias)
+        # Import the module
+        __import__(import_location, globals(), locals(), ['*'])
+        # Get the class
+        result = getattr(sys.modules[import_location], object_name)
     except:
         raise ImportError(import_location + "." + object_name + " doesn't exist")
     return result
@@ -107,14 +109,15 @@ def load_controller(application_name, controller_name, object_name = None):
     return function or class in your controller file
     '''
     result = None
-    import_location = application_package() + "." + application_name + ".controllers." + controller_name
+    import_location = ".".join((application_package() , application_name , "controllers" , controller_name))
     if object_name is None:
         object_name = controller_name.title()
     alias  =  "__CONTROLLER_"+application_name+"_"+object_name
     try:
-        exec("from " + application_package() + "." + application_name + ".controllers." +\
-            controller_name + " import " + object_name+" as "+alias)
-        exec("result = " + alias)
+        # Import the module
+        __import__(import_location, globals(), locals(), ['*'])
+        # Get the class
+        result = getattr(sys.modules[import_location], object_name)
     except:
         raise ImportError(import_location + "." + object_name + " doesn't exist")
     return result
@@ -122,7 +125,7 @@ def load_controller(application_name, controller_name, object_name = None):
 # load view
 def load_view(application_name, view_name, *args, **kwargs):
     args_list = list(args)
-    args_list.insert(0, application_name + "/views/"+view_name)
+    args_list.insert(0, "/".join((application_name , "views" , view_name)))
     args = tuple(args_list)
     return template(*args, **kwargs)
 
@@ -155,11 +158,6 @@ class _Kokoro_Router(object):
             output = static_file(path, root=os.path.join(APP_PATH, application, "assets"))
         else:
             output = static_file(path, root=os.path.join(APP_PATH, application, "assets", "index"))
-        # inject some headers
-        '''
-        output._headers['Connection'] = 'keep-alive'
-        output._headers['Cache-Control'] = 'public, max-age='+str(60*60*3)
-        '''
         return output
 
 def isset(variable):
@@ -288,7 +286,7 @@ def _sort_names(names=[], key=None):
     if index_exists:
         names.remove(index_obj)
     #sort the other normal elements
-    names.sort(key = len, reverse=True)    
+    names.sort(key = len, reverse=True)
     # re-add index object if it is exists
     if index_exists:
         names.append(index_obj)
@@ -299,17 +297,17 @@ def _get_basic_routes(directory, controller, function):
     """ Get basic route string
         This will handle "index" stuff.
     """
-    basic_routes = []    
-    # basic routes    
-    basic_routes.append(base_url(directory+"/"+controller+"/"+function))
+    basic_routes = []
+    # basic routes
+    basic_routes.append(base_url("/".join((directory, controller, function))))
     if function == "index":
-        basic_routes.append(base_url(directory+"/"+controller))
+        basic_routes.append(base_url("/".join((directory, controller))))
     if controller == "index":
-        basic_routes.append(base_url(directory+"/"+function))
+        basic_routes.append(base_url("/".join((directory, function))))
         if function == "index":
-            basic_routes.append(base_url(directory))            
+            basic_routes.append(base_url(directory))
     if directory == "index":
-        basic_routes.append(base_url(controller+"/"+function))
+        basic_routes.append(base_url("/".join((controller, function))))
         if function == "index":
             basic_routes.append(base_url(controller))
         if controller == "index":

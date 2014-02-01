@@ -1,4 +1,26 @@
 %rebase('index/views/base.tpl', title='kokoropy | getting started')
+<style type="text/css">
+    .language-python{
+        width:100%;
+        min-height: 200px;
+    }
+    .ace_editor{
+        font-size: 14px;
+    }
+</style>
+<script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-ace/ace/ace.js"></script>
+<script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-ace/ace/theme-twilight.js"></script>
+<script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-ace/ace/mode-python.js"></script>
+<script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-ace/ace/mode-html.js"></script>
+<script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-ace/jquery-ace.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('.language-python').ace({
+            theme: 'twilight',
+            lang: 'python',
+        });
+    });
+</script>
 
 <h2>Installation</h2>
 
@@ -125,12 +147,12 @@ BASE_URL            = '/kokoropy'               # base url, start with '/'
 </pre>
 </p>
 <p>Now, edit your routes.py and put this:
-<pre>
+<textarea class="language-python" readonly="readonly">
 from kokoropy import route, base_url
 
 @route(base_url('hello))
 @route('hello')
 def say_something()
-    return '&lt;h1&gt;Hello&lt;/h1&gt;&lt;p&gt;Nice to meet you&lt;/p&gt;';
-</pre>
+    return '<h1>Hello</h1><p>Nice to meet you</p>';
+</textarea>
 </p>

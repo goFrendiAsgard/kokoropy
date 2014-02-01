@@ -40,7 +40,7 @@ Also, kokoropy come with several third-party css & javascript framework (so you 
 * chosen 1.0.0
 * leaflet 0.7.2
 * alertify.js 0.3.1.1
-* codemirror 3.21
+* jquery-ace 1.0.3
 
 __DEMO:__ http://kokoropy.herokuapp.com
 
