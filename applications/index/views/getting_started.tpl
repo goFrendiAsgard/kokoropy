@@ -5,6 +5,16 @@
     }
     .ace_editor{
         font-size: 14px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    #layout-content h1{
+        margin-top:60px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #e5e5e5;
+    }
+    #layout-content h2{
+        margin-top:40px;
     }
 </style>
 <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-ace/ace/ace.js"></script>
@@ -176,19 +186,27 @@ BASE_URL            = '/kokoropy'               # base url, start with '/'
 <textarea class="language-python" readonly="readonly" style="height:150px;">
 from kokoropy import route, base_url
 
-@route(base_url('hello))
+@route(base_url('hello'))
 @route('hello')
 def say_something():
     return '<h1>Hello</h1><p>Nice to meet you</p>';
 </textarea>
+<p>We hope the code is already self-explanatory, but if you still need some explanation, here is:</p>
+<ul>
+    <li>
+        <b>Line 1 :</b> Import <b>route</b> decorator and <b>base_url</b> function which will be used later.<br />
+        base_url is used to get absolute url. In this case <b>base_url('hello')</b> will return <b>http://localhost:8080/kokoropy/hello</b>
+    </li>
+    <li>
+        <b>Line 3 - 4 :</b> Declare that both <b>http://localhost:8080/kokoropy/hello</b> and <b>http://localhost:8080/kokoropy/hello</b> will be handled by <b>say_something</b> function.
+        <b>@</b> symbol means decorator.
+    </li>
+</ul>
 <p>
-    The first line used to tell python interpreter that we will need <b>route</b> decorator and <b>base_url</b> function.<br />
-    The third and fourth line tell kokoropy so that both <b>http://localhost:8080/kokoropy/hello</b> and <b>http://localhost:8080/kokoropy/hello</b> will be handled by <b>say_something</b> function<br />
-    The function will return a html response as described.<br />
-    To get more comprehensive documentation about <b>route</b> decorator, please visit <a href="http://bottlepy.org/docs/dev/tutorial.html#request-routing">Bottle's documentation about request routing</a>
+    To get more comprehensive documentation about <b>route</b> decorator, please visit <a target="blank" href="http://bottlepy.org/docs/dev/tutorial.html#request-routing">Bottle's documentation about request routing</a>
 </p>
 
-<h2>MVC and automatic routing</h2>
+<h2>MVC and Automatic Routing</h2>
 <p>
     You might need something more complex than just a typical "hello world" program.<br />
     It's not good to put everything in <b>routes.py</b>, since it will be to complicated to be maintained.<br />
@@ -204,8 +222,12 @@ def say_something():
     <li><b>View (or Template)</b> is a visual matter. You should put your HTML, javascript, and css here.</li>
 </ul>
 <p>
-    Let's make your first MVC in kokoropy
+    Let's make your first MVC in kokoropy. At the end of this section, you will be able to access these url:    
 </p>
+<ul>
+    <li><b>http://localhost:8080/kokoropy/demo/pokemon</b> and get all pokemon</li>
+    <li><b>http://localhost:8080/kokoropy/demo/pokemon/pi</b> and get pokemon which it's name contains 'pi'</li>
+</ul>
 <pre>
     kokoropy
         |--- /applications
@@ -222,18 +244,20 @@ def say_something():
         |       |       |       |--- my_controller.py   * ( 9. Make my_controller.py)
         |       |       |--- /views                     * (10. Make views directory)
         |       |       |       |--- my_view.tpl        * (11. Make my_view.py)
+        |       |       |--- /assets                    * (10. Make assets directory)
+        |       |       |       |--- uploads            * (11. Make uploads directory)
       (...)   (...)
 </pre>
 <h3>Model</h3>
 <p>
-    Put this in <b>my_model.py</b> (Don't worry about the script, I'm using sqlalchemy ORM, but you can use standard SQL if you think it is going to be better):
+    Put this in <b>my_model.py</b>:
 </p>
-<textarea class="language-python" readonly="readonly" style="height:800px;">
+<textarea class="language-python" readonly="readonly" style="height:780px;">
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-############################### SQL ALCHEMY SCRIPT ####################################
+########################### SQL ALCHEMY SCRIPT ################################
 
 # create Base
 Base = declarative_base()
@@ -250,23 +274,57 @@ class Pokemon(Base):
         self.image = image
 
 # create engine
-engine = create_engine('sqlite:///db/pokemon.db', echo=True)
+engine = create_engine('sqlite:///db/demo.db', echo=True)
 
 # create db session
 db_session = scoped_session(sessionmaker(bind=engine))
 
-#################################### OUR MODEL #######################################
+################################ OUR MODEL ####################################
 
 class My_Model(object):
     '''
-    Create, Update & Delete Pokemon data
+    Get the pokemon
     '''
     def __init__(self):
         Base.metadata.create_all(bind=engine)
     
     def get_pokemon(self, keyword=''):
-        return db_session.query(Pokemon).filter(Pokemon.name.like('%'+keyword+'%')).all()
+        return db_session.query(Pokemon).all()
 </textarea>
+<p>
+    You might think the code is longer than it should be. It is because we are using SQLALchemy's ORM (which is alreay bundled in kokoropy).<br />
+    If you don't like (or not ready to use) ORM, you can also use classical SQL approach. SQL Alchemy supporting both ORM &amp; classical SQL approach. Please check <a target="blank" href="http://docs.sqlalchemy.org/">SQL Alchemy documentation</a> for more information. 
+    Now, here is some explanation of the code:
+</p>
+<ul>
+    <li>
+        <b>Line 1 - 3 :</b> Import some SQL-Alchemy's functions and classes.
+    </li>
+    <li>
+        <b>Line 8 :</b> Make a Base class.
+    </li>
+    <li>
+        <b>Line 11 - 19 :</b> Make a Pokemon class. This class is mapped to the <b>pokemon</b> table, and have 3 attributes (<b>id</b>, <b>name</b>, and <b>image</b>) which are mapped to the pokemon's table field.
+    </li>
+    <li>
+        <b>Line 17 :</b> Pokemon Class's constructor. Whenever you call <b>Pokemon()</b> function, the constructor will be called, and a new Pokemon object will be created.
+    </li>
+    <li>
+        <b>Line 22 :</b> Create engine to connect to the physical database. We use sqlite this time. The file is located at <b>/db/demo.db</b>
+    </li>
+    <li>
+        <b>Line 25 :</b> Make a session and bind it to the engine created on line 22
+    </li>
+    <li>
+        <b>Line 29 - 37 :</b> Declare a class named My_Model. Notice that this class has the same name as the file name with first letter character of each words capitalized.
+    </li>
+    <li>
+        <b>Line 33 - 34 :</b> Whenever this class initialized, the database will be created if not exists
+    </li>
+    <li>
+        <b>Line 36 - 37 :</b> get all pokemon from the database. This is why ORM useful, you do not need to write any SQL syntax, plus the syntax is now much more shorter.
+    </li>
+</ul>
 
 <h3>Controller</h3>
 <p>
@@ -286,12 +344,40 @@ class My_Controller(Autoroute_Controller):
         pokemon_list = self.model.get_pokemon(keyword)
         return load_view('demo', 'my_view', pokemon_list = pokemon_list)
 </textarea>
+<p>Here is the explanation</p>
+<ul>
+    <li>
+        <b>Line 1 : </b> Import things we will need later.
+    </li>
+    <li>
+        <b>Line 2 - 12 : </b> Make an autoruted controller. Every autorouted controller should extend <b>Autoroute_Controller</b>.
+    </li>
+    <li>
+        <b>Line 4 - 7 : </b> The constructor. By using <b>load_model()</b> function, we load <b>My_Model</b> class.
+    </li>
+    <li>
+        <b>Line 9 - 12 : </b> Get <b>pokemon_list</b>, pass it to <b>my_view</b> view, and give the response whenever user accessing <b>http://localhost:8080/kokoropy/my_controller/pokemon</b>.
+    </li>
+</ul>
+<p>
+    Every function in autorouted controller with <b>action_</b>, prefix will be published, and accessible with this url format:
+</p>
+<pre>
+BASE_URL/application_name/controller_name/function_without_prefix
+</pre>
+<p>
+    You can also use <b>post_</b>, <b>get_</b>, <b>put_</b>, and <b>delete_</b> prefix. These prefixes are work with REST request.
+</p> 
+<p class="alert alert-warning">
+    <b>Beware :</b> Autoroute controller might looks to be fun, and it is recommended when you are on development stage. Also, it will feels familiar, if you came from CodeIgniter. However, for real-world usage, we suggest to use manual routing via <i>routes.py</i>.
+    Manual routing allow you to change the url freely without touching your controller logic (and code) at all.
+</p>
 
 <h3>View</h3>
 <p>
-    Put this in <b>my_view.py</b>:
+    Put this in <b>my_view.tpl</b>:
 </p>
-<textarea class="language-html" readonly="readonly" style="height:500px;">
+<textarea class="language-html" readonly="readonly" style="height:510px;">
 <h3>Pokemon List</h3>
 <table class="table table-striped table-condensed">
     <thead>
@@ -306,7 +392,7 @@ class My_Controller(Autoroute_Controller):
             <td>&#123;&#123; pokemon.name &#125;&#125;</td>
             <td>
                 &#37;if pokemon.image == '':
-                <img src="&#123;&#123; BASE_URL &#125;&#125;demo/assets/images/pokemon-no-image.png" style="height:65px;" />
+                No image available
                 &#37;else:
                 <img src="&#123;&#123; BASE_URL &#125;&#125;demo/assets/uploads/&#123;&#123; pokemon.image &#125;&#125;" style="height:65px;" />
                 &#37;end
@@ -315,4 +401,58 @@ class My_Controller(Autoroute_Controller):
         &#37;end        
     </tbody>      
 </table>
+&#37;rebase('index/views/base', title='Pokemon List')
 </textarea>
+<p>
+   Here we get our <b>pokemon_list</b> from the controller, and present it to our visitor in table.
+   In kokoropy, <a target="blank" href="http://bottlepy.org/docs/dev/stpl.html">Simple Template Engine</a> is used to render the view.
+</p>
+<ul>
+    <li><b>Line 10 - 21 :</b> Show Pokemon list.<br />
+        You can add Python script by using <b>&#37;</b> symbol as the first non-whitespace character of the line.
+        Beware, that you must put "end", as indentation would not work.<br />
+        To add multiple python script you can use <b>&lt;&#37; &#37;&gt;</b><br />
+        You can show Python variable by using <b>&#123;&#123; variable_name &#125;&#125</b> 
+    </li>
+    <li><b>Line 24 :</b> Use <b>index/views/base.tpl</b> as parent template</li>
+</ul>
+<p class="alert alert-info">
+    Since the database is empty, you won't be able to see anything. when running this demo.<br />
+    In this case, open up <b>db/demo.db</b>, add some data, put some images on <b>applications/demo/assets/uploads</b>.
+</p>
+
+<h2>Manual Routing</h2>
+<p>
+    As we say, put autoroute controller is great for development, however sometime you need more "expressive" routing. Here is where you need manual routing.
+    To enable manual routing, first open up your previously created controller, and remove this part:
+</p>
+<pre>
+class My_Controller(Autoroute_Controller):
+</pre>
+<p>with this:</p>
+<pre>
+class My_Controller(obj):
+</pre>
+<p>and put this in your routes.py</p>
+<textarea class="language-python" readonly="readonly" style="height:220px">
+from kokoropy import route, load_controller
+# create instance of My_Controller
+My_Controller = load_controller('demo', 'my_controller')
+my_controller = My_Controller()
+# define routes
+route(base_url('pokemon_list')/'&lt;name&gt;')(my_controller.action_pokemon)
+route(base_url('pokemon_list')')(my_controller.action_pokemon)
+route(base_url('p')/'&lt;name&gt;')(my_controller.action_pokemon)
+route(base_url('p')')(my_controller.action_pokemon)
+</textarea>
+<ul>
+    <li>
+        <b>Line 1 :</b> Import route and load_controller
+    </li>
+    <li>
+        <b>Line 3 - 4 :</b> load controller and make an instance of it
+    </li>
+    <li>
+        <b>Line 8-9 :</b> define several request routing that should be handled by my_controller.action_pokemon
+    </li>
+</ul>

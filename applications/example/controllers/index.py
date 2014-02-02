@@ -1,51 +1,43 @@
-from kokoropy import template, request, os, redirect, base_url, save_uploaded_asset, remove_asset,\
-    Autoroute_Controller, load_view, load_model
-import random, hashlib
+from kokoropy import request, draw_matplotlib_figure, Autoroute_Controller, \
+    load_view, load_model, save_uploaded_asset, remove_asset
+import random, hashlib, os
 
-class Default_Controller(Autoroute_Controller):
-    """
-     RECOMMENDED APPROACH (Automagically route) 
-    
-     An OOP Style with automatic routing example (just like CodeIgniter or FuelPHP)
-     The routing will be done automatically.
-     To use this feature:
-        * The controller file name can be anything, and will be used for routing
-        * Your controller class name should be "Default_Controller"
-        * Your published method should have "action" prefix
-        * The published URL would be 
-          http://localhost:8080/app_dir/controller_file/published_method/params
-        * If your app_dir, controller_file or published_method named "index", it can be
-          omitted
-        * For convention, this is the recommended way to do it    
-    """
+class My_Controller(Autoroute_Controller):
+    '''
+    Example collections
+    '''
     
     def __init__(self):
-        # import models
-        Simple_Model = load_model('example', 'simple_model')
+        # import model
         DB_Model = load_model('example', 'db_model')
-        self.simple_model = Simple_Model()
         self.db_model = DB_Model()
     
-    def action_index(self, name=None):
-        """
-        Session usage example.
-        This function is automatically routed to: http://localhost:8080/example/recommended/index/parameter
-        """
-        # get counter from SESSION, or set it
-        if 'counter' in request.SESSION:
-            request.SESSION['counter'] += 1
-        else:
-            request.SESSION['counter'] = 1        
-        # get say_hello
-        say_hello = self.simple_model.say_hello(name)
-        message = say_hello+', the session said that you have visit routing demo page '+str(request.SESSION['counter'])+' times'
-        return load_view('example', 'recommended_hello', message=message)
-    
     def generate_private_code(self):
+        """
+        Simple trick to ensure that a POST request is only sent once
+        """
         num = random.random()
         private_code = str(hashlib.md5(str(num)))
         request.SESSION['__private_code'] = private_code
         return private_code
+    
+    # not routed    
+    def upload_image(self):
+        upload =  request.files.get('pokemon_image')
+        if upload is None:
+            return ''
+        else:
+            name, ext = os.path.splitext(upload.filename)
+            if ext not in ('.png','.jpg','.jpeg'):
+                return ''
+            # appends upload.filename automatically
+            if save_uploaded_asset('pokemon_image', path='uploads', application_name='example'):
+                return name+ext
+            else:
+                return ''
+    
+    def action_index(self):
+        return load_view('example', 'index')
     
     def action_pokemon(self, keyword=None):
         """
@@ -93,14 +85,14 @@ class Default_Controller(Autoroute_Controller):
             elif action == 'delete':
                 row = self.db_model.get_pokemon_by_id(pokemon_id)
                 if row != False:
-                    image = row['image']
+                    image = row.image
                     remove_asset(os.path.join('uploads', image), 'example')
                 self.db_model.delete_pokemon(pokemon_id)
         
         private_code = self.generate_private_code()
         # get pokemons
-        pokemons = self.db_model.get_pokemon(keyword)
-        return load_view('example', 'pokemon_view', pokemons=pokemons, __private_code = private_code)
+        pokemon_list = self.db_model.get_pokemon(keyword)
+        return load_view('example', 'pokemon', pokemon_list=pokemon_list, __private_code = private_code)
     
     def action_form_add_pokemon(self):
         private_code  = self.generate_private_code()
@@ -110,18 +102,38 @@ class Default_Controller(Autoroute_Controller):
         pokemon = self.db_model.get_pokemon_by_id(pokemon_id)
         private_code  = self.generate_private_code()
         return load_view('example','pokemon_edit_form', pokemon=pokemon, __private_code = private_code)
-        
-    # not routed    
-    def upload_image(self):
-        upload =  request.files.get('pokemon_image')
-        if upload is None:
-            return ''
-        else:
-            name, ext = os.path.splitext(upload.filename)
-            if ext not in ('.png','.jpg','.jpeg'):
-                return ''
-            # appends upload.filename automatically
-            if save_uploaded_asset('pokemon_image', path='uploads', application_name='example'):
-                return name+ext
-            else:
-                return ''
+    
+    def action_plot(self):
+        max_range = 6.28
+        if 'range' in request.GET:
+            max_range = float(request.GET['range'])
+        # import things
+        import numpy as np
+        from matplotlib.figure import Figure
+        # determine x, sin(x) and cos(x)
+        x = np.arange(0, max_range, 0.1)
+        y1 = np.sin(x)
+        y2 = np.cos(x)
+        # make figure       
+        fig = Figure()
+        fig.subplots_adjust(hspace = 0.5, wspace = 0.5)
+        fig.suptitle('The legendary sine and cosine curves')
+        # first subplot
+        ax = fig.add_subplot(2, 1, 1)
+        ax.plot(x, y1, 'b')
+        ax.plot(x, y1, 'ro')
+        ax.set_title ('y = sin(x)')
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        # second subplot
+        ax = fig.add_subplot(2, 1, 2)
+        ax.plot(x, y2, 'b')
+        ax.plot(x, y2, 'ro')
+        ax.set_title ('y = cos(x)')
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        # make canvas
+        return draw_matplotlib_figure(fig)
+    
+    def action_plotting(self):
+        return load_view('example','plotting')

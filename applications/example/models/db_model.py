@@ -39,7 +39,7 @@ class Db_Model(object):
     
     def delete_pokemon(self, pokemon_id):
         pokemon = self.get_pokemon_by_id(pokemon_id)
-        db_session.remove(pokemon)
+        db_session.delete(pokemon)
         db_session.commit()
     
     def insert_pokemon(self, name, image=''):
@@ -50,5 +50,6 @@ class Db_Model(object):
     def update_pokemon(self, pokemon_id, name, image=''):
         pokemon = self.get_pokemon_by_id(pokemon_id)
         pokemon.name = name
-        pokemon.image = image
+        if image != '':
+            pokemon.image = image
         db_session.commit()

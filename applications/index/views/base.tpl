@@ -1,4 +1,4 @@
-% setdefault('active_page', 'home')
+% setdefault('active_page', 'example')
 <!DOCTYPE html>
 <html>
     <head>
@@ -83,9 +83,9 @@
         <div class="container" role="main">
             <div class="header">
                 <ul class="nav nav-pills pull-right">
-                    <li class="{{ 'active' if active_page == 'home' else '' }}"><a href="{{ BASE_URL }}">Home</a></li>
-                    <li class="{{ 'active' if active_page == 'getting_started' else '' }}"><a href="{{ BASE_URL }}getting_started">Getting Started (And Master it)</a></li>
-                    <li class="{{ 'active' if active_page == 'example' else '' }}"><a href="{{ BASE_URL }}example/recommended/index">Example</a></li>
+                    <li class="{{ 'active' if active_page == 'home' else '' }}"><a href="{{ BASE_URL }}"><i class="glyphicon glyphicon-home"></i> Home</a></li>
+                    <li class="{{ 'active' if active_page == 'getting_started' else '' }}"><a href="{{ BASE_URL }}getting_started"><i class="glyphicon glyphicon-book"></i> Getting Started (And Master it)</a></li>
+                    <li class="{{ 'active' if active_page == 'example' else '' }}"><a href="{{ BASE_URL }}example"><i class="glyphicon glyphicon-th"></i> Examples</a></li>
                 </ul>
                 <h3 class="text-muted">Kokoropy</h3>
             </div>

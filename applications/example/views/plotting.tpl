@@ -34,8 +34,8 @@
     
     function show_plot(range){
         if(range!==null){
-            $('#plot').html('<img src="{{ BASE_URL }}example/plotting/plot?range='+range+'" />');
+            $('#plot').html('<img src="{{ BASE_URL }}example/plot?range='+range+'" />');
         }
     }    
 </script>
-%rebase('example/views/base',title='Plot')
+%rebase('index/views/base',title='Plot')
