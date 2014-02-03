@@ -1,4 +1,11 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+'''
+Repo: https://github.com/goFrendiAsgard/kokoropy
+'''
+__author__  = 'Go Frendi Gunawan'
+__version__ = 'development'
+__license__ = 'MIT'
 
 ###################################################################################################
 # Add this directory to sys.path
@@ -36,9 +43,10 @@ request.SESSION = []
 # KokoroWSGIRefServer (Do something with this, on future)
 ###################################################################################################
 class KokoroWSGIRefServer(bottle.ServerAdapter):
-    def __int__(self, *args, **kwargs):
-        super(bottle.ServerAdapter, self).__init__(*args, **kwargs)
-        self.srv = None
+    '''
+    Original: http://stackoverflow.com/questions/11282218/bottle-web-framework-how-to-stop
+    '''
+    srv = None
 
     def run(self, handler):
         from wsgiref.simple_server import make_server, WSGIRequestHandler
