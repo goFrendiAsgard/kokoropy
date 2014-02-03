@@ -87,6 +87,7 @@ def template(*args, **kwargs):
 # load model
 def load_model(application_name, model_name, object_name = None):
     '''
+    DEPRECATED, USE RELATIVE IMPORT INSTEAD
     return function or class in your model file
     '''
     result = None
@@ -106,6 +107,7 @@ def load_model(application_name, model_name, object_name = None):
 # load controller
 def load_controller(application_name, controller_name, object_name = None):
     '''
+    DEPRECATED, USE RELATIVE IMPORT INSTEAD
     return function or class in your controller file
     '''
     result = None

@@ -162,3 +162,9 @@ Change Log:
 TODO:
 ====
 * Make CRUD generator
+
+Credits:
+========
+* Marcel Hellkamp (defnull): creator of bottlepy
+* Rully Ramanda: Introducing relative import to me :)
+* Creator of sqlalchemy, jquery, and anyone who let me make kokoropy easier

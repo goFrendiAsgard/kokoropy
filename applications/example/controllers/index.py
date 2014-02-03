@@ -9,8 +9,9 @@ class My_Controller(Autoroute_Controller):
     
     def __init__(self):
         # import model
-        DB_Model = load_model('example', 'db_model')
-        self.db_model = DB_Model()
+        #DB_Model = load_model('example', 'db_model')
+        from ..models.db_model import Db_Model
+        self.db_model = Db_Model()
     
     def generate_private_code(self):
         """

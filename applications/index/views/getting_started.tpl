@@ -331,12 +331,12 @@ class My_Model(object):
     Put this in <b>my_controller.py</b>:
 </p>
 <textarea class="language-python" readonly="readonly" style="height:270px;">
-from kokoropy import Autoroute_Controller, load_view, load_model
+from kokoropy import Autoroute_Controller, load_view
 class My_Controller(Autoroute_Controller):
     
     def __init__(self):
         # import models
-        My_Model = load_model('demo', 'my_model')
+        from ..models.my_model import My_Model
         self.model = My_Model()
         
     def action_pokemon(self, keyword=None):
@@ -353,7 +353,7 @@ class My_Controller(Autoroute_Controller):
         <b>Line 2 - 12 : </b> Make an autoruted controller. Every autorouted controller should extend <b>Autoroute_Controller</b>.
     </li>
     <li>
-        <b>Line 4 - 7 : </b> The constructor. By using <b>load_model()</b> function, we load <b>My_Model</b> class.
+        <b>Line 4 - 7 : </b> The constructor. By using <b>from ..models.my_model import My_Model</b> , we load <b>My_Model</b> class.
     </li>
     <li>
         <b>Line 9 - 12 : </b> Get <b>pokemon_list</b>, pass it to <b>my_view</b> view, and give the response whenever user accessing <b>http://localhost:8080/kokoropy/my_controller/pokemon</b>.
@@ -435,9 +435,9 @@ class My_Controller(obj):
 </pre>
 <p>and put this in your routes.py</p>
 <textarea class="language-python" readonly="readonly" style="height:220px">
-from kokoropy import route, load_controller
+from kokoropy import route
 # create instance of My_Controller
-My_Controller = load_controller('demo', 'my_controller')
+from ..controllers.my_controller import My_Controller
 my_controller = My_Controller()
 # define routes
 route(base_url('pokemon_list')/'&lt;name&gt;')(my_controller.action_pokemon)
@@ -450,7 +450,7 @@ route(base_url('p')')(my_controller.action_pokemon)
         <b>Line 1 :</b> Import route and load_controller
     </li>
     <li>
-        <b>Line 3 - 4 :</b> load controller and make an instance of it
+        <b>Line 3 - 4 :</b> import My_Controller and make an instance of it
     </li>
     <li>
         <b>Line 8-9 :</b> define several request routing that should be handled by my_controller.action_pokemon
