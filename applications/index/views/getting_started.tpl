@@ -447,7 +447,7 @@ route(base_url('p')')(my_controller.action_pokemon)
 </textarea>
 <ul>
     <li>
-        <b>Line 1 :</b> Import route and load_controller
+        <b>Line 1 :</b> Import route decorator
     </li>
     <li>
         <b>Line 3 - 4 :</b> import My_Controller and make an instance of it
