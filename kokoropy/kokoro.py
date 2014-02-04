@@ -37,10 +37,10 @@ else:
     from urlparse import urlparse
 
 # intellisense hack
-request.SESSION = []    
-   
+request.SESSION = []
+
 ###################################################################################################
-# KokoroWSGIRefServer (Do something with this, on future)
+# KokoroWSGIRefServer (Do something with this in the future)
 ###################################################################################################
 class KokoroWSGIRefServer(bottle.ServerAdapter):
     '''
@@ -63,11 +63,10 @@ class KokoroWSGIRefServer(bottle.ServerAdapter):
             self.srv.server_close()
 
 ###################################################################################################
-# KokoroWSGIRefServer (Do something with this, on future)
+# Autoroute_Controller, actually doesn't do anything
 ###################################################################################################
 class Autoroute_Controller(object):
-    def action_index(self):
-        return ''
+    pass
 
 # Override bottle's template function
 def template(*args, **kwargs):
@@ -95,14 +94,13 @@ def template(*args, **kwargs):
 # load model
 def load_model(application_name, model_name, object_name = None):
     '''
-    DEPRECATED, USE RELATIVE IMPORT INSTEAD
+    DEPRECATED, USE RELATIVE IMPORT INSTEAD (from ..models.your_model import Object)
     return function or class in your model file
     '''
     result = None
     import_location = ".".join((application_package() , application_name , "models" , model_name))
     if object_name is None:
         object_name = model_name.title()
-    alias  =  "__MODEL_"+application_name+"_"+object_name
     try:
         # Import the module
         __import__(import_location, globals(), locals(), ['*'])
@@ -115,14 +113,13 @@ def load_model(application_name, model_name, object_name = None):
 # load controller
 def load_controller(application_name, controller_name, object_name = None):
     '''
-    DEPRECATED, USE RELATIVE IMPORT INSTEAD
+    DEPRECATED, USE RELATIVE IMPORT INSTEAD (from ..controllers.your_controller import Object)
     return function or class in your controller file
     '''
     result = None
     import_location = ".".join((application_package() , application_name , "controllers" , controller_name))
     if object_name is None:
         object_name = controller_name.title()
-    alias  =  "__CONTROLLER_"+application_name+"_"+object_name
     try:
         # Import the module
         __import__(import_location, globals(), locals(), ['*'])
@@ -468,29 +465,35 @@ def kokoro_init(**kwargs):
     route(base_url("assets/<path:re:.+>"))(kokoro_router.serve_assets)
     hook('before_request')(kokoro_router.before_request)
     
-    exec("import "+APPLICATION_PACKAGE)
+    # exec("import "+APPLICATION_PACKAGE)
     ###################################################################################################
     # Load routes
     ###################################################################################################
     for application in application_list:
         if os.path.isfile(os.path.join(APPLICATION_PATH, application, "routes.py")):
             print("LOAD ROUTES : "+application)
+            # Ah,... I really need to run "exec" at this point, any better solution?
             exec("from "+APPLICATION_PACKAGE+"."+application+".routes import *")
     ###################################################################################################
     # Load Autoroute inside controller modules
     ###################################################################################################
+    print('path', __import__('os.path'))
+    print('os', __import__('os'))
     for application in controller_dict_list:
         for controller in controller_dict_list[application]:
             print("INSPECT CONTROLLER : "+application+".controllers."+controller)
+            # import our controllers
             module_obj = None
-            exec("import "+APPLICATION_PACKAGE+"."+application+".controllers."+controller+" as module_obj")
+            import_location = APPLICATION_PACKAGE+"."+application+".controllers."+controller
+            __import__(import_location, globals(), locals())
+            module_obj = sys.modules[import_location]
             members = inspect.getmembers(module_obj, inspect.isclass)
             # determine if autoroute_controller exists
             autoroute_controller_found = False
             autoroute_controller_name  = "";
-            Controller = None            
+            Controller = None
             for member in members:
-                # descendant of Autoroute_Controller and not Autoroute_Controller itself
+                # if find any descendant of Autoroute_Controller and not Autoroute_Controller itself
                 if member[1] != Autoroute_Controller and issubclass(member[1], Autoroute_Controller):
                     autoroute_controller_found = True
                     autoroute_controller_name  = member[0]
@@ -539,9 +542,9 @@ def draw_matplotlib_figure(figure):
     # import FigureCanvas
     matplotlib_found = False
     StringIO_found = False
-    for iter_modules in pkgutil.iter_modules():        
+    for iter_modules in pkgutil.iter_modules():
         module_name = iter_modules[1]
-        if module_name == 'matplotlib':            
+        if module_name == 'matplotlib':
             from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
             matplotlib_found = True
         if module_name == 'StringIO':

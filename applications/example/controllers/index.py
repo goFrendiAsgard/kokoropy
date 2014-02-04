@@ -1,5 +1,5 @@
 from kokoropy import request, draw_matplotlib_figure, Autoroute_Controller, \
-    load_view, load_model, save_uploaded_asset, remove_asset
+    load_view, save_uploaded_asset, remove_asset
 import random, hashlib, os
 
 class My_Controller(Autoroute_Controller):
