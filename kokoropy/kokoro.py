@@ -477,8 +477,6 @@ def kokoro_init(**kwargs):
     ###################################################################################################
     # Load Autoroute inside controller modules
     ###################################################################################################
-    print('path', __import__('os.path'))
-    print('os', __import__('os'))
     for application in controller_dict_list:
         for controller in controller_dict_list[application]:
             print("INSPECT CONTROLLER : "+application+".controllers."+controller)

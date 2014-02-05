@@ -440,10 +440,10 @@ from kokoropy import route
 from ..controllers.my_controller import My_Controller
 my_controller = My_Controller()
 # define routes
-route(base_url('pokemon_list')/'&lt;name&gt;')(my_controller.action_pokemon)
-route(base_url('pokemon_list')')(my_controller.action_pokemon)
-route(base_url('p')/'&lt;name&gt;')(my_controller.action_pokemon)
-route(base_url('p')')(my_controller.action_pokemon)
+route(base_url('pokemon_list/&lt;keyword&gt;'))(my_controller.action_pokemon)
+route(base_url('pokemon_list'))(my_controller.action_pokemon)
+route(base_url('p/&lt;name&gt;')(my_controller.action_pokemon)
+route(base_url('p'))(my_controller.action_pokemon)
 </textarea>
 <ul>
     <li>
