@@ -442,7 +442,7 @@ my_controller = My_Controller()
 # define routes
 route(base_url('pokemon_list/&lt;keyword&gt;'))(my_controller.action_pokemon)
 route(base_url('pokemon_list'))(my_controller.action_pokemon)
-route(base_url('p/&lt;name&gt;')(my_controller.action_pokemon)
+route(base_url('p/&lt;keyword&gt;')(my_controller.action_pokemon)
 route(base_url('p'))(my_controller.action_pokemon)
 </textarea>
 <ul>
