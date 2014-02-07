@@ -59,6 +59,12 @@ sudo apt-get install python-matplotlib
 <pre>
 sudo apt-get install python3-beaker
 </pre>
+<p>
+    Download kokoropy from github repository <a href="https://github.com/goFrendiAsgard/kokoropy">here</a>, or clone it by using git
+</p>
+<pre>
+git clone git@github.com:goFrendiAsgard/kokoropy.git
+</pre>
 
 <p>
     After All prerequisites met, you can just start kokoropy by using this command:
