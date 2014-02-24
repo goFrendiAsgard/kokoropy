@@ -1,6 +1,16 @@
 <div class="alert alert-info">
-    If you are confuse about how to fill the form, please use <a id="btn_default" class="btn btn-success" href="#">iris dataset</a> and see how it works.<br />
-    For more information about iris dataset, please visit <a target="blank" href="http://archive.ics.uci.edu/ml/datasets/Iris">http://archive.ics.uci.edu/ml/datasets/Iris</a>
+    <ul>
+        <li>
+            You should provide training and testing data in csv format. If you don't have any idea about it, you can just simply use <a id="btn_default" class="btn btn-success" href="#">iris dataset</a> and see how it works.<br />
+            For more information about iris dataset, please visit <a target="blank" href="http://archive.ics.uci.edu/ml/datasets/Iris">http://archive.ics.uci.edu/ml/datasets/Iris</a>
+        </li>
+        <li>
+            To fill out the parameters, please refer <a target="blank" href="http://scikit-learn.org/0.13/modules/classes.html">http://scikit-learn.org/0.13/modules/classes.html</a>
+        </li>
+        <li>
+            We use scikit-learn 0.1.4, if you use older version or don't have scikit-learn installed in your server, please do <i>sudo pip install -U scikit-learn</i>
+        </li>
+    </ul>
 </div>
 <h4>Data Classification Example</h4>
 <form action="{{ BASE_URL }}example/classification_result" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">

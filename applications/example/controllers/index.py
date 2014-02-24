@@ -26,6 +26,25 @@ class My_Controller(Autoroute_Controller):
                         'max_depth'   : 5
                     },
                 'sklearn.naive_bayes.GaussianNB' : {
+                    },
+                'sklearn.dummy.DummyClassifier' : {
+                        'strategy'    : 'stratified', 
+                        'random_state': 'None'
+                    },
+                'sklearn.ensemble.RandomForestClassifier' : {
+                        'n_estimators':10,
+                        'criterion':'gini',
+                        'max_depth': 'None',
+                        'min_samples_split':2,
+                        'min_samples_leaf':1,
+                        'max_features':'auto',
+                        'bootstrap':'True',
+                        'oob_score':'False',
+                        'n_jobs':1,
+                        'random_state':'None',
+                        'verbose':0,
+                        'min_density':'None',
+                        'compute_importances':'None'
                     }
             }
     
@@ -201,6 +220,7 @@ class My_Controller(Autoroute_Controller):
                     if row[i] not in numeric_value[caption]:
                         numeric_value[caption][row[i]] = len(numeric_value[caption])
                     row[i] = numeric_value[caption][row[i]]
+                row[i] = float(row[i]) # ensure this is float
             data.append(row[:-1])
             target.append(row[-1])
         data = array(data)
@@ -211,6 +231,7 @@ class My_Controller(Autoroute_Controller):
         # redirect if data not completed
         if 'training_csv' not in request.POST or 'testing_csv' not in request.POST or 'classifier' not in request.POST:
             redirect(base_url('example/classification'))
+            
         # preprocess POST data
         training_csv = request.POST['training_csv']
         testing_csv = request.POST['testing_csv']
@@ -218,10 +239,14 @@ class My_Controller(Autoroute_Controller):
         parameter_pair_list = []
         for parameter in self.classifiers[classifier_name]:
             value = request.POST['param_'+parameter]
-            if not self.is_number(value):
+            if (not self.is_number(value)) and value != 'True' and value != 'False' and value != 'None':
                 value = '"'+value.replace('"','\"')+'"'
             parameter_pair_list.append(parameter + ' = ' + value)
         parameter_string = ", ".join(parameter_pair_list)
+        print parameter_string
+        
+        if training_csv == '' or testing_csv == '':
+            redirect(base_url('example/classification'))
         
         # preprocess csv
         training_data, training_target, caption_list, numeric_value = self.extract_csv(training_csv)
@@ -244,7 +269,3 @@ class My_Controller(Autoroute_Controller):
                 false_count += 1
         accuracy = true_count/(false_count+true_count) * 100
         return 'True : '+str(true_count)+', False : '+str(false_count)+', Accuracy : '+str(accuracy)+'%';
-    
-    
-    
-    
