@@ -1,6 +1,7 @@
 from kokoropy import request, draw_matplotlib_figure, Autoroute_Controller, \
-    load_view, save_uploaded_asset, remove_asset
+    load_view, save_uploaded_asset, remove_asset, redirect
 import random, hashlib, os
+from kokoropy.kokoro import base_url
 
 class My_Controller(Autoroute_Controller):
     '''
@@ -8,10 +9,25 @@ class My_Controller(Autoroute_Controller):
     '''
     
     def __init__(self):
-        # import model
-        #DB_Model = load_model('example', 'db_model')
+        # load databases for most of example
         from ..models.db_model import Db_Model
         self.db_model = Db_Model()
+        # classifiers for classification
+        self.classifiers = {
+                'sklearn.neighbors.KNeighborsClassifier' : {
+                        'n_neighbors' : 5,
+                    },
+                'sklearn.svm.SVC'  : {
+                        'C'           : 0.025,
+                        'kernel'      : 'linear',
+                        'gamma'       : 2
+                    },
+                'sklearn.tree.DecisionTreeClassifier' : {
+                        'max_depth'   : 5
+                    },
+                'sklearn.naive_bayes.GaussianNB' : {
+                    }
+            }
     
     def generate_private_code(self):
         """
@@ -138,3 +154,97 @@ class My_Controller(Autoroute_Controller):
     
     def action_plotting(self):
         return load_view('example','plotting')
+    
+    def action_classification(self):
+        return load_view('example', 'classification', classifiers = self.classifiers)
+    
+    def is_number(self, value):
+        try:
+            float(value)
+            return True
+        except ValueError:
+            return False
+    
+    def csv_to_list(self, str_csv):
+        '''
+        change csv string to python list
+        '''
+        import StringIO, csv
+        f = StringIO.StringIO(str_csv)
+        reader = csv.reader(f, delimiter = ',')
+        lst = []
+        for row in reader:
+            lst.append(row)
+        return lst
+    
+    def extract_csv(self, csv, caption_list= None, numeric_value={}):
+        '''
+        return tuples contains data, target, caption_list and numeric_value
+            data is 2D array, needed for sklearn's classifier fit/predict function
+            target is 1D array, needed for sklearn's classifier fit/predict function
+            caption_list is array of string, contains human-readable caption (1st row of csv)
+            numeric_value is a dictionary, contains captions and numbers
+        '''
+        from numpy import array
+        data_list = self.csv_to_list(csv)
+        if caption_list is None:
+            caption_list = data_list[0]
+            data_list = data_list[1:]
+        data = []
+        target = []
+        for row in data_list:
+            for i in xrange(len(row)):
+                if not self.is_number(row[i]):
+                    caption = caption_list[i]
+                    if caption not in numeric_value:
+                        numeric_value[caption] = {}
+                    if row[i] not in numeric_value[caption]:
+                        numeric_value[caption][row[i]] = len(numeric_value[caption])
+                    row[i] = numeric_value[caption][row[i]]
+            data.append(row[:-1])
+            target.append(row[-1])
+        data = array(data)
+        target = array(target)
+        return (data, target, caption_list, numeric_value)
+    
+    def action_classification_result(self):
+        # redirect if data not completed
+        if 'training_csv' not in request.POST or 'testing_csv' not in request.POST or 'classifier' not in request.POST:
+            redirect(base_url('example/classification'))
+        # preprocess POST data
+        training_csv = request.POST['training_csv']
+        testing_csv = request.POST['testing_csv']
+        classifier_name = request.POST['classifier']
+        parameter_pair_list = []
+        for parameter in self.classifiers[classifier_name]:
+            value = request.POST['param_'+parameter]
+            if not self.is_number(value):
+                value = '"'+value.replace('"','\"')+'"'
+            parameter_pair_list.append(parameter + ' = ' + value)
+        parameter_string = ", ".join(parameter_pair_list)
+        
+        # preprocess csv
+        training_data, training_target, caption_list, numeric_value = self.extract_csv(training_csv)
+        testing_data, testing_target, caption_list, numeric_value = self.extract_csv(testing_csv, caption_list, numeric_value)
+        # make classifier
+        classifier = None
+        import_module_name = '.'.join(classifier_name.split('.')[:-1])
+        exec('import '+import_module_name)
+        exec('classifier = '+classifier_name+'('+parameter_string+')')
+        classifier.fit(training_data, training_target)
+        predict_target = classifier.predict(testing_data)
+        
+        # show the result
+        true_count = 0.0
+        false_count = 0.0
+        for i in xrange(len(predict_target)):
+            if predict_target[i] == testing_target[i]:
+                true_count += 1
+            else:
+                false_count += 1
+        accuracy = true_count/(false_count+true_count) * 100
+        return 'True : '+str(true_count)+', False : '+str(false_count)+', Accuracy : '+str(accuracy)+'%';
+    
+    
+    
+    

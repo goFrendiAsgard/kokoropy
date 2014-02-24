@@ -465,7 +465,9 @@ def kokoro_init(**kwargs):
     route(base_url("assets/<path:re:.+>"))(kokoro_router.serve_assets)
     hook('before_request')(kokoro_router.before_request)
     
-    # exec("import "+APPLICATION_PACKAGE)
+    print("LOAD GLOBAL ROUTES")
+    # Ah,... I really need to run "exec" at this point, any better solution?
+    exec("from "+APPLICATION_PACKAGE+".routes import *")
     ###################################################################################################
     # Load routes
     ###################################################################################################
