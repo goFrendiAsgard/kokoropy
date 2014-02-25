@@ -145,13 +145,13 @@ class My_Controller(Autoroute_Controller):
             max_range = float(request.GET['range'])
         # import things
         import numpy as np
-        from matplotlib.figure import Figure
+        import matplotlib.pyplot as plt
         # determine x, sin(x) and cos(x)
         x = np.arange(0, max_range, 0.1)
         y1 = np.sin(x)
         y2 = np.cos(x)
-        # make figure       
-        fig = Figure()
+        # make figure
+        fig = plt.figure()
         fig.subplots_adjust(hspace = 0.5, wspace = 0.5)
         fig.suptitle('The legendary sine and cosine curves')
         # first subplot
@@ -169,6 +169,7 @@ class My_Controller(Autoroute_Controller):
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         # make canvas
+        draw_matplotlib_figure(fig,'coba.png','example')
         return draw_matplotlib_figure(fig)
     
     def action_plotting(self):
@@ -218,7 +219,7 @@ class My_Controller(Autoroute_Controller):
                     if caption not in numeric_value:
                         numeric_value[caption] = {}
                     if row[i] not in numeric_value[caption]:
-                        numeric_value[caption][row[i]] = len(numeric_value[caption])
+                        numeric_value[caption][row[i]] = float(len(numeric_value[caption]))
                     row[i] = numeric_value[caption][row[i]]
                 row[i] = float(row[i]) # ensure this is float
             data.append(row[:-1])
@@ -228,9 +229,14 @@ class My_Controller(Autoroute_Controller):
         return (data, target, caption_list, numeric_value)
     
     def action_classification_result(self):
+        import json
+        result = {
+                  'success' : False,
+                  'message' : ''
+            }
         # redirect if data not completed
         if 'training_csv' not in request.POST or 'testing_csv' not in request.POST or 'classifier' not in request.POST:
-            redirect(base_url('example/classification'))
+            return json.dumps(result)
             
         # preprocess POST data
         training_csv = request.POST['training_csv']
@@ -246,26 +252,244 @@ class My_Controller(Autoroute_Controller):
         print parameter_string
         
         if training_csv == '' or testing_csv == '':
-            redirect(base_url('example/classification'))
+            return json.dumps(result)
         
         # preprocess csv
         training_data, training_target, caption_list, numeric_value = self.extract_csv(training_csv)
         testing_data, testing_target, caption_list, numeric_value = self.extract_csv(testing_csv, caption_list, numeric_value)
+        
         # make classifier
         classifier = None
         import_module_name = '.'.join(classifier_name.split('.')[:-1])
         exec('import '+import_module_name)
         exec('classifier = '+classifier_name+'('+parameter_string+')')
-        classifier.fit(training_data, training_target)
-        predict_target = classifier.predict(testing_data)
         
-        # show the result
-        true_count = 0.0
-        false_count = 0.0
-        for i in xrange(len(predict_target)):
-            if predict_target[i] == testing_target[i]:
-                true_count += 1
+        # learn
+        classifier.fit(training_data, training_target)
+        
+        # and test the classifier
+        training_predict_target = classifier.predict(training_data)
+        testing_predict_target = classifier.predict(testing_data)
+        
+        # if the classes is not in numeric value, then use_alias = True
+        use_alias = caption_list[-1] in numeric_value
+        target_dict = {}
+        if use_alias:
+            target_numeric_value = numeric_value[caption_list[-1]]
+            for label in target_numeric_value:
+                target_dict[target_numeric_value[label]] = label
+        
+        # Available classes
+        groups = []
+        for target in (training_target, testing_target):
+            for i in xrange(len(target)):
+                if target[i] not in groups:
+                    groups.append(target[i])
+        
+        # initiate false positive, false negative, true positive, and true negative
+        training_false_positive = {}
+        training_false_negative = {}
+        training_true_positive = {}
+        training_true_negative = {}
+        testing_false_positive = {}
+        testing_false_negative = {}
+        testing_true_positive = {}
+        testing_true_negative = {}
+        for group in groups:
+            training_false_positive[group] = 0.0
+            training_false_negative[group] = 0.0
+            training_true_positive[group] = 0.0
+            training_true_negative[group] = 0.0
+            testing_false_positive[group] = 0.0
+            testing_false_negative[group] = 0.0
+            testing_true_positive[group] = 0.0
+            testing_true_negative[group] = 0.0
+        # determine true positive, true negative, false positive and false negative for training and testing
+        for i in xrange(len(training_target)):
+            for group in groups:
+                if training_target[i] == group and training_predict_target[i] == group:
+                    training_true_positive[group] += 1
+                elif training_target[i] != group and training_predict_target[i] != group:
+                    training_true_negative[group] += 1
+                elif training_target[i] != group and training_predict_target[i] == group:
+                    training_false_positive[group] += 1
+                else:
+                    training_false_negative[group] += 1
+        for i in xrange(len(testing_target)):
+            for group in groups:
+                if testing_target[i] == group and testing_predict_target[i] == group:
+                    testing_true_positive[group] += 1
+                elif testing_target[i] != group and testing_predict_target[i] != group:
+                    testing_true_negative[group] += 1
+                elif testing_target[i] != group and testing_predict_target[i] == group:
+                    testing_false_positive[group] += 1
+                else:
+                    testing_false_negative[group] += 1
+        
+        # use alias if needed        
+        if use_alias:
+            groups = []
+            for key in target_dict:
+                label = target_dict[key]
+                groups.append(label)
+                training_true_positive[label] = training_true_positive[key]
+                training_true_positive.pop(key)
+                training_true_negative[label] = training_true_negative[key]
+                training_true_negative.pop(key)
+                training_false_positive[label] = training_false_positive[key]
+                training_false_positive.pop(key)
+                training_false_negative[label] = training_false_negative[key]
+                training_false_negative.pop(key)
+                testing_true_positive[label] = testing_true_positive[key]
+                testing_true_positive.pop(key)
+                testing_true_negative[label] = testing_true_negative[key]
+                testing_true_negative.pop(key)
+                testing_false_positive[label] = testing_false_positive[key]
+                testing_false_positive.pop(key)
+                testing_false_negative[label] = testing_false_negative[key]
+                testing_false_negative.pop(key)
+        
+        # further calculation (http://en.wikipedia.org/wiki/Accuracy_and_precision)
+        total_false_positive = {}
+        total_false_negative = {}
+        total_true_positive = {}
+        total_true_negative = {}
+        training_sensitivity = {}
+        training_specificity = {}
+        training_precision = {}
+        training_negative_predictive_value = {}
+        training_accuracy = {}
+        testing_sensitivity = {}
+        testing_specificity = {}
+        testing_precision = {}
+        testing_negative_predictive_value = {}
+        testing_accuracy = {}
+        total_sensitivity = {}
+        total_specificity = {}
+        total_precision = {}
+        total_negative_predictive_value = {}
+        total_accuracy = {}
+        for group in groups:
+            # total true and false positive and negative
+            total_false_positive[group] = training_false_positive[group] + testing_false_positive[group]
+            total_false_negative[group] = training_false_negative[group] + testing_false_negative[group]
+            total_true_positive[group] = training_true_positive[group] + testing_true_positive[group]
+            total_true_negative[group] = training_true_negative[group] + testing_true_negative[group]
+            
+            # training measurement
+            #   sensitivity
+            if (training_true_positive[group] + training_false_negative[group]) == 0:
+                training_sensitivity[group] = 0
             else:
-                false_count += 1
-        accuracy = true_count/(false_count+true_count) * 100
-        return 'True : '+str(true_count)+', False : '+str(false_count)+', Accuracy : '+str(accuracy)+'%';
+                training_sensitivity[group] = training_true_positive[group] / (training_true_positive[group] + training_false_negative[group])
+            #   specificity
+            if (training_true_negative[group] + training_false_positive[group]) == 0:
+                training_specificity[group] = 0
+            else:
+                training_specificity[group] = training_true_negative[group] / (training_true_negative[group] + training_false_positive[group])
+            #   precision
+            if (training_true_positive[group] + training_false_positive[group]) == 0:
+                training_precision[group] = 0
+            else:
+                training_precision[group] = training_true_positive[group] / (training_true_positive[group] + training_false_positive[group])
+            #   negative prediction value
+            if (training_true_negative[group] + training_false_negative[group]) == 0:
+                training_negative_predictive_value[group] = 0
+            else:
+                training_negative_predictive_value[group] = training_true_negative[group] / (training_true_negative[group] + training_false_negative[group])
+            #   accuracy
+            if (training_true_positive[group] + training_true_negative[group] + training_false_positive[group] + training_false_negative[group]) == 0:
+                training_accuracy[group] = 0
+            else:
+                training_accuracy[group] = (training_true_positive[group] + training_true_negative[group]) / (training_true_positive[group] + training_true_negative[group] + training_false_positive[group] + training_false_negative[group])
+            
+            # testing measurement
+            #   sensitivity
+            if (testing_true_positive[group] + testing_false_negative[group]) == 0:
+                testing_sensitivity[group] = 0
+            else:
+                testing_sensitivity[group] = testing_true_positive[group] / (testing_true_positive[group] + testing_false_negative[group])
+            #   specificity
+            if (testing_true_negative[group] + testing_false_positive[group]) == 0:
+                testing_specificity[group] = 0
+            else:
+                testing_specificity[group] = testing_true_negative[group] / (testing_true_negative[group] + testing_false_positive[group])
+            #   precision
+            if (testing_true_positive[group] + testing_false_positive[group]) == 0:
+                testing_precision[group] = 0
+            else:
+                testing_precision[group] = testing_true_positive[group] / (testing_true_positive[group] + testing_false_positive[group])
+            #   negative prediction value
+            if (testing_true_negative[group] + testing_false_negative[group]) == 0:
+                testing_negative_predictive_value[group] = 0
+            else:
+                testing_negative_predictive_value[group] = testing_true_negative[group] / (testing_true_negative[group] + testing_false_negative[group])
+            #   accuracy
+            if (testing_true_positive[group] + testing_true_negative[group] + testing_false_positive[group] + testing_false_negative[group]) == 0:
+                testing_accuracy[group] = 0
+            else:
+                testing_accuracy[group] = (testing_true_positive[group] + testing_true_negative[group]) / (testing_true_positive[group] + testing_true_negative[group] + testing_false_positive[group] + testing_false_negative[group])
+            
+            # total measurement
+            #   sensitivity
+            if (total_true_positive[group] + total_false_negative[group]) == 0:
+                total_sensitivity[group] = 0
+            else:
+                total_sensitivity[group] = total_true_positive[group] / (total_true_positive[group] + total_false_negative[group])
+            #   specificity
+            if (total_true_negative[group] + total_false_positive[group]) == 0:
+                total_specificity[group] = 0
+            else:
+                total_specificity[group] = total_true_negative[group] / (total_true_negative[group] + total_false_positive[group])
+            #   precision
+            if (total_true_positive[group] + total_false_positive[group]) == 0:
+                total_precision[group] = 0
+            else:
+                total_precision[group] = total_true_positive[group] / (total_true_positive[group] + total_false_positive[group])
+            #   negative prediction value
+            if (total_true_negative[group] + total_false_negative[group]) == 0:
+                total_negative_predictive_value[group] = 0
+            else:
+                total_negative_predictive_value[group] = total_true_negative[group] / (total_true_negative[group] + total_false_negative[group])
+            #   accuracy
+            if (total_true_positive[group] + total_true_negative[group] + total_false_positive[group] + total_false_negative[group]) == 0:
+                total_accuracy[group] = 0
+            else:
+                total_accuracy[group] = (total_true_positive[group] + total_true_negative[group]) / (total_true_positive[group] + total_true_negative[group] + total_false_positive[group] + total_false_negative[group])
+            
+            
+        # show it
+        result = {
+                  'success' : True,
+                  'message' : '',
+                  'groups' : groups,
+                  'training_true_positive' : training_true_positive,
+                  'training_true_negative' : training_true_negative,
+                  'training_false_positive': training_false_positive,
+                  'training_false_negative': training_false_negative,
+                  'testing_true_positive'  : testing_true_positive,
+                  'testing_true_negative'  : testing_true_negative,
+                  'testing_false_positive' : testing_false_positive,
+                  'testing_false_negative' : testing_false_negative,
+                  'total_true_positive'    : total_true_positive,
+                  'total_true_negative'    : total_true_negative,
+                  'total_false_positive'   : total_false_positive,
+                  'total_false_negative'   : total_false_negative,
+                  'training_sensitivity' : training_sensitivity,
+                  'testing_sensitivity'  : testing_sensitivity,
+                  'total_sensitivity'    : total_sensitivity,
+                  'training_specificity' : training_specificity,
+                  'testing_specificity'  : testing_specificity,
+                  'total_specificity'    : total_specificity,
+                  'training_precision' : training_precision,
+                  'testing_precision'  : testing_precision,
+                  'total_precision'    : total_precision,
+                  'training_negative_predictive_value' : training_negative_predictive_value,
+                  'testing_negative_predictive_value'  : testing_negative_predictive_value,
+                  'total_negative_predictive_value'    : total_negative_predictive_value,
+                  'training_accuracy' : training_accuracy,
+                  'testing_accuracy'  : testing_accuracy,
+                  'total_accuracy'    : total_accuracy
+            }
+        return json.dumps(result)
+            

@@ -13,7 +13,7 @@
     </ul>
 </div>
 <h4>Data Classification Example</h4>
-<form action="{{ BASE_URL }}example/classification_result" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
+<form action="{{ BASE_URL }}example/classification_result" method="post" enctype="multipart/form-data" id="classification-form" class="form-horizontal" role="form">
     <div class="form-group">
         <label for="csv_data" class="col-lg-3 col-md-3 control-label">CSV Training Data</label>
         <div class="col-lg-7 col-md-8">
@@ -52,6 +52,7 @@
         </div>
     </div>
 </form>
+<div id="result">Here will be the result</div>
 
 % import json
 <script type="text/javascript">
@@ -94,6 +95,43 @@
         // classifier change
         $('#classifier').change(function(){
             adjust_parameters();
+        });
+        
+        // turn the form into ajax
+        $('#classification-form').submit(function(e){
+            form_data = $(this).serialize();
+            form_url = $(this).attr('action');
+            $.ajax({
+                url : form_url,
+                type: 'POST',
+                data: form_data,
+                timeout: 1000,
+                dataType: 'json',
+                success: function(response){
+                    console.log(response);
+                    var html = '<table class="table"><thead><tr><th colspan="2">Metric</th><th>Training</th><th>Testing</th><th>Total</th></tr></thead><tbody>';
+                    var metrics = new Array('true_positive', 'true_negative', 'false_positive', 'false_negative', 'sensitivity', 'specificity', 'precision', 'negative_predictive_value', 'accuracy');
+                    for (i=0; i<metrics.length; i++){
+                        metric = metrics[i];
+                        for (j=0; j<response.groups.length; j++){
+                            group = response.groups[j];
+                            if(j == 0){
+                                html += '<tr><td rowspan="'+response.groups.length+'">'+metric+'</td>';
+                            }else{
+                                html += '<tr>';
+                            }
+                            html += '<td>'+group+'</td>';
+                            html += '<td>'+response['training_'+metric][group]+'</td>';
+                            html += '<td>'+response['testing_'+metric][group]+'</td>';
+                            html += '<td>'+response['total_'+metric][group]+'</td>';
+                            html += '</tr>';
+                        }
+                    }
+                    html += '</tbody></table>';
+                    $('#result').html(html);
+                }
+            });
+            event.preventDefault();
         });
         
     });

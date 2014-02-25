@@ -537,7 +537,7 @@ def kokoro_init(**kwargs):
     else:
         return app
 
-def draw_matplotlib_figure(figure):
+def draw_matplotlib_figure(figure, file_name = None, application_name = 'index'):
     import pkgutil
     # import FigureCanvas
     matplotlib_found = False
@@ -545,22 +545,27 @@ def draw_matplotlib_figure(figure):
     for iter_modules in pkgutil.iter_modules():
         module_name = iter_modules[1]
         if module_name == 'matplotlib':
-            from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
             matplotlib_found = True
         if module_name == 'StringIO':
             import StringIO
             StringIO_found = True
     if matplotlib_found and StringIO_found:
-        # return png output
-        canvas = FigureCanvas(figure)
-        png_output = StringIO.StringIO()
-        canvas.print_png(png_output)
-        response.content_type = 'image/png'
-        return png_output.getvalue()
+        if file_name is None:
+            # return png output
+            from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+            canvas = FigureCanvas(figure)
+            png_output = StringIO.StringIO()
+            canvas.print_png(png_output)
+            response.content_type = 'image/png'
+            return png_output.getvalue()
+        else:
+            file_path = _asset_path(file_name, application_name)
+            figure.savefig(file_path)
+            return file_path
     else:
         return False
 
-def _asset_path_list(path, application_name):
+def _asset_path(path, application_name):
     ''' return asset path
     '''
     return application_path(os.path.join(application_name, 'assets', path))
@@ -573,12 +578,12 @@ def save_uploaded_asset(upload_key_name, path='', application_name='index'):
         file_name = upload.filename
         remove_asset(os.path.join(path, file_name), application_name)
         # appends upload.filename automatically
-        upload_path = _asset_path_list(path, application_name)
+        upload_path = _asset_path(path, application_name)
         upload.save(upload_path)
         return True
 
 def remove_asset(path, application_name='index'):
-    asset_path = _asset_path_list(path, application_name)
+    asset_path = _asset_path(path, application_name)
     try:
         os.remove(asset_path)
     except OSError:

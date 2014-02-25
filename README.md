@@ -132,12 +132,12 @@ Additional tips & tricks
         def action_plot(self):
             # import things
             import numpy as np
-            from matplotlib.figure import Figure
+            import matplotlib.pyplot as plt
             # x = {1, 2, 3, ..., 10}; y = x*x
             x = np.arange(0, 10, 1)
             y = np.square(x)
             # make figure       
-            fig = Figure()
+            fig = plt.figure()
             fig.subplots_adjust(hspace = 0.5, wspace = 0.5)
             # first subplot
             ax = fig.add_subplot(1, 1, 1)
@@ -146,6 +146,8 @@ Additional tips & tricks
             ax.set_title ('y = x^2')
             ax.set_xlabel('x')
             ax.set_ylabel('y')
+            # if you want to save the figure into file, do this:
+            # draw_matplotlib_figure(fig, 'file_name.png', 'application_name')
             # make canvas
             return draw_matplotlib_figure(fig)
     ``` 
