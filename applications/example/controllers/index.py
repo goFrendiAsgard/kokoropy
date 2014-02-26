@@ -337,9 +337,10 @@ class My_Controller(Autoroute_Controller):
         # plotting
         dimensions = caption_list[:-1]
         dimension_count = len(dimensions)
-        subplot_num = dimension_count * (dimension_count-1) * 2
+        subplot_num = dimension_count * (dimension_count-1)
         for i in xrange(dimension_count):
             subplot_num -= i
+        subplot_num *= 2
         if subplot_num == 1:
             row_count = 1
             col_count = 1
