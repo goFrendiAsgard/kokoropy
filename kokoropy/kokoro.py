@@ -560,8 +560,9 @@ def draw_matplotlib_figure(figure, file_name = None, application_name = 'index')
             return png_output.getvalue()
         else:
             file_path = _asset_path(file_name, application_name)
-            figure.savefig(file_path)
-            return file_path
+            figure.savefig(file_path, dpi=100)
+            print base_url()
+            return base_url(application_name+'/assets/'+file_name)
     else:
         return False
 

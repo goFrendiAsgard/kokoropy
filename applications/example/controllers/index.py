@@ -169,7 +169,6 @@ class My_Controller(Autoroute_Controller):
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         # make canvas
-        draw_matplotlib_figure(fig,'coba.png','example')
         return draw_matplotlib_figure(fig)
     
     def action_plotting(self):
@@ -222,6 +221,8 @@ class My_Controller(Autoroute_Controller):
                         numeric_value[caption][row[i]] = float(len(numeric_value[caption]))
                     row[i] = numeric_value[caption][row[i]]
                 row[i] = float(row[i]) # ensure this is float
+            while len(row)<len(caption_list):
+                row.append(0)
             data.append(row[:-1])
             target.append(row[-1])
         data = array(data)
@@ -230,17 +231,26 @@ class My_Controller(Autoroute_Controller):
     
     def action_classification_result(self):
         import json
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import time
+        
         result = {
-                  'success' : False,
+                  'success' : True,
                   'message' : ''
             }
         # redirect if data not completed
-        if 'training_csv' not in request.POST or 'testing_csv' not in request.POST or 'classifier' not in request.POST:
+        if 'training_csv' not in request.POST or 'classifier' not in request.POST:
+            result['message'] = 'Undefined training data, testing data, or classifier'
+            result['success'] = False
             return json.dumps(result)
             
         # preprocess POST data
         training_csv = request.POST['training_csv']
-        testing_csv = request.POST['testing_csv']
+        if 'testing_csv' not in request.POST or request.POST['testing_csv'] == '':
+            testing_csv =  '\n'.join(training_csv.split('\n')[1:])
+        else:
+            testing_csv = request.POST['testing_csv']
         classifier_name = request.POST['classifier']
         parameter_pair_list = []
         for parameter in self.classifiers[classifier_name]:
@@ -249,27 +259,65 @@ class My_Controller(Autoroute_Controller):
                 value = '"'+value.replace('"','\"')+'"'
             parameter_pair_list.append(parameter + ' = ' + value)
         parameter_string = ", ".join(parameter_pair_list)
-        print parameter_string
         
-        if training_csv == '' or testing_csv == '':
+        if training_csv == '':
+            result['message'] = 'Training data is empty'
+            result['success'] = False
             return json.dumps(result)
         
         # preprocess csv
-        training_data, training_target, caption_list, numeric_value = self.extract_csv(training_csv)
-        testing_data, testing_target, caption_list, numeric_value = self.extract_csv(testing_csv, caption_list, numeric_value)
+        try:
+            training_data, training_target, caption_list, numeric_value = self.extract_csv(training_csv)
+            testing_data, testing_target, caption_list, numeric_value = self.extract_csv(testing_csv, caption_list, numeric_value)
+            if 'predict_csv' in request.POST and request.POST['predict_csv'] != '' :
+                do_prediction = True
+                predict_csv = request.POST['predict_csv']
+                prediction_data, prediction_target, caption_list, numeric_value = self.extract_csv(predict_csv, caption_list, numeric_value)
+                prediction_data = self.csv_to_list(predict_csv)
+                del prediction_target
+            else:
+                do_prediction = False
+                prediction_data = []
+        except Exception, e:
+            result['success'] = False
+            result['message'] = 'Unexpected error while extracting csv : '+ e.message
+        if not result['success']:
+            return json.dumps(result)
         
         # make classifier
         classifier = None
-        import_module_name = '.'.join(classifier_name.split('.')[:-1])
-        exec('import '+import_module_name)
-        exec('classifier = '+classifier_name+'('+parameter_string+')')
+        try:
+            import_module_name = '.'.join(classifier_name.split('.')[:-1])
+            exec('import '+import_module_name)
+            exec('classifier = '+classifier_name+'('+parameter_string+')')
+        except Exception, e:
+            result['success'] = False
+            result['message'] = 'Unexpected error while define classifier : '+ e.message
+        if not result['success']:
+            return json.dumps(result)
         
         # learn
-        classifier.fit(training_data, training_target)
+        try:
+            classifier.fit(training_data, training_target)
+        except Exception, e:
+            result['success'] = False
+            result['message'] = 'Unexpected error while fit classifier : '+ e.message
+        if not result['success']:
+            return json.dumps(result)
         
         # and test the classifier
-        training_predict_target = classifier.predict(training_data)
-        testing_predict_target = classifier.predict(testing_data)
+        try:
+            training_predict_target = classifier.predict(training_data)
+            testing_predict_target = classifier.predict(testing_data)
+            if do_prediction:
+                prediction_predict_target = classifier.predict(prediction_data)
+            else:
+                prediction_predict_target = []
+        except Exception, e:
+            result['success'] = False
+            result['message'] = 'Unexpected error while predicting target : '+ e.message
+        if not result['success']:
+            return json.dumps(result)
         
         # if the classes is not in numeric value, then use_alias = True
         use_alias = caption_list[-1] in numeric_value
@@ -285,6 +333,46 @@ class My_Controller(Autoroute_Controller):
             for i in xrange(len(target)):
                 if target[i] not in groups:
                     groups.append(target[i])
+        
+        # plotting
+        dimensions = caption_list[:-1]
+        dimension_count = len(dimensions)
+        subplot_num = dimension_count * (dimension_count-1)
+        for i in xrange(dimension_count):
+            subplot_num -= i
+        if subplot_num == 1:
+            row_count = 1
+            col_count = 1
+        else:
+            row_count = np.ceil(subplot_num / 2)
+            col_count = 2
+        # determine x, sin(x)
+        x = np.arange(0, 6.28, 0.1)
+        y = np.sin(x)
+        # make figure
+        fig = plt.figure(figsize=(20.0, 12.0))
+        fig.subplots_adjust(hspace = 0.5, wspace = 0.5)
+        fig.suptitle('Dimension Projection')
+        # subplot
+        subplot_index = 1
+        second_dimension_start_index = 1
+        first_dimension_index = 0
+        for first_dimension in dimensions:
+            second_dimension_index = second_dimension_start_index
+            for second_dimension in dimensions[second_dimension_start_index:]:
+                ax = fig.add_subplot(row_count, col_count, subplot_index)
+                ax.plot(x, y, 'b')
+                ax.plot(x, y, 'ro')
+                ax.set_title ('y and x')
+                ax.set_xlabel(first_dimension)
+                ax.set_ylabel(second_dimension)
+                subplot_index += 1
+                second_dimension_index += 1
+            first_dimension_index += 1
+            second_dimension_start_index += 1
+        # make canvas
+        file_name = 'plot_'+str(np.random.randint(10000))+str(time.time())+'.png'
+        plot_url = draw_matplotlib_figure(fig,file_name,'example')
         
         # initiate false positive, false negative, true positive, and true negative
         training_false_positive = {}
@@ -348,6 +436,11 @@ class My_Controller(Autoroute_Controller):
                 testing_false_positive.pop(key)
                 testing_false_negative[label] = testing_false_negative[key]
                 testing_false_negative.pop(key)
+            # prediction
+            str_prediction_predict_target = []
+            for i in xrange(len(prediction_predict_target)):
+                str_prediction_predict_target.append(target_dict[prediction_predict_target[i]])
+            prediction_predict_target = str_prediction_predict_target
         
         # further calculation (http://en.wikipedia.org/wiki/Accuracy_and_precision)
         total_false_positive = {}
@@ -359,16 +452,22 @@ class My_Controller(Autoroute_Controller):
         training_precision = {}
         training_negative_predictive_value = {}
         training_accuracy = {}
+        training_balanced_accuracy = {}
+        training_informedness = {}
         testing_sensitivity = {}
         testing_specificity = {}
         testing_precision = {}
         testing_negative_predictive_value = {}
         testing_accuracy = {}
+        testing_balanced_accuracy = {}
+        testing_informedness = {}
         total_sensitivity = {}
         total_specificity = {}
         total_precision = {}
         total_negative_predictive_value = {}
         total_accuracy = {}
+        total_balanced_accuracy = {}
+        total_informedness = {}
         for group in groups:
             # total true and false positive and negative
             total_false_positive[group] = training_false_positive[group] + testing_false_positive[group]
@@ -402,6 +501,10 @@ class My_Controller(Autoroute_Controller):
                 training_accuracy[group] = 0
             else:
                 training_accuracy[group] = (training_true_positive[group] + training_true_negative[group]) / (training_true_positive[group] + training_true_negative[group] + training_false_positive[group] + training_false_negative[group])
+            #   balanced accuracy
+            training_balanced_accuracy[group] = (training_sensitivity[group] + training_specificity[group])/2.0
+            #   informedness
+            training_informedness[group] = training_sensitivity[group] + training_specificity[group] - 1
             
             # testing measurement
             #   sensitivity
@@ -429,6 +532,10 @@ class My_Controller(Autoroute_Controller):
                 testing_accuracy[group] = 0
             else:
                 testing_accuracy[group] = (testing_true_positive[group] + testing_true_negative[group]) / (testing_true_positive[group] + testing_true_negative[group] + testing_false_positive[group] + testing_false_negative[group])
+            #   balanced accuracy
+            testing_balanced_accuracy[group] = (testing_sensitivity[group] + testing_specificity[group])/2.0
+            #   informedness
+            testing_informedness[group] = testing_sensitivity[group] + testing_specificity[group] - 1
             
             # total measurement
             #   sensitivity
@@ -456,7 +563,10 @@ class My_Controller(Autoroute_Controller):
                 total_accuracy[group] = 0
             else:
                 total_accuracy[group] = (total_true_positive[group] + total_true_negative[group]) / (total_true_positive[group] + total_true_negative[group] + total_false_positive[group] + total_false_negative[group])
-            
+            #   balanced accuracy
+            total_balanced_accuracy[group] = (total_sensitivity[group] + total_specificity[group])/2.0
+            #   informedness
+            total_informedness[group] = total_sensitivity[group] + total_specificity[group] - 1
             
         # show it
         result = {
@@ -489,7 +599,17 @@ class My_Controller(Autoroute_Controller):
                   'total_negative_predictive_value'    : total_negative_predictive_value,
                   'training_accuracy' : training_accuracy,
                   'testing_accuracy'  : testing_accuracy,
-                  'total_accuracy'    : total_accuracy
+                  'total_accuracy'    : total_accuracy,
+                  'training_balanced_accuracy' : training_balanced_accuracy,
+                  'testing_balanced_accuracy'  : testing_balanced_accuracy,
+                  'total_balanced_accuracy'    : total_balanced_accuracy,
+                  'training_informedness' : training_informedness,
+                  'testing_informedness'  : testing_informedness,
+                  'total_informedness'    : total_informedness,
+                  'do_prediction'         : do_prediction,
+                  'prediction_data'       : prediction_data,
+                  'prediction_result'     : prediction_predict_target,
+                  'plot_url'              : plot_url
             }
         return json.dumps(result)
             
