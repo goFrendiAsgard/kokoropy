@@ -113,7 +113,7 @@
                 url : form_url,
                 type: 'POST',
                 data: form_data,
-                timeout: 1000,
+                timeout: 500000,
                 dataType: 'json',
                 success: function(response){
                     console.log(response);
