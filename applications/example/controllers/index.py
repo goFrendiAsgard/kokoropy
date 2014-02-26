@@ -327,7 +327,7 @@ class My_Controller(Autoroute_Controller):
             for label in target_numeric_value:
                 target_dict[target_numeric_value[label]] = label
         
-        # Available classes
+        # Available classes (we call it as groups, since class is reserved word in Python)
         groups = []
         for target in (training_target, testing_target):
             for i in xrange(len(target)):
@@ -337,7 +337,7 @@ class My_Controller(Autoroute_Controller):
         # plotting
         dimensions = caption_list[:-1]
         dimension_count = len(dimensions)
-        subplot_num = dimension_count * (dimension_count-1)
+        subplot_num = dimension_count * (dimension_count-1) * 2
         for i in xrange(dimension_count):
             subplot_num -= i
         if subplot_num == 1:
@@ -346,32 +346,64 @@ class My_Controller(Autoroute_Controller):
         else:
             row_count = np.ceil(subplot_num / 2)
             col_count = 2
-        # determine x, sin(x)
-        x = np.arange(0, 6.28, 0.1)
-        y = np.sin(x)
         # make figure
-        fig = plt.figure(figsize=(20.0, 12.0))
-        fig.subplots_adjust(hspace = 0.5, wspace = 0.5)
+        fig = plt.figure(figsize=(6.0*col_count, 6.0*row_count))
+        fig.subplots_adjust(hspace = 0.2, wspace = 0.2)
         fig.suptitle('Dimension Projection')
         # subplot
         subplot_index = 1
-        second_dimension_start_index = 1
-        first_dimension_index = 0
-        for first_dimension in dimensions:
-            second_dimension_index = second_dimension_start_index
-            for second_dimension in dimensions[second_dimension_start_index:]:
-                ax = fig.add_subplot(row_count, col_count, subplot_index)
-                ax.plot(x, y, 'b')
-                ax.plot(x, y, 'ro')
-                ax.set_title (first_dimension + ' vs ' + second_dimension)
-                ax.set_xlabel(first_dimension)
-                ax.set_ylabel(second_dimension)
-                subplot_index += 1
-                second_dimension_index += 1
-            first_dimension_index += 1
-            second_dimension_start_index += 1
+        for mode in xrange(2):
+            if mode == 0:
+                data = training_data
+                target = training_target
+                caption = 'training'
+            else:
+                data = testing_data
+                target = testing_target
+                caption = 'testing'
+            second_dimension_start_index = 1
+            first_dimension_index = 0
+            for first_dimension in dimensions:
+                second_dimension_index = second_dimension_start_index
+                x = data[:,first_dimension_index]
+                # determine x_min and x_max for contour
+                x_min, x_max = x.min(), x.max()
+                x_range = x_max - x_min
+                x_max += 0.1 * x_range
+                x_min -= 0.1 * x_range
+                for second_dimension in dimensions[second_dimension_start_index:]:
+                    ax = fig.add_subplot(row_count, col_count, subplot_index)
+                    y = data[:,second_dimension_index]
+                    y_min, y_max = y.min(), y.max()
+                    y_range = y_max - y_min
+                    y_max += 0.1 * y_range
+                    y_min -= 0.1 * y_range
+                    # xx, yy
+                    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01 * x_range),
+                         np.arange(y_min, y_max, 0.01 * y_range))
+                    tup = ()
+                    for i in xrange(len(data[0])):
+                        if i == first_dimension_index:
+                            tup = tup + ( xx.ravel(), )
+                        elif i == second_dimension_index:
+                            tup = tup + ( yy.ravel(), )
+                        else:
+                            dimension_mean = data[:, i].mean()
+                            tup = tup + ([dimension_mean] * len(xx.ravel()) , )
+                    Z = classifier.predict(np.c_[tup])
+                    Z = Z.reshape(xx.shape)
+                    ax.contourf(xx, yy, Z)
+                    # scatter-plot the data
+                    ax.scatter(x, y, c=target, cmap=plt.cm.gist_rainbow)
+                    ax.set_title (first_dimension + ' vs ' + second_dimension + ' ('+caption+')')
+                    ax.set_xlabel(first_dimension)
+                    ax.set_ylabel(second_dimension)
+                    subplot_index += 1
+                    second_dimension_index += 1
+                first_dimension_index += 1
+                second_dimension_start_index += 1
         # make canvas
-        file_name = 'plot_'+str(np.random.randint(10000))+str(time.time())+'.png'
+        file_name = 'classification/plot_'+str(np.random.randint(10000))+str(time.time())+'.png'
         plot_url = draw_matplotlib_figure(fig,file_name,'example')
         
         # initiate false positive, false negative, true positive, and true negative

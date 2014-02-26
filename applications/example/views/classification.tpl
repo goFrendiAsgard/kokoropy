@@ -1,7 +1,8 @@
 <div class="alert alert-info">
     <ul>
         <li>
-            You should provide training and testing data in csv format. If you don't have any idea about it, you can just simply use <a id="btn_default" class="btn btn-success" href="#">iris dataset</a> and see how it works.<br />
+            You should provide training and testing data in csv format. If you don't have any idea about it, you can just simply use
+            <a id="btn_partial_iris" class="btn btn-success" href="#">partial iris dataset</a> or <a id="btn_complete_iris" class="btn btn-success" href="#">complete iris dataset</a> and see how it works.<br />
             For more information about iris dataset, please visit <a target="blank" href="http://archive.ics.uci.edu/ml/datasets/Iris">http://archive.ics.uci.edu/ml/datasets/Iris</a>
         </li>
         <li>
@@ -12,7 +13,7 @@
         </li>
     </ul>
 </div>
-<h4>Data Classification Example</h4>
+<h3>Data Classification Example</h3>
 <form action="{{ BASE_URL }}example/classification_result" method="post" enctype="multipart/form-data" id="classification-form" class="form-horizontal" role="form">
     <div class="form-group">
         <label for="training_csv" class="col-lg-3 col-md-3 control-label">CSV Training Data</label>
@@ -67,8 +68,8 @@
 % import json
 <script type="text/javascript">
     var CLASSIFIERS = {{ !json.dumps(classifiers) }};
-    var DEFAULT_TRAINING_CSV = 'sepal length, sepal width, petal length, petal width, class\n5.1,3.5,1.4,0.2,Iris-setosa\n4.9,3.0,1.4,0.2,Iris-setosa\n4.7,3.2,1.3,0.2,Iris-setosa\n4.6,3.1,1.5,0.2,Iris-setosa\n5.0,3.6,1.4,0.2,Iris-setosa\n5.4,3.9,1.7,0.4,Iris-setosa\n4.6,3.4,1.4,0.3,Iris-setosa\n5.0,3.4,1.5,0.2,Iris-setosa\n4.4,2.9,1.4,0.2,Iris-setosa\n4.9,3.1,1.5,0.1,Iris-setosa\n5.4,3.7,1.5,0.2,Iris-setosa\n4.8,3.4,1.6,0.2,Iris-setosa\n4.8,3.0,1.4,0.1,Iris-setosa\n4.3,3.0,1.1,0.1,Iris-setosa\n5.8,4.0,1.2,0.2,Iris-setosa\n5.7,4.4,1.5,0.4,Iris-setosa\n5.4,3.9,1.3,0.4,Iris-setosa\n5.1,3.5,1.4,0.3,Iris-setosa\n5.7,3.8,1.7,0.3,Iris-setosa\n5.1,3.8,1.5,0.3,Iris-setosa\n5.4,3.4,1.7,0.2,Iris-setosa\n5.1,3.7,1.5,0.4,Iris-setosa\n4.6,3.6,1.0,0.2,Iris-setosa\n5.1,3.3,1.7,0.5,Iris-setosa\n4.8,3.4,1.9,0.2,Iris-setosa\n5.0,3.0,1.6,0.2,Iris-setosa\n5.0,3.4,1.6,0.4,Iris-setosa\n5.2,3.5,1.5,0.2,Iris-setosa\n5.2,3.4,1.4,0.2,Iris-setosa\n4.7,3.2,1.6,0.2,Iris-setosa\n4.8,3.1,1.6,0.2,Iris-setosa\n5.4,3.4,1.5,0.4,Iris-setosa\n5.2,4.1,1.5,0.1,Iris-setosa\n5.5,4.2,1.4,0.2,Iris-setosa\n4.9,3.1,1.5,0.1,Iris-setosa\n5.0,3.2,1.2,0.2,Iris-setosa\n5.5,3.5,1.3,0.2,Iris-setosa\n4.9,3.1,1.5,0.1,Iris-setosa\n4.4,3.0,1.3,0.2,Iris-setosa\n5.1,3.4,1.5,0.2,Iris-setosa\n5.0,3.5,1.3,0.3,Iris-setosa\n4.5,2.3,1.3,0.3,Iris-setosa\n4.4,3.2,1.3,0.2,Iris-setosa\n5.0,3.5,1.6,0.6,Iris-setosa\n5.1,3.8,1.9,0.4,Iris-setosa\n4.8,3.0,1.4,0.3,Iris-setosa\n5.1,3.8,1.6,0.2,Iris-setosa\n4.6,3.2,1.4,0.2,Iris-setosa\n5.3,3.7,1.5,0.2,Iris-setosa\n5.0,3.3,1.4,0.2,Iris-setosa\n7.0,3.2,4.7,1.4,Iris-versicolor\n6.4,3.2,4.5,1.5,Iris-versicolor\n6.9,3.1,4.9,1.5,Iris-versicolor\n5.5,2.3,4.0,1.3,Iris-versicolor\n6.5,2.8,4.6,1.5,Iris-versicolor\n5.7,2.8,4.5,1.3,Iris-versicolor\n6.3,3.3,4.7,1.6,Iris-versicolor\n4.9,2.4,3.3,1.0,Iris-versicolor\n6.6,2.9,4.6,1.3,Iris-versicolor\n5.2,2.7,3.9,1.4,Iris-versicolor\n5.0,2.0,3.5,1.0,Iris-versicolor\n5.9,3.0,4.2,1.5,Iris-versicolor\n6.0,2.2,4.0,1.0,Iris-versicolor\n6.1,2.9,4.7,1.4,Iris-versicolor\n5.6,2.9,3.6,1.3,Iris-versicolor\n6.7,3.1,4.4,1.4,Iris-versicolor\n5.6,3.0,4.5,1.5,Iris-versicolor\n5.8,2.7,4.1,1.0,Iris-versicolor\n6.2,2.2,4.5,1.5,Iris-versicolor\n5.6,2.5,3.9,1.1,Iris-versicolor\n5.9,3.2,4.8,1.8,Iris-versicolor\n6.1,2.8,4.0,1.3,Iris-versicolor\n6.3,2.5,4.9,1.5,Iris-versicolor\n6.1,2.8,4.7,1.2,Iris-versicolor\n6.4,2.9,4.3,1.3,Iris-versicolor\n6.6,3.0,4.4,1.4,Iris-versicolor\n6.8,2.8,4.8,1.4,Iris-versicolor\n6.7,3.0,5.0,1.7,Iris-versicolor\n6.0,2.9,4.5,1.5,Iris-versicolor\n5.7,2.6,3.5,1.0,Iris-versicolor\n5.5,2.4,3.8,1.1,Iris-versicolor\n5.5,2.4,3.7,1.0,Iris-versicolor\n5.8,2.7,3.9,1.2,Iris-versicolor\n6.0,2.7,5.1,1.6,Iris-versicolor\n5.4,3.0,4.5,1.5,Iris-versicolor\n6.0,3.4,4.5,1.6,Iris-versicolor\n6.7,3.1,4.7,1.5,Iris-versicolor\n6.3,2.3,4.4,1.3,Iris-versicolor\n5.6,3.0,4.1,1.3,Iris-versicolor\n5.5,2.5,4.0,1.3,Iris-versicolor\n5.5,2.6,4.4,1.2,Iris-versicolor\n6.1,3.0,4.6,1.4,Iris-versicolor\n5.8,2.6,4.0,1.2,Iris-versicolor\n5.0,2.3,3.3,1.0,Iris-versicolor\n5.6,2.7,4.2,1.3,Iris-versicolor\n5.7,3.0,4.2,1.2,Iris-versicolor\n5.7,2.9,4.2,1.3,Iris-versicolor\n6.2,2.9,4.3,1.3,Iris-versicolor\n5.1,2.5,3.0,1.1,Iris-versicolor\n5.7,2.8,4.1,1.3,Iris-versicolor\n6.3,3.3,6.0,2.5,Iris-virginica\n5.8,2.7,5.1,1.9,Iris-virginica\n7.1,3.0,5.9,2.1,Iris-virginica\n6.3,2.9,5.6,1.8,Iris-virginica\n6.5,3.0,5.8,2.2,Iris-virginica\n7.6,3.0,6.6,2.1,Iris-virginica\n4.9,2.5,4.5,1.7,Iris-virginica\n7.3,2.9,6.3,1.8,Iris-virginica\n6.7,2.5,5.8,1.8,Iris-virginica\n7.2,3.6,6.1,2.5,Iris-virginica\n6.5,3.2,5.1,2.0,Iris-virginica\n6.4,2.7,5.3,1.9,Iris-virginica\n6.8,3.0,5.5,2.1,Iris-virginica\n5.7,2.5,5.0,2.0,Iris-virginica\n5.8,2.8,5.1,2.4,Iris-virginica\n6.4,3.2,5.3,2.3,Iris-virginica\n6.5,3.0,5.5,1.8,Iris-virginica\n7.7,3.8,6.7,2.2,Iris-virginica\n7.7,2.6,6.9,2.3,Iris-virginica\n6.0,2.2,5.0,1.5,Iris-virginica\n6.9,3.2,5.7,2.3,Iris-virginica\n5.6,2.8,4.9,2.0,Iris-virginica\n7.7,2.8,6.7,2.0,Iris-virginica\n6.3,2.7,4.9,1.8,Iris-virginica\n6.7,3.3,5.7,2.1,Iris-virginica\n7.2,3.2,6.0,1.8,Iris-virginica\n6.2,2.8,4.8,1.8,Iris-virginica\n6.1,3.0,4.9,1.8,Iris-virginica\n6.4,2.8,5.6,2.1,Iris-virginica\n7.2,3.0,5.8,1.6,Iris-virginica\n7.4,2.8,6.1,1.9,Iris-virginica\n7.9,3.8,6.4,2.0,Iris-virginica\n6.4,2.8,5.6,2.2,Iris-virginica\n6.3,2.8,5.1,1.5,Iris-virginica\n6.1,2.6,5.6,1.4,Iris-virginica\n7.7,3.0,6.1,2.3,Iris-virginica\n6.3,3.4,5.6,2.4,Iris-virginica\n6.4,3.1,5.5,1.8,Iris-virginica\n6.0,3.0,4.8,1.8,Iris-virginica\n6.9,3.1,5.4,2.1,Iris-virginica\n6.7,3.1,5.6,2.4,Iris-virginica\n6.9,3.1,5.1,2.3,Iris-virginica\n5.8,2.7,5.1,1.9,Iris-virginica\n6.8,3.2,5.9,2.3,Iris-virginica\n6.7,3.3,5.7,2.5,Iris-virginica\n6.7,3.0,5.2,2.3,Iris-virginica\n6.3,2.5,5.0,1.9,Iris-virginica\n6.5,3.0,5.2,2.0,Iris-virginica\n6.2,3.4,5.4,2.3,Iris-virginica\n5.9,3.0,5.1,1.8,Iris-virginica';
-    var DEFAULT_TARGET = 'class';
+    var COMPLETE_IRIS_CSV = 'sepal length, sepal width, petal length, petal width, class\n5.1,3.5,1.4,0.2,Iris-setosa\n4.9,3.0,1.4,0.2,Iris-setosa\n4.7,3.2,1.3,0.2,Iris-setosa\n4.6,3.1,1.5,0.2,Iris-setosa\n5.0,3.6,1.4,0.2,Iris-setosa\n5.4,3.9,1.7,0.4,Iris-setosa\n4.6,3.4,1.4,0.3,Iris-setosa\n5.0,3.4,1.5,0.2,Iris-setosa\n4.4,2.9,1.4,0.2,Iris-setosa\n4.9,3.1,1.5,0.1,Iris-setosa\n5.4,3.7,1.5,0.2,Iris-setosa\n4.8,3.4,1.6,0.2,Iris-setosa\n4.8,3.0,1.4,0.1,Iris-setosa\n4.3,3.0,1.1,0.1,Iris-setosa\n5.8,4.0,1.2,0.2,Iris-setosa\n5.7,4.4,1.5,0.4,Iris-setosa\n5.4,3.9,1.3,0.4,Iris-setosa\n5.1,3.5,1.4,0.3,Iris-setosa\n5.7,3.8,1.7,0.3,Iris-setosa\n5.1,3.8,1.5,0.3,Iris-setosa\n5.4,3.4,1.7,0.2,Iris-setosa\n5.1,3.7,1.5,0.4,Iris-setosa\n4.6,3.6,1.0,0.2,Iris-setosa\n5.1,3.3,1.7,0.5,Iris-setosa\n4.8,3.4,1.9,0.2,Iris-setosa\n5.0,3.0,1.6,0.2,Iris-setosa\n5.0,3.4,1.6,0.4,Iris-setosa\n5.2,3.5,1.5,0.2,Iris-setosa\n5.2,3.4,1.4,0.2,Iris-setosa\n4.7,3.2,1.6,0.2,Iris-setosa\n4.8,3.1,1.6,0.2,Iris-setosa\n5.4,3.4,1.5,0.4,Iris-setosa\n5.2,4.1,1.5,0.1,Iris-setosa\n5.5,4.2,1.4,0.2,Iris-setosa\n4.9,3.1,1.5,0.1,Iris-setosa\n5.0,3.2,1.2,0.2,Iris-setosa\n5.5,3.5,1.3,0.2,Iris-setosa\n4.9,3.1,1.5,0.1,Iris-setosa\n4.4,3.0,1.3,0.2,Iris-setosa\n5.1,3.4,1.5,0.2,Iris-setosa\n5.0,3.5,1.3,0.3,Iris-setosa\n4.5,2.3,1.3,0.3,Iris-setosa\n4.4,3.2,1.3,0.2,Iris-setosa\n5.0,3.5,1.6,0.6,Iris-setosa\n5.1,3.8,1.9,0.4,Iris-setosa\n4.8,3.0,1.4,0.3,Iris-setosa\n5.1,3.8,1.6,0.2,Iris-setosa\n4.6,3.2,1.4,0.2,Iris-setosa\n5.3,3.7,1.5,0.2,Iris-setosa\n5.0,3.3,1.4,0.2,Iris-setosa\n7.0,3.2,4.7,1.4,Iris-versicolor\n6.4,3.2,4.5,1.5,Iris-versicolor\n6.9,3.1,4.9,1.5,Iris-versicolor\n5.5,2.3,4.0,1.3,Iris-versicolor\n6.5,2.8,4.6,1.5,Iris-versicolor\n5.7,2.8,4.5,1.3,Iris-versicolor\n6.3,3.3,4.7,1.6,Iris-versicolor\n4.9,2.4,3.3,1.0,Iris-versicolor\n6.6,2.9,4.6,1.3,Iris-versicolor\n5.2,2.7,3.9,1.4,Iris-versicolor\n5.0,2.0,3.5,1.0,Iris-versicolor\n5.9,3.0,4.2,1.5,Iris-versicolor\n6.0,2.2,4.0,1.0,Iris-versicolor\n6.1,2.9,4.7,1.4,Iris-versicolor\n5.6,2.9,3.6,1.3,Iris-versicolor\n6.7,3.1,4.4,1.4,Iris-versicolor\n5.6,3.0,4.5,1.5,Iris-versicolor\n5.8,2.7,4.1,1.0,Iris-versicolor\n6.2,2.2,4.5,1.5,Iris-versicolor\n5.6,2.5,3.9,1.1,Iris-versicolor\n5.9,3.2,4.8,1.8,Iris-versicolor\n6.1,2.8,4.0,1.3,Iris-versicolor\n6.3,2.5,4.9,1.5,Iris-versicolor\n6.1,2.8,4.7,1.2,Iris-versicolor\n6.4,2.9,4.3,1.3,Iris-versicolor\n6.6,3.0,4.4,1.4,Iris-versicolor\n6.8,2.8,4.8,1.4,Iris-versicolor\n6.7,3.0,5.0,1.7,Iris-versicolor\n6.0,2.9,4.5,1.5,Iris-versicolor\n5.7,2.6,3.5,1.0,Iris-versicolor\n5.5,2.4,3.8,1.1,Iris-versicolor\n5.5,2.4,3.7,1.0,Iris-versicolor\n5.8,2.7,3.9,1.2,Iris-versicolor\n6.0,2.7,5.1,1.6,Iris-versicolor\n5.4,3.0,4.5,1.5,Iris-versicolor\n6.0,3.4,4.5,1.6,Iris-versicolor\n6.7,3.1,4.7,1.5,Iris-versicolor\n6.3,2.3,4.4,1.3,Iris-versicolor\n5.6,3.0,4.1,1.3,Iris-versicolor\n5.5,2.5,4.0,1.3,Iris-versicolor\n5.5,2.6,4.4,1.2,Iris-versicolor\n6.1,3.0,4.6,1.4,Iris-versicolor\n5.8,2.6,4.0,1.2,Iris-versicolor\n5.0,2.3,3.3,1.0,Iris-versicolor\n5.6,2.7,4.2,1.3,Iris-versicolor\n5.7,3.0,4.2,1.2,Iris-versicolor\n5.7,2.9,4.2,1.3,Iris-versicolor\n6.2,2.9,4.3,1.3,Iris-versicolor\n5.1,2.5,3.0,1.1,Iris-versicolor\n5.7,2.8,4.1,1.3,Iris-versicolor\n6.3,3.3,6.0,2.5,Iris-virginica\n5.8,2.7,5.1,1.9,Iris-virginica\n7.1,3.0,5.9,2.1,Iris-virginica\n6.3,2.9,5.6,1.8,Iris-virginica\n6.5,3.0,5.8,2.2,Iris-virginica\n7.6,3.0,6.6,2.1,Iris-virginica\n4.9,2.5,4.5,1.7,Iris-virginica\n7.3,2.9,6.3,1.8,Iris-virginica\n6.7,2.5,5.8,1.8,Iris-virginica\n7.2,3.6,6.1,2.5,Iris-virginica\n6.5,3.2,5.1,2.0,Iris-virginica\n6.4,2.7,5.3,1.9,Iris-virginica\n6.8,3.0,5.5,2.1,Iris-virginica\n5.7,2.5,5.0,2.0,Iris-virginica\n5.8,2.8,5.1,2.4,Iris-virginica\n6.4,3.2,5.3,2.3,Iris-virginica\n6.5,3.0,5.5,1.8,Iris-virginica\n7.7,3.8,6.7,2.2,Iris-virginica\n7.7,2.6,6.9,2.3,Iris-virginica\n6.0,2.2,5.0,1.5,Iris-virginica\n6.9,3.2,5.7,2.3,Iris-virginica\n5.6,2.8,4.9,2.0,Iris-virginica\n7.7,2.8,6.7,2.0,Iris-virginica\n6.3,2.7,4.9,1.8,Iris-virginica\n6.7,3.3,5.7,2.1,Iris-virginica\n7.2,3.2,6.0,1.8,Iris-virginica\n6.2,2.8,4.8,1.8,Iris-virginica\n6.1,3.0,4.9,1.8,Iris-virginica\n6.4,2.8,5.6,2.1,Iris-virginica\n7.2,3.0,5.8,1.6,Iris-virginica\n7.4,2.8,6.1,1.9,Iris-virginica\n7.9,3.8,6.4,2.0,Iris-virginica\n6.4,2.8,5.6,2.2,Iris-virginica\n6.3,2.8,5.1,1.5,Iris-virginica\n6.1,2.6,5.6,1.4,Iris-virginica\n7.7,3.0,6.1,2.3,Iris-virginica\n6.3,3.4,5.6,2.4,Iris-virginica\n6.4,3.1,5.5,1.8,Iris-virginica\n6.0,3.0,4.8,1.8,Iris-virginica\n6.9,3.1,5.4,2.1,Iris-virginica\n6.7,3.1,5.6,2.4,Iris-virginica\n6.9,3.1,5.1,2.3,Iris-virginica\n5.8,2.7,5.1,1.9,Iris-virginica\n6.8,3.2,5.9,2.3,Iris-virginica\n6.7,3.3,5.7,2.5,Iris-virginica\n6.7,3.0,5.2,2.3,Iris-virginica\n6.3,2.5,5.0,1.9,Iris-virginica\n6.5,3.0,5.2,2.0,Iris-virginica\n6.2,3.4,5.4,2.3,Iris-virginica\n5.9,3.0,5.1,1.8,Iris-virginica';
+    var PARTIAL_IRIS_CSV = 'petal length, petal width, class\n1.4,0.2,Iris-setosa\n1.4,0.2,Iris-setosa\n1.3,0.2,Iris-setosa\n1.5,0.2,Iris-setosa\n1.4,0.2,Iris-setosa\n1.7,0.4,Iris-setosa\n1.4,0.3,Iris-setosa\n1.5,0.2,Iris-setosa\n1.4,0.2,Iris-setosa\n1.5,0.1,Iris-setosa\n1.5,0.2,Iris-setosa\n1.6,0.2,Iris-setosa\n1.4,0.1,Iris-setosa\n1.1,0.1,Iris-setosa\n1.2,0.2,Iris-setosa\n1.5,0.4,Iris-setosa\n1.3,0.4,Iris-setosa\n1.4,0.3,Iris-setosa\n1.7,0.3,Iris-setosa\n1.5,0.3,Iris-setosa\n1.7,0.2,Iris-setosa\n1.5,0.4,Iris-setosa\n1,0.2,Iris-setosa\n1.7,0.5,Iris-setosa\n1.9,0.2,Iris-setosa\n1.6,0.2,Iris-setosa\n1.6,0.4,Iris-setosa\n1.5,0.2,Iris-setosa\n1.4,0.2,Iris-setosa\n1.6,0.2,Iris-setosa\n1.6,0.2,Iris-setosa\n1.5,0.4,Iris-setosa\n1.5,0.1,Iris-setosa\n1.4,0.2,Iris-setosa\n1.5,0.1,Iris-setosa\n1.2,0.2,Iris-setosa\n1.3,0.2,Iris-setosa\n1.5,0.1,Iris-setosa\n1.3,0.2,Iris-setosa\n1.5,0.2,Iris-setosa\n1.3,0.3,Iris-setosa\n1.3,0.3,Iris-setosa\n1.3,0.2,Iris-setosa\n1.6,0.6,Iris-setosa\n1.9,0.4,Iris-setosa\n1.4,0.3,Iris-setosa\n1.6,0.2,Iris-setosa\n1.4,0.2,Iris-setosa\n1.5,0.2,Iris-setosa\n1.4,0.2,Iris-setosa\n4.7,1.4,Iris-versicolor\n4.5,1.5,Iris-versicolor\n4.9,1.5,Iris-versicolor\n4,1.3,Iris-versicolor\n4.6,1.5,Iris-versicolor\n4.5,1.3,Iris-versicolor\n4.7,1.6,Iris-versicolor\n3.3,1,Iris-versicolor\n4.6,1.3,Iris-versicolor\n3.9,1.4,Iris-versicolor\n3.5,1,Iris-versicolor\n4.2,1.5,Iris-versicolor\n4,1,Iris-versicolor\n4.7,1.4,Iris-versicolor\n3.6,1.3,Iris-versicolor\n4.4,1.4,Iris-versicolor\n4.5,1.5,Iris-versicolor\n4.1,1,Iris-versicolor\n4.5,1.5,Iris-versicolor\n3.9,1.1,Iris-versicolor\n4.8,1.8,Iris-versicolor\n4,1.3,Iris-versicolor\n4.9,1.5,Iris-versicolor\n4.7,1.2,Iris-versicolor\n4.3,1.3,Iris-versicolor\n4.4,1.4,Iris-versicolor\n4.8,1.4,Iris-versicolor\n5,1.7,Iris-versicolor\n4.5,1.5,Iris-versicolor\n3.5,1,Iris-versicolor\n3.8,1.1,Iris-versicolor\n3.7,1,Iris-versicolor\n3.9,1.2,Iris-versicolor\n5.1,1.6,Iris-versicolor\n4.5,1.5,Iris-versicolor\n4.5,1.6,Iris-versicolor\n4.7,1.5,Iris-versicolor\n4.4,1.3,Iris-versicolor\n4.1,1.3,Iris-versicolor\n4,1.3,Iris-versicolor\n4.4,1.2,Iris-versicolor\n4.6,1.4,Iris-versicolor\n4,1.2,Iris-versicolor\n3.3,1,Iris-versicolor\n4.2,1.3,Iris-versicolor\n4.2,1.2,Iris-versicolor\n4.2,1.3,Iris-versicolor\n4.3,1.3,Iris-versicolor\n3,1.1,Iris-versicolor\n4.1,1.3,Iris-versicolor\n6,2.5,Iris-virginica\n5.1,1.9,Iris-virginica\n5.9,2.1,Iris-virginica\n5.6,1.8,Iris-virginica\n5.8,2.2,Iris-virginica\n6.6,2.1,Iris-virginica\n4.5,1.7,Iris-virginica\n6.3,1.8,Iris-virginica\n5.8,1.8,Iris-virginica\n6.1,2.5,Iris-virginica\n5.1,2,Iris-virginica\n5.3,1.9,Iris-virginica\n5.5,2.1,Iris-virginica\n5,2,Iris-virginica\n5.1,2.4,Iris-virginica\n5.3,2.3,Iris-virginica\n5.5,1.8,Iris-virginica\n6.7,2.2,Iris-virginica\n6.9,2.3,Iris-virginica\n5,1.5,Iris-virginica\n5.7,2.3,Iris-virginica\n4.9,2,Iris-virginica\n6.7,2,Iris-virginica\n4.9,1.8,Iris-virginica\n5.7,2.1,Iris-virginica\n6,1.8,Iris-virginica\n4.8,1.8,Iris-virginica\n4.9,1.8,Iris-virginica\n5.6,2.1,Iris-virginica\n5.8,1.6,Iris-virginica\n6.1,1.9,Iris-virginica\n6.4,2,Iris-virginica\n5.6,2.2,Iris-virginica\n5.1,1.5,Iris-virginica\n5.6,1.4,Iris-virginica\n6.1,2.3,Iris-virginica\n5.6,2.4,Iris-virginica\n5.5,1.8,Iris-virginica\n4.8,1.8,Iris-virginica\n5.4,2.1,Iris-virginica\n5.6,2.4,Iris-virginica\n5.1,2.3,Iris-virginica\n5.1,1.9,Iris-virginica\n5.9,2.3,Iris-virginica\n5.7,2.5,Iris-virginica\n5.2,2.3,Iris-virginica\n5,1.9,Iris-virginica\n5.2,2,Iris-virginica\n5.4,2.3,Iris-virginica\n5.1,1.8,Iris-virginica';
     
     function make_input(name, value){
         html = '<div class="form-group">';
@@ -94,9 +95,12 @@
         adjust_parameters();
         
         // btn_default click
-        $('#btn_default').click(function(){
-            $('#training_csv').val(DEFAULT_TRAINING_CSV);
-            $('#target_caption').val(DEFAULT_TARGET);
+        $('#btn_complete_iris').click(function(){
+            $('#training_csv').val(COMPLETE_IRIS_CSV);
+            event.preventDefault();
+        });
+        $('#btn_partial_iris').click(function(){
+            $('#training_csv').val(PARTIAL_IRIS_CSV);
             event.preventDefault();
         });
         
@@ -121,12 +125,27 @@
                     console.log(response);
                     var html = '';
                     if(!response.success){
-                        html = '<div class="alert alert-danger">' + response.message + '</div>';
+                        html = '<div class="alert alert-danger"><b>ERROR</b> ' + response.message + '</div>';
                     }else{
-                        html += '<h3>Result</h3>';
+                        html += '<h3>Classification Result :</h3>';
+                        
+                         // plot
+                        html += '<h4>Training And Testing Data Plot</h4>';
+                        html += '<p>per-2-dimensions plots. Data plot usually give better idea about classifier\'s behaviors, advantages, and weakneses</p>';
+                        if(response.dimensions.length > 2){
+                            html += '<div class="alert alert-warning"><b>Warning :</b> If your data contains more than 2 dimensions, please consider that the contour projection is probably inacurate</div>';
+                        }
+                        html += '<img src="'+response.plot_url+'" />';
                         
                         // Accuracy and precision
-                        html += '<h4>Accuracy And Precision</h4>';
+                        rough_accuracy = 0.0;
+                        for(i=0; i<response.groups.length; i++){
+                            group = response.groups[i];
+                            rough_accuracy += response.total_accuracy[group];
+                        }
+                        rough_accuracy /= response.groups.length;
+                        rough_accuracy *= 100;
+                        html += '<h4>Accuracy And Precision (Rough accuracy : '+rough_accuracy+'%)</h4>';
                         html += '<p>We use several metrics to measure classifier\'s performance. For more information about those metrics, please visit <a target="blank" href="http://en.wikipedia.org/wiki/Accuracy_and_precision">http://en.wikipedia.org/wiki/Accuracy_and_precision</a></p>';
                         html += '<table class="table"><thead><tr><th colspan="2">Metric</th><th>Training</th><th>Testing</th><th>Total</th></tr></thead><tbody>';
                         var metrics = new Array('true_positive', 'true_negative', 'false_positive', 'false_negative', 'sensitivity', 'specificity', 'precision', 
@@ -136,7 +155,7 @@
                             for (j=0; j<response.groups.length; j++){
                                 group = response.groups[j];
                                 if(j == 0){
-                                    html += '<tr><td rowspan="' + response.groups.length + '">' + metric.replace('_', ' ') + '</td>';
+                                    html += '<tr><td rowspan="' + response.groups.length + '">' + metric.replace(/_/gi, ' ') + '</td>';
                                 }else{
                                     html += '<tr>';
                                 }
@@ -172,10 +191,7 @@
                             html += '</tbody></table>';
                         }
                         
-                        // plot
-                        html += '<h4>Plot</h4>';
-                        html += '<p>Plots (under construction)</p>';
-                        html += '<img style="width:100%" src="'+response.plot_url+'" />';
+                       
                     }
                     $('#result').html(html);
                 },
