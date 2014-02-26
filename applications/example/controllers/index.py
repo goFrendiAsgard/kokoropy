@@ -363,7 +363,7 @@ class My_Controller(Autoroute_Controller):
                 ax = fig.add_subplot(row_count, col_count, subplot_index)
                 ax.plot(x, y, 'b')
                 ax.plot(x, y, 'ro')
-                ax.set_title ('y and x')
+                ax.set_title (first_dimension + ' vs ' + second_dimension)
                 ax.set_xlabel(first_dimension)
                 ax.set_ylabel(second_dimension)
                 subplot_index += 1
@@ -609,7 +609,8 @@ class My_Controller(Autoroute_Controller):
                   'do_prediction'         : do_prediction,
                   'prediction_data'       : prediction_data,
                   'prediction_result'     : prediction_predict_target,
-                  'plot_url'              : plot_url
+                  'plot_url'              : plot_url,
+                  'dimensions'            : dimensions
             }
         return json.dumps(result)
             
