@@ -18,14 +18,48 @@ class My_Controller(Autoroute_Controller):
                         'n_neighbors' : 5,
                     },
                 'sklearn.svm.SVC'  : {
-                        'C'           : 0.025,
-                        'kernel'      : 'linear',
-                        'gamma'       : 2
+                        'C'           : 1.0, 
+                        'kernel'      : 'rbf', 
+                        'degree'      : 3, 
+                        'gamma'       : 0.0, 
+                        'coef0'       : 0.0, 
+                        'shrinking'   : 'True', 
+                        'probability' : 'False', 
+                        'tol'         : 0.001, 
+                        'cache_size'  : 200, 
+                        'class_weight': 'None', 
+                        'verbose'     : 'False', 
+                        'max_iter'    : -1, 
+                        'random_state': 'None'
+                    },
+                'sklearn.svm.LinearSVC' : {
+                        'penalt'      : 'l2', 
+                        'loss'        : 'l2', 
+                        'dual'        : 'True', 
+                        'tol'         : 0.0001, 
+                        'C'           : 1.0, 
+                        'multi_class' : 'ovr', 
+                        'fit_intercept' : 'True', 
+                        'intercept_scaling' : 1, 
+                        'class_weight' : 'None', 
+                        'verbose'      : 0, 
+                        'random_state' : 'None'
                     },
                 'sklearn.tree.DecisionTreeClassifier' : {
                         'max_depth'   : 5
                     },
                 'sklearn.naive_bayes.GaussianNB' : {
+                    },
+                'sklearn.naive_bayes.MultinomialNB' : {
+                        'alpha'       : 1.0,
+                        'fit_prior'   : 'True',
+                        'class_prior' : 'None'
+                    },
+                'sklearn.naive_bayes.BernoulliNB' : {
+                        'alpha'       : 1.0,
+                        'binarize'    : 0.0,
+                        'fit_prior'   : 'True',
+                        'class_prior' : 'None',
                     },
                 'sklearn.dummy.DummyClassifier' : {
                         'strategy'    : 'stratified', 
@@ -43,7 +77,7 @@ class My_Controller(Autoroute_Controller):
                         'n_jobs':1,
                         'random_state':'None',
                         'verbose':0,
-                        'min_density':'None',
+                        'min_density':'0',
                         'compute_importances':'None'
                     }
             }
