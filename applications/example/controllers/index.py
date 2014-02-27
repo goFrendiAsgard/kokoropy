@@ -295,6 +295,7 @@ class My_Controller(Autoroute_Controller):
                 del prediction_target
             else:
                 do_prediction = False
+                predict_csv = ''
                 prediction_data = []
         except Exception, e:
             result['success'] = False
