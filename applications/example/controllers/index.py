@@ -189,9 +189,26 @@ class My_Controller(Autoroute_Controller):
         change csv string to python list
         '''
         import StringIO, csv
+        # preprocess str_csv
+        data =  str_csv.split('\r\n')
+        if len(data) == 1:
+            data = str_csv.split('\n')
+        new_data = []
+        element_count = -1
+        for row in data:
+            lst = row.split(',')
+            if element_count == -1:
+                element_count = len(lst)
+            if len(lst) == element_count:
+                new_data.append(row)
+        data = new_data
+        str_csv = '\n'.join(data)
+        # make StringIO
         f = StringIO.StringIO(str_csv)
+        # make csv reader
         reader = csv.reader(f, delimiter = ',')
         lst = []
+        element_count = -1
         for row in reader:
             lst.append(row)
         return lst
@@ -204,10 +221,12 @@ class My_Controller(Autoroute_Controller):
             caption_list is array of string, contains human-readable caption (1st row of csv)
             numeric_value is a dictionary, contains captions and numbers
         '''
-        from numpy import array
+        import numpy as np
         data_list = self.csv_to_list(csv)
         if caption_list is None:
             caption_list = data_list[0]
+            data_list = data_list[1:]
+        elif data_list[0] == caption_list:
             data_list = data_list[1:]
         data = []
         target = []
@@ -222,11 +241,11 @@ class My_Controller(Autoroute_Controller):
                     row[i] = numeric_value[caption][row[i]]
                 row[i] = float(row[i]) # ensure this is float
             while len(row)<len(caption_list):
-                row.append(0)
+                row.append(0.0)
             data.append(row[:-1])
             target.append(row[-1])
-        data = array(data)
-        target = array(target)
+        data = np.array(data)
+        target = np.array(target)
         return (data, target, caption_list, numeric_value)
     
     def action_classification_result(self):
@@ -273,7 +292,6 @@ class My_Controller(Autoroute_Controller):
                 do_prediction = True
                 predict_csv = request.POST['predict_csv']
                 prediction_data, prediction_target, caption_list, numeric_value = self.extract_csv(predict_csv, caption_list, numeric_value)
-                prediction_data = self.csv_to_list(predict_csv)
                 del prediction_target
             else:
                 do_prediction = False
@@ -602,6 +620,7 @@ class My_Controller(Autoroute_Controller):
             total_informedness[group] = total_sensitivity[group] + total_specificity[group] - 1
             
         # show it
+        prediction_data = self.csv_to_list(predict_csv)
         result = {
                   'success' : True,
                   'message' : '',
