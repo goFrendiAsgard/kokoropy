@@ -1,3 +1,9 @@
+<style type="text/css">
+    textarea{
+        font-size: x-small!important;
+        font-family: 'courier';
+    }
+</style>
 <div class="alert alert-info">
     <ul>
         <li>
@@ -16,12 +22,17 @@
 <h3>Data Classification Example</h3>
 <form action="{{ BASE_URL }}example/classification_result" method="post" enctype="multipart/form-data" id="classification-form" class="form-horizontal" role="form">
     <div class="form-group">
+        <label for="draw_plot" class="col-lg-3 col-md-3 control-label">Draw Data Plot</label>
+        <div class="col-lg-7 col-md-8">
+            <input type="checkbox" id="draw_plot" name="draw_plot" value="true" checked>
+        </div>
+    </div>
+    <div class="form-group">
         <label for="training_csv" class="col-lg-3 col-md-3 control-label">CSV Training Data</label>
         <div class="col-lg-7 col-md-8">
             <textarea class="form-control" id="training_csv" name="training_csv" placeholder="Training Data in csv format (with captions)."></textarea>
             <p class="help-block">
-                Put your training data in csv format (1st row should be caption). E.g:<br />
-                <pre style="font-size:x-small">sepal length, sepal width, petal length, petal width, class<br />5.1,3.5,1.4,0.2,Iris-setosa<br />4.9,3.0,1.4,0.2,Iris-versicolor<br />4.7,3.2,1.3,0.2,Iris-virginica<br />...</pre>
+                Put your training data in csv format (1st row should be caption)
             </p>
         </div>
     </div>
@@ -30,8 +41,7 @@
         <div class="col-lg-7 col-md-8">
             <textarea class="form-control" id="testing_csv" name="testing_csv" placeholder="Testing Data in csv format (without captions)"></textarea>
             <p class="help-block">
-                Put your testing data in csv format (no caption). E.g:<br />
-                <pre style="font-size:x-small">5.1,3.5,1.4,0.2,Iris-setosa<br />4.9,3.0,1.4,0.2,Iris-versicolor<br />4.7,3.2,1.3,0.2,Iris-virginica<br />...</pre>
+                Put your testing data in csv format (no caption)
             </p>
         </div>
     </div>
@@ -40,8 +50,7 @@
         <div class="col-lg-7 col-md-8">
             <textarea class="form-control" id="predict_csv" name="predict_csv" placeholder="Data to Predict in csv format (without captions)"></textarea>
             <p class="help-block">
-                Put your prediction data in csv. E.g:<br />
-                <pre style="font-size:x-small">5.1,3.5,1.4,0.2<br />4.9,3.0,1.4,0.2<br />4.7,3.2,1.3,0.2<br />...</pre>
+                Put your prediction data in csv format
             </p>
         </div>
     </div>
@@ -64,7 +73,7 @@
     </div>
 </form>
 <div id="result">Here will be the result</div>
-
+<script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/autosize/jquery.autosize.min.js"></script>
 % import json
 <script type="text/javascript">
     var CLASSIFIERS = {{ !json.dumps(classifiers) }};
@@ -94,13 +103,16 @@
         // adjust_parameters
         adjust_parameters();
         
+        // autosize
+        $('textarea').autosize();
+        
         // btn_default click
         $('#btn_complete_iris').click(function(){
-            $('#training_csv').val(COMPLETE_IRIS_CSV);
+            $('#training_csv').val(COMPLETE_IRIS_CSV).trigger('autosize.resize');
             event.preventDefault();
         });
         $('#btn_partial_iris').click(function(){
-            $('#training_csv').val(PARTIAL_IRIS_CSV);
+            $('#training_csv').val(PARTIAL_IRIS_CSV).trigger('autosize.resize');
             event.preventDefault();
         });
         
@@ -130,12 +142,16 @@
                         html += '<h3>Classification Result :</h3>';
                         
                          // plot
-                        html += '<h4>Training And Testing Data Plot</h4>';
-                        html += '<p>per-2-dimensions plots. Data plot usually give better idea about classifier\'s behaviors, advantages, and weakneses</p>';
-                        if(response.dimensions.length > 2){
-                            html += '<div class="alert alert-warning"><b>Warning :</b> If your data contains more than 2 dimensions, please consider that the contour projection is probably inacurate</div>';
+                        if(response.draw_plot){
+                            html += '<h4>Training And Testing Data Plot</h4>';
+                            html += '<div class="well">';
+                            html += '<p>per-2-dimensions plots. Data plot usually give better idea about classifier\'s behaviors, advantages, and weakneses</p>';
+                            if(response.dimensions.length > 2){
+                                html += '<div class="alert alert-warning"><b>Warning :</b> If your data contains more than 2 dimensions, please consider that the contour projection is probably inacurate</div>';
+                            }
+                            html += '<img style="width:90%" src="'+response.plot_url+'" />';
+                            html += '</div>';
                         }
-                        html += '<img src="'+response.plot_url+'" />';
                         
                         // Accuracy and precision
                         rough_accuracy = 0.0;
@@ -146,6 +162,7 @@
                         rough_accuracy /= response.groups.length;
                         rough_accuracy *= 100;
                         html += '<h4>Accuracy And Precision (Rough accuracy : '+rough_accuracy+'%)</h4>';
+                        html += '<div class="well">';
                         html += '<p>We use several metrics to measure classifier\'s performance. For more information about those metrics, please visit <a target="blank" href="http://en.wikipedia.org/wiki/Accuracy_and_precision">http://en.wikipedia.org/wiki/Accuracy_and_precision</a></p>';
                         html += '<table class="table"><thead><tr><th colspan="2">Metric</th><th>Training</th><th>Testing</th><th>Total</th></tr></thead><tbody>';
                         var metrics = new Array('true_positive', 'true_negative', 'false_positive', 'false_negative', 'sensitivity', 'specificity', 'precision', 
@@ -167,10 +184,12 @@
                             }
                         }
                         html += '</tbody></table>';
+                        html += '</div>';
                         
                         // prediction
                         if(response.do_prediction){
                             html += '<h4>Prediction</h4>';
+                            html += '<div class="well">';
                             html += '<p>Prediction result</p>';
                             html += '<table class="table"><thead><tr>';
                             for(i=0; i<response.dimensions.length; i++){
@@ -189,6 +208,7 @@
                                 html += '<td>'+result+'</td></tr>';
                             }
                             html += '</tbody></table>';
+                            html += '</div>';
                         }
                         
                        

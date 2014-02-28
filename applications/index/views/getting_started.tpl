@@ -28,10 +28,12 @@
             theme: 'twilight',
             lang: 'python',
         });
+        $('.language-python').data('ace').editor.ace.setReadOnly(true);
         $('.language-html').ace({
             theme: 'twilight',
             lang: 'html',
         });
+        $('.language-html').data('ace').editor.ace.setReadOnly(true);
     });
 </script>
 
@@ -47,18 +49,24 @@
     Linux &amp; MacOS user does not need to worry anything since those OS have python pre-installed by default.
     Windows user should download and install python. Personally, I suggest you to use <a href="https://www.enthought.com/products/canopy/">Enthought Canopy Distribution</a>
     since it already has some libraries such as numpy &amp; matplotlib.<br />
-    If you are using debian-based linux (such as ubuntu) you can also (optionally) install numpy &amp; matplotlib by using following command:
+    If you are using debian-based linux (such as ubuntu)
+</p>
+<h3>Optional steps</h3>
+<p>
+    Kokoropy built with scientific purpose on mind. Some examples are depended on already famous libraries, such as numpy, scikit-learn, and matplotlib. To install those libraries, you can do:
 </p>
 <pre>
-sudo apt-get install python-numpy
-sudo apt-get install python-matplotlib
+pip install numpy
+pip install matplotlib
+pip install sklearn
 </pre>
 <p>
     If you are using python 3, you will need to install `python3-beaker` package
 </p>
 <pre>
-sudo apt-get install python3-beaker
+pip install beaker
 </pre>
+<h3>Mandatory steps</h3>
 <p>
     Download kokoropy from github repository <a href="https://github.com/goFrendiAsgard/kokoropy">here</a>, or clone it by using git
 </p>

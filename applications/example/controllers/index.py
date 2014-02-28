@@ -312,6 +312,10 @@ class My_Controller(Autoroute_Controller):
                 value = '"'+value.replace('"','\"')+'"'
             parameter_pair_list.append(parameter + ' = ' + value)
         parameter_string = ", ".join(parameter_pair_list)
+        if 'draw_plot' in request.POST and request.POST['draw_plot'] == 'true':
+            draw_plot = True
+        else:
+            draw_plot = False
         
         if training_csv == '':
             result['message'] = 'Training data is empty'
@@ -401,65 +405,73 @@ class My_Controller(Autoroute_Controller):
             row_count = np.ceil(subplot_num / 2)
             col_count = 2
         # make figure
-        fig = plt.figure(figsize=(6.0*col_count, 6.0*row_count))
-        fig.subplots_adjust(hspace = 0.2, wspace = 0.2)
-        fig.suptitle('Dimension Projection')
-        # subplot
-        subplot_index = 1
-        for mode in xrange(2):
-            if mode == 0:
-                data = training_data
-                target = training_target
-                caption = 'training'
-            else:
-                data = testing_data
-                target = testing_target
-                caption = 'testing'
-            second_dimension_start_index = 1
-            first_dimension_index = 0
-            for first_dimension in dimensions:
-                second_dimension_index = second_dimension_start_index
-                x = data[:,first_dimension_index]
-                # determine x_min and x_max for contour
-                x_min, x_max = x.min(), x.max()
-                x_range = x_max - x_min
-                x_max += 0.1 * x_range
-                x_min -= 0.1 * x_range
-                for second_dimension in dimensions[second_dimension_start_index:]:
-                    ax = fig.add_subplot(row_count, col_count, subplot_index)
-                    y = data[:,second_dimension_index]
-                    y_min, y_max = y.min(), y.max()
-                    y_range = y_max - y_min
-                    y_max += 0.1 * y_range
-                    y_min -= 0.1 * y_range
-                    # xx, yy
-                    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01 * x_range),
-                         np.arange(y_min, y_max, 0.01 * y_range))
-                    tup = ()
-                    for i in xrange(len(data[0])):
-                        if i == first_dimension_index:
-                            tup = tup + ( xx.ravel(), )
-                        elif i == second_dimension_index:
-                            tup = tup + ( yy.ravel(), )
-                        else:
-                            dimension_mean = data[:, i].mean()
-                            tup = tup + ([dimension_mean] * len(xx.ravel()) , )
-                    Z = classifier.predict(np.c_[tup])
-                    Z = Z.reshape(xx.shape)
-                    ax.contourf(xx, yy, Z)
-                    # scatter-plot the data
-                    ax.scatter(x, y, c=target, cmap=plt.cm.gist_rainbow)
-                    ax.set_title (first_dimension + ' vs ' + second_dimension + ' ('+caption+')')
-                    ax.set_xlabel(first_dimension)
-                    ax.set_ylabel(second_dimension)
-                    subplot_index += 1
-                    second_dimension_index += 1
-                first_dimension_index += 1
-                second_dimension_start_index += 1
-        # make canvas
-        file_name = 'classification/plot_'+str(np.random.randint(10000))+str(time.time())+'.png'
-        plot_url = draw_matplotlib_figure(fig,file_name,'example')
-        
+        plot_url = ''
+        if draw_plot:
+            try:
+                fig = plt.figure(figsize=(6.0*col_count, 6.0*row_count))
+                fig.subplots_adjust(hspace = 0.2, wspace = 0.2)
+                fig.suptitle('Dimension Projection')
+                # subplot
+                subplot_index = 1
+                for mode in xrange(2):
+                    if mode == 0:
+                        data = training_data
+                        target = training_target
+                        caption = 'training'
+                    else:
+                        data = testing_data
+                        target = testing_target
+                        caption = 'testing'
+                    second_dimension_start_index = 1
+                    first_dimension_index = 0
+                    for first_dimension in dimensions:
+                        second_dimension_index = second_dimension_start_index
+                        x = data[:,first_dimension_index]
+                        # determine x_min and x_max for contour
+                        x_min, x_max = x.min(), x.max()
+                        x_range = x_max - x_min
+                        x_max += 0.1 * x_range
+                        x_min -= 0.1 * x_range
+                        for second_dimension in dimensions[second_dimension_start_index:]:
+                            ax = fig.add_subplot(row_count, col_count, subplot_index)
+                            y = data[:,second_dimension_index]
+                            y_min, y_max = y.min(), y.max()
+                            y_range = y_max - y_min
+                            y_max += 0.1 * y_range
+                            y_min -= 0.1 * y_range
+                            # xx, yy
+                            xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01 * x_range),
+                                 np.arange(y_min, y_max, 0.01 * y_range))
+                            tup = ()
+                            for i in xrange(len(data[0])):
+                                if i == first_dimension_index:
+                                    tup = tup + ( xx.ravel(), )
+                                elif i == second_dimension_index:
+                                    tup = tup + ( yy.ravel(), )
+                                else:
+                                    dimension_mean = data[:, i].mean()
+                                    tup = tup + ([dimension_mean] * len(xx.ravel()) , )
+                            Z = classifier.predict(np.c_[tup])
+                            Z = Z.reshape(xx.shape)
+                            ax.contourf(xx, yy, Z)
+                            # scatter-plot the data
+                            ax.scatter(x, y, c=target, cmap=plt.cm.gist_rainbow)
+                            ax.set_title (first_dimension + ' vs ' + second_dimension + ' ('+caption+')')
+                            ax.set_xlabel(first_dimension)
+                            ax.set_ylabel(second_dimension)
+                            subplot_index += 1
+                            second_dimension_index += 1
+                        first_dimension_index += 1
+                        second_dimension_start_index += 1
+                # make canvas
+                file_name = 'classification/plot_'+str(np.random.randint(10000))+str(time.time())+'.png'
+                plot_url = draw_matplotlib_figure(fig,file_name,'example')
+            except Exception, e:
+                result['success'] = False
+                result['message'] = 'Unexpected error while creating plot : '+ e.message
+            if not result['success']:
+                return json.dumps(result)
+            
         # initiate false positive, false negative, true positive, and true negative
         training_false_positive = {}
         training_false_negative = {}
@@ -697,6 +709,7 @@ class My_Controller(Autoroute_Controller):
                   'prediction_data'       : prediction_data,
                   'prediction_result'     : prediction_predict_target,
                   'plot_url'              : plot_url,
+                  'draw_plot'             : draw_plot,
                   'dimensions'            : dimensions
             }
         return json.dumps(result)
