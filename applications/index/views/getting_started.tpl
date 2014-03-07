@@ -16,9 +16,19 @@
     #layout-content h2{
         margin-top:40px;
     }
-    .bs-sidenav li.active{
-        font-weight: bold;
-        border-right: #A47E3C solid;
+    .affix{
+        top:20px;
+    }
+    .bs-sidenav li.active>a, .bs-sidenav li.active:hover>a, .bs-sidenav li.active:focus>a {
+        padding-left: 18px;
+        font-weight: 700;
+        color: #563d7c;
+        background-color: transparent;
+        border-right: 2px solid #563d7c;
+    }
+    .bs-sidenav ul{
+        padding-left:10px;
+        font-size:small;
     }
     @media (min-width: 1200px){
         div.affix {
@@ -146,9 +156,22 @@
                             <li><a href="#mandatory_steps">Mandatory Steps</a></li>
                         </ul>
                     </li>
+                    <li><a href="#kokoropy_directory_structure">Directory Structure</a></li>
+                    <li><a href="#configuration">Configuration</a></li>
                 </ul>
             </li>
             <li><a href="#coding">Coding</a>
+                <ul class="nav">
+                    <li><a href="#simplest_hello_world">Simplest Hello World</a></li>
+                    <li><a href="#mvc_and_automatic_routing">MVC &amp; Automatic Routing</a>
+                        <ul class="nav">
+                            <li><a href="#model">Model</a></li>
+                            <li><a href="#controller">Controller</a></li>
+                            <li><a href="#view">View</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#manual_routing">Manual Routing</a></li>
+                </ul>
             </li>
         </ul>
     </div>
@@ -156,7 +179,7 @@
 </div>
 <div class="col-md-9">
     <h1 id="setting">Setting</h1>
-    <h2>Installation</h2>
+    <h2 id="installation">Installation</h2>
 
     <p>
         Kokoropy is a python web framework.
@@ -169,7 +192,7 @@
         since it already has some libraries such as numpy &amp; matplotlib.<br />
         If you are using debian-based linux (such as ubuntu)
     </p>
-    <h3>Optional steps</h3>
+    <h3 id="optional_steps">Optional steps</h3>
     <p>
         Kokoropy built with scientific purpose on mind. Some examples are depended on already famous libraries, such as numpy, scikit-learn, and matplotlib. To install those libraries, you can do:
     </p>
@@ -184,7 +207,7 @@
     <pre>
         pip install beaker
     </pre>
-    <h3>Mandatory steps</h3>
+    <h3 id="mandatory_steps">Mandatory steps</h3>
     <p>
         Download kokoropy from github repository <a href="https://github.com/goFrendiAsgard/kokoropy">here</a>, or clone it by using git
     </p>
@@ -208,7 +231,7 @@
         in the address bar
     </p>
 
-    <h2>Kokoropy's Directory Structure</h2>
+    <h2 id="kokoropy_directory_structure">Kokoropy's Directory Structure</h2>
     <p class="alert alert-info"><b>Don't worry</b> This is just informational, you don't have to do anything</p>
     <p>
         Just like every MVC framework, kokoropy has a typical directory structure.
@@ -278,7 +301,7 @@
         You should also put an <b>__init__.py</b> inside each of them.
     </p>
 
-    <h2>Configuration</h2>
+    <h2 id="configuration">Configuration</h2>
     <p class="alert alert-info"><b>Don't worry</b> You will only need to fiddle up with configuration if port 8080 is already used by other application. Otherwise, you can skip this part safely</p>
     <p>
         If you don't find anything wrong on the installation step, you can just ignore this part and go directly to installation.
@@ -298,7 +321,7 @@
 
     <h1 id="coding">Coding</h1>
 
-    <h2>Simplest Hello world</h2>
+    <h2 id="simplest_hello_world">Simplest Hello world</h2>
     <p>Okay, let's try your first hello world program</p>
     <p>first, make directory inside <b>/applications</b>, name it as <b>demo</b>. Create <b>__init__.py</b> and <b>routes.py</b>
     </p>
@@ -338,7 +361,7 @@
         To get more comprehensive documentation about <b>route</b> decorator, please visit <a target="blank" href="http://bottlepy.org/docs/dev/tutorial.html#request-routing">Bottle's documentation about request routing</a>
     </p>
 
-    <h2>MVC and Automatic Routing</h2>
+    <h2 id="mvc_and_automatic_routing">MVC and Automatic Routing</h2>
     <p>
         You might need something more complex than just a typical "hello world" program.<br />
         It's not good to put everything in <b>routes.py</b>, since it will be to complicated to be maintained.<br />
@@ -380,7 +403,7 @@
             |       |       |       |--- uploads            * (11. Make uploads directory)
           (...)   (...)
     </pre>
-    <h3>Model</h3>
+    <h3 id="model">Model</h3>
     <p>
         Put this in <b>my_model.py</b>:
     </p>
@@ -458,7 +481,7 @@
         </li>
     </ul>
 
-    <h3>Controller</h3>
+    <h3 id="controller">Controller</h3>
     <p>
         Put this in <b>my_controller.py</b>:
     </p>
@@ -505,7 +528,7 @@
         Manual routing allow you to change the url freely without touching your controller logic (and code) at all.
     </p>
 
-    <h3>View</h3>
+    <h3 id="view">View</h3>
     <p>
         Put this in <b>my_view.tpl</b>:
     </p>
@@ -553,7 +576,7 @@
         In this case, open up <b>db/demo.db</b>, add some data, put some images on <b>applications/demo/assets/uploads</b>.
     </p>
 
-    <h2>Manual Routing</h2>
+    <h2 id="manual_routing">Manual Routing</h2>
     <p>
         As we say, put autoroute controller is great for development, however sometime you need more "expressive" routing. Here is where you need manual routing.
         To enable manual routing, first open up your previously created controller, and remove this part:
