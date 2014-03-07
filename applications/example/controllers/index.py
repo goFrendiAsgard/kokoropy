@@ -7,7 +7,7 @@ class My_Controller(Autoroute_Controller):
     '''
     Example collections
     '''
-    
+
     def __init__(self):
         # load databases for most of example
         from ..models.db_model import Db_Model
@@ -18,31 +18,31 @@ class My_Controller(Autoroute_Controller):
                         'n_neighbors' : 5,
                     },
                 'sklearn.svm.SVC'  : {
-                        'C'           : 1.0, 
-                        'kernel'      : 'rbf', 
-                        'degree'      : 3, 
-                        'gamma'       : 0.0, 
-                        'coef0'       : 0.0, 
-                        'shrinking'   : 'True', 
-                        'probability' : 'False', 
-                        'tol'         : 0.001, 
-                        'cache_size'  : 200, 
-                        'class_weight': 'None', 
-                        'verbose'     : 'False', 
-                        'max_iter'    : -1, 
+                        'C'           : 1.0,
+                        'kernel'      : 'rbf',
+                        'degree'      : 3,
+                        'gamma'       : 0.0,
+                        'coef0'       : 0.0,
+                        'shrinking'   : 'True',
+                        'probability' : 'False',
+                        'tol'         : 0.001,
+                        'cache_size'  : 200,
+                        'class_weight': 'None',
+                        'verbose'     : 'False',
+                        'max_iter'    : -1,
                         'random_state': 'None'
                     },
                 'sklearn.svm.LinearSVC' : {
-                        'penalt'      : 'l2', 
-                        'loss'        : 'l2', 
-                        'dual'        : 'True', 
-                        'tol'         : 0.0001, 
-                        'C'           : 1.0, 
-                        'multi_class' : 'ovr', 
-                        'fit_intercept' : 'True', 
-                        'intercept_scaling' : 1, 
-                        'class_weight' : 'None', 
-                        'verbose'      : 0, 
+                        'penalt'      : 'l2',
+                        'loss'        : 'l2',
+                        'dual'        : 'True',
+                        'tol'         : 0.0001,
+                        'C'           : 1.0,
+                        'multi_class' : 'ovr',
+                        'fit_intercept' : 'True',
+                        'intercept_scaling' : 1,
+                        'class_weight' : 'None',
+                        'verbose'      : 0,
                         'random_state' : 'None'
                     },
                 'sklearn.tree.DecisionTreeClassifier' : {
@@ -62,7 +62,7 @@ class My_Controller(Autoroute_Controller):
                         'class_prior' : 'None',
                     },
                 'sklearn.dummy.DummyClassifier' : {
-                        'strategy'    : 'stratified', 
+                        'strategy'    : 'stratified',
                         'random_state': 'None'
                     },
                 'sklearn.ensemble.RandomForestClassifier' : {
@@ -81,7 +81,7 @@ class My_Controller(Autoroute_Controller):
                         'compute_importances':'None'
                     }
             }
-    
+
     def generate_private_code(self):
         """
         Simple trick to ensure that a POST request is only sent once
@@ -90,8 +90,8 @@ class My_Controller(Autoroute_Controller):
         private_code = str(hashlib.md5(str(num)))
         request.SESSION['__private_code'] = private_code
         return private_code
-    
-    # not routed    
+
+    # not routed
     def upload_image(self):
         upload =  request.files.get('pokemon_image')
         if upload is None:
@@ -105,10 +105,10 @@ class My_Controller(Autoroute_Controller):
                 return name+ext
             else:
                 return ''
-    
+
     def action_index(self):
         return load_view('example', 'index')
-    
+
     def action_pokemon(self, keyword=None):
         """
         GET, POST & parameter usage example.
@@ -121,27 +121,27 @@ class My_Controller(Autoroute_Controller):
             keyword = request.POST['keyword']
         if keyword is None:
             keyword = ''
-        
+
         # get action
         action = ''
         if 'action' in request.POST:
             action = request.POST['action']
-        
+
         # get data
         private_code = ''
         pokemon_id = ''
-        pokemon_name = ''        
+        pokemon_name = ''   
         if 'pokemon_id' in request.POST:
             pokemon_id = request.POST['pokemon_id']
         if 'pokemon_name' in request.POST:
             pokemon_name = request.POST['pokemon_name']
-        
+
         # rely on private_code and keep calm on accidental refresh
         if '__private_code' in request.POST:
             private_code = request.POST['__private_code']
         elif '__private_code' in request.GET:
             private_code = request.GET['__private_code']
-        
+
         # do the action
         if '__private_code' in request.SESSION and private_code == request.SESSION['__private_code']:
             # upload image
@@ -158,21 +158,21 @@ class My_Controller(Autoroute_Controller):
                     image = row.image
                     remove_asset(os.path.join('uploads', image), 'example')
                 self.db_model.delete_pokemon(pokemon_id)
-        
+
         private_code = self.generate_private_code()
         # get pokemons
         pokemon_list = self.db_model.get_pokemon(keyword)
         return load_view('example', 'pokemon', pokemon_list=pokemon_list, __private_code = private_code)
-    
+
     def action_form_add_pokemon(self):
         private_code  = self.generate_private_code()
         return load_view('example', 'pokemon_add_form', __private_code = private_code)
-    
+
     def action_form_edit_pokemon(self, pokemon_id):
         pokemon = self.db_model.get_pokemon_by_id(pokemon_id)
         private_code  = self.generate_private_code()
         return load_view('example','pokemon_edit_form', pokemon=pokemon, __private_code = private_code)
-    
+
     def action_plot(self):
         max_range = 6.28
         if 'range' in request.GET:
@@ -204,20 +204,20 @@ class My_Controller(Autoroute_Controller):
         ax.set_ylabel('y')
         # make canvas
         return draw_matplotlib_figure(fig)
-    
+
     def action_plotting(self):
         return load_view('example','plotting')
-    
+
     def action_classification(self):
         return load_view('example', 'classification', classifiers = self.classifiers)
-    
+
     def is_number(self, value):
         try:
             float(value)
             return True
         except ValueError:
             return False
-    
+
     def csv_to_list(self, str_csv):
         '''
         change csv string to python list
@@ -246,7 +246,7 @@ class My_Controller(Autoroute_Controller):
         for row in reader:
             lst.append(row)
         return lst
-    
+
     def extract_csv(self, csv, caption_list= None, numeric_value={}):
         '''
         return tuples contains data, target, caption_list and numeric_value
@@ -281,13 +281,13 @@ class My_Controller(Autoroute_Controller):
         data = np.array(data)
         target = np.array(target)
         return (data, target, caption_list, numeric_value)
-    
+
     def action_classification_result(self):
         import json
         import numpy as np
         import matplotlib.pyplot as plt
         import time
-        
+
         result = {
                   'success' : True,
                   'message' : ''
@@ -297,7 +297,7 @@ class My_Controller(Autoroute_Controller):
             result['message'] = 'Undefined training data, testing data, or classifier'
             result['success'] = False
             return json.dumps(result)
-            
+       
         # preprocess POST data
         training_csv = request.POST['training_csv']
         if 'testing_csv' not in request.POST or request.POST['testing_csv'] == '':
@@ -316,12 +316,12 @@ class My_Controller(Autoroute_Controller):
             draw_plot = True
         else:
             draw_plot = False
-        
+
         if training_csv == '':
             result['message'] = 'Training data is empty'
             result['success'] = False
             return json.dumps(result)
-        
+
         # preprocess csv
         try:
             training_data, training_target, caption_list, numeric_value = self.extract_csv(training_csv)
@@ -340,7 +340,7 @@ class My_Controller(Autoroute_Controller):
             result['message'] = 'Unexpected error while extracting csv : '+ e.message
         if not result['success']:
             return json.dumps(result)
-        
+
         # make classifier
         classifier = None
         try:
@@ -352,7 +352,7 @@ class My_Controller(Autoroute_Controller):
             result['message'] = 'Unexpected error while define classifier : '+ e.message
         if not result['success']:
             return json.dumps(result)
-        
+
         # learn
         try:
             classifier.fit(training_data, training_target)
@@ -361,7 +361,7 @@ class My_Controller(Autoroute_Controller):
             result['message'] = 'Unexpected error while fit classifier : '+ e.message
         if not result['success']:
             return json.dumps(result)
-        
+
         # and test the classifier
         try:
             training_predict_target = classifier.predict(training_data)
@@ -375,7 +375,7 @@ class My_Controller(Autoroute_Controller):
             result['message'] = 'Unexpected error while predicting target : '+ e.message
         if not result['success']:
             return json.dumps(result)
-        
+
         # if the classes is not in numeric value, then use_alias = True
         use_alias = caption_list[-1] in numeric_value
         target_dict = {}
@@ -383,14 +383,14 @@ class My_Controller(Autoroute_Controller):
             target_numeric_value = numeric_value[caption_list[-1]]
             for label in target_numeric_value:
                 target_dict[target_numeric_value[label]] = label
-        
+
         # Available classes (we call it as groups, since class is reserved word in Python)
         groups = []
         for target in (training_target, testing_target):
             for i in xrange(len(target)):
                 if target[i] not in groups:
                     groups.append(target[i])
-        
+
         # plotting
         dimensions = caption_list[:-1]
         dimension_count = len(dimensions)
@@ -471,7 +471,7 @@ class My_Controller(Autoroute_Controller):
                 result['message'] = 'Unexpected error while creating plot : '+ e.message
             if not result['success']:
                 return json.dumps(result)
-            
+
         # initiate false positive, false negative, true positive, and true negative
         training_false_positive = {}
         training_false_negative = {}
@@ -511,8 +511,8 @@ class My_Controller(Autoroute_Controller):
                     testing_false_positive[group] += 1
                 else:
                     testing_false_negative[group] += 1
-        
-        # use alias if needed        
+
+        # use alias if needed   
         if use_alias:
             groups = []
             for key in target_dict:
@@ -539,7 +539,7 @@ class My_Controller(Autoroute_Controller):
             for i in xrange(len(prediction_predict_target)):
                 str_prediction_predict_target.append(target_dict[prediction_predict_target[i]])
             prediction_predict_target = str_prediction_predict_target
-        
+
         # further calculation (http://en.wikipedia.org/wiki/Accuracy_and_precision)
         total_false_positive = {}
         total_false_negative = {}
@@ -572,7 +572,7 @@ class My_Controller(Autoroute_Controller):
             total_false_negative[group] = training_false_negative[group] + testing_false_negative[group]
             total_true_positive[group] = training_true_positive[group] + testing_true_positive[group]
             total_true_negative[group] = training_true_negative[group] + testing_true_negative[group]
-            
+       
             # training measurement
             #   sensitivity
             if (training_true_positive[group] + training_false_negative[group]) == 0:
@@ -603,7 +603,7 @@ class My_Controller(Autoroute_Controller):
             training_balanced_accuracy[group] = (training_sensitivity[group] + training_specificity[group])/2.0
             #   informedness
             training_informedness[group] = training_sensitivity[group] + training_specificity[group] - 1
-            
+       
             # testing measurement
             #   sensitivity
             if (testing_true_positive[group] + testing_false_negative[group]) == 0:
@@ -634,7 +634,7 @@ class My_Controller(Autoroute_Controller):
             testing_balanced_accuracy[group] = (testing_sensitivity[group] + testing_specificity[group])/2.0
             #   informedness
             testing_informedness[group] = testing_sensitivity[group] + testing_specificity[group] - 1
-            
+       
             # total measurement
             #   sensitivity
             if (total_true_positive[group] + total_false_negative[group]) == 0:
@@ -665,7 +665,7 @@ class My_Controller(Autoroute_Controller):
             total_balanced_accuracy[group] = (total_sensitivity[group] + total_specificity[group])/2.0
             #   informedness
             total_informedness[group] = total_sensitivity[group] + total_specificity[group] - 1
-            
+
         # show it
         prediction_data = self.csv_to_list(predict_csv)
         result = {
@@ -713,4 +713,3 @@ class My_Controller(Autoroute_Controller):
                   'dimensions'            : dimensions
             }
         return json.dumps(result)
-            
