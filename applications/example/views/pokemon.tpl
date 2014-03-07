@@ -1,6 +1,6 @@
 <h3>Pokemon List</h3>
 <div class="pull-right">
-    <a class="btn btn-success" href="{{ BASE_URL }}example/form_add_pokemon" >
+    <a class="btn btn-success" href="{{ BASE_URL }}example/pokemon/form_add_pokemon" >
         <i class="glyphicon glyphicon-plus"></i> Add New Pokemon
     </a>
 </div>
@@ -10,7 +10,7 @@
             <th>Pokemon Name</th>
             <th>Image</th>
             <th colspan="2">Action</th>
-        </tr>        
+        </tr>
     </thead>
     <tbody>
         %for pokemon in pokemon_list:
@@ -24,7 +24,7 @@
                 %end
             </td>
             <td width="50px">
-               <a class="btn btn-warning" href="{{ BASE_URL }}example/form_edit_pokemon/{{ pokemon.id }}" >
+               <a class="btn btn-warning" href="{{ BASE_URL }}example/pokemon/form_edit_pokemon/{{ pokemon.id }}" >
                    Edit
                </a>
             </td>
@@ -33,12 +33,12 @@
                   <input name="__private_code" value="{{ __private_code }}" type="hidden" />
                   <input name="pokemon_id" value="{{ pokemon.id }}" type="hidden" />
                   <input name="action" value="delete" type="hidden" />
-                  <input class="btn btn-danger" name="btn_delete" value="Delete" type="submit" /> 
-               </form> 
-            </td>        
+                  <input class="btn btn-danger" name="btn_delete" value="Delete" type="submit" />
+               </form>
+            </td>
         </tr>
-        %end        
-    </tbody>      
+        %end
+    </tbody>
 </table>
 
 <br />
