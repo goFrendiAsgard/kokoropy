@@ -30,6 +30,16 @@
         padding-left:10px;
         font-size:small;
     }
+
+    /* toggle sub-child based on active status */
+    .bs-sidenav li>ul{
+        display:none;
+    }
+    .bs-sidenav li.active>ul{
+        display:block;
+    }
+
+    /* adjust navbar size */
     @media (min-width: 1200px){
         div.affix {
             width: 263px;
@@ -162,7 +172,7 @@
             </li>
             <li><a href="#coding">Coding</a>
                 <ul class="nav">
-                    <li><a href="#simplest_hello_world">Simplest Hello World</a></li>
+                    <li><a href="#simple_hello_world">Simple Hello World</a></li>
                     <li><a href="#mvc_and_automatic_routing">MVC &amp; Automatic Routing</a>
                         <ul class="nav">
                             <li><a href="#model">Model</a></li>
@@ -171,6 +181,19 @@
                         </ul>
                     </li>
                     <li><a href="#manual_routing">Manual Routing</a></li>
+                    <li><a href="#more">More ...</a>
+                        <ul class="nav">
+                            <li><a href="#request">Post, Get, Cookie, and Session</a></li>
+                            <li><a href="#custom_hook_and_error">Custom Hook and Error</a></li>
+                            <li><a href="#use_matplotlib">Use Matplotlib</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li><a href="#deployment">Deployment</a>
+                <ul class="nav">
+                    <li><a href="#apache">Apache</a></li>
+                    <li><a href="#heroku">Heroku</a></li>
                 </ul>
             </li>
         </ul>
@@ -321,7 +344,7 @@
 
     <h1 id="coding">Coding</h1>
 
-    <h2 id="simplest_hello_world">Simplest Hello world</h2>
+    <h2 id="simple_hello_world">Simple Hello world</h2>
     <p>Okay, let's try your first hello world program</p>
     <p>first, make directory inside <b>/applications</b>, name it as <b>demo</b>. Create <b>__init__.py</b> and <b>routes.py</b>
     </p>
@@ -339,25 +362,37 @@
         Now, edit your routes.py and put this:
     </p>
     <textarea class="language-python" readonly="readonly">
-        from kokoropy import route, base_url
+        from kokoropy import base_url
 
-        @route(base_url('hello'))
-        @route('hello')
-        def say_something():
-            return '<h1>Hello</h1><p>Nice to meet you</p>';
+        def say_something(name = ''):
+            if name == '':
+                return '<h1>Hello</h1><p>How do you do?</p>'
+            else:
+                return '<h1>Hello ' + name + '</h1><p>How are you?</p>'
+
+        urls = (
+            (base_url('hello'), say_something),
+            (base_url('hello/&lt;name&gt;'), say_something),
+            ('hello', say_something),
+            ('hello/&lt;name&gt;', say_something)
+        )
     </textarea>
     <p>We hope the code is already self-explanatory, but if you still need some explanation, here is:</p>
     <ul>
         <li>
             <b>Line 1 :</b> Import <b>route</b> decorator and <b>base_url</b> function which will be used later.<br />
-            base_url is used to get absolute url. In this case <b>base_url('hello')</b> will return <b>http://localhost:8080/kokoropy/hello</b>
+            base_url is used to get absolute url. For example <b>base_url('hello')</b> will return <b>http://localhost:8080/kokoropy/hello</b>
         </li>
         <li>
-            <b>Line 3 - 4 :</b> Declare that both <b>http://localhost:8080/kokoropy/hello</b> and <b>http://localhost:8080/kokoropy/hello</b> will be handled by <b>say_something</b> function.
-            <b>@</b> symbol means decorator.
+            <b>Line 3 - 7 :</b> Declare <b>say_something</b> function. This function return string, depends on <b>name</b> parameter.<br />
+            If name is empty, the function will return a warm <i>How do you do</i> message, otherwise, it will return a welcome <i>How are you</i> message, along with the name
+        </li>
+        <li>
+            <b>Line 9 - 14 :</b> Declare <b>urls</b> tupple. The tupple contains several elements. Each element contains of a pair or url and function associated with the url<br />
         </li>
     </ul>
     <p>
+        <b>Important :</b> The tupple should be named <b>urls</b>. This tupple is used to wrap bottle route decorator.
         To get more comprehensive documentation about <b>route</b> decorator, please visit <a target="blank" href="http://bottlepy.org/docs/dev/tutorial.html#request-routing">Bottle's documentation about request routing</a>
     </p>
 
@@ -590,25 +625,229 @@
     </pre>
     <p>and put this in your routes.py</p>
     <textarea class="language-python" readonly="readonly">
-        from kokoropy import route
         # create instance of My_Controller
         from ..controllers.my_controller import My_Controller
         my_controller = My_Controller()
         # define routes
-        route(base_url('pokemon_list/&lt;keyword&gt;'))(my_controller.action_pokemon)
-        route(base_url('pokemon_list'))(my_controller.action_pokemon)
-        route(base_url('p/&lt;keyword&gt;')(my_controller.action_pokemon)
-        route(base_url('p'))(my_controller.action_pokemon)
+        urls = (
+           (base_url('pokemon_list/&lt;keyword&gt;'), my_controller.action_pokemon),
+           (base_url('pokemon_list'), my_controller.action_pokemon),
+           (base_url('p/&lt;keyword&gt;'), my_controller.action_pokemon),
+           (base_url('p'), my_controller.action_pokemon)
+        )
     </textarea>
     <ul>
         <li>
-            <b>Line 1 :</b> Import route decorator
+            <b>Line 2 - 3 :</b> import My_Controller and make an instance of it
         </li>
         <li>
-            <b>Line 3 - 4 :</b> import My_Controller and make an instance of it
-        </li>
-        <li>
-            <b>Line 8-9 :</b> define several request routing that should be handled by my_controller.action_pokemon
+            <b>Line 5 - 10 :</b> define several request routing that should be handled by my_controller.action_pokemon
         </li>
     </ul>
+    <h2 id="more">More ...</h2>
+    <h3 id="request">Post, Get, Cookie, and Session</h3>
+    <textarea class="language-python">
+        from kokoropy import template, request, response, Autoroute_Controller
+
+        class Default_Controller(Autoroute_Controller):
+
+            # POST example
+            def action_post(self):
+                if 'name' in request.POST:
+                    return request.POST['name']
+
+            # GET example
+            def action_get(self):
+                if 'name' in request.GET:
+                    return request.GET['name']
+
+            # SESSION example
+            def action_session(self):
+                if 'name' in request.SESSION:
+                    return reqeust.SESSION['name']
+
+            # COOKIE example
+            def action_cookie(self):
+                # Set cookie value
+                # Cookie name : address
+                # Cookie value : Mars
+                # Cookie secret (for encryption) : poweroverwhelming
+                response.set_cookie('address', 'Mars', 'poweroverwhelming')
+                # Get cookie
+                # Cookie name : address
+                # Default value (if cookie is not defined): default_address
+                # Cookie secret (for decryption) : poweroverwhelming
+                return request.get_cookie('address', 'default_address', 'poweroverwhelming')
+
+            # UPLOAD example
+            def upload_image(self):
+                upload =  request.files.get('image')
+                ext = os.path.splitext(upload.filename)[-1]
+                uploaded_image = 'no image'
+                if ext in ('.png','.jpg','.jpeg'):
+                    if save_uploaded_asset('image', path='uploads', application_name='example'):
+                        uploaded_image = '<img src="example/assets/uploads/"'+ upload.filename + '/>'
+                return uploaded_image
+    </textarea>
+    <h3 id="custom_hook_and_error">Custom Hook and Error</h3>
+    <p>
+        Sometime people want to define their own hook and error message. Do this is very easy, as easy as define manual routing.
+    </p>
+    <textarea class="language-python" readonly="readonly">
+        def before_request():
+            print 'Start of request'
+
+        def after_request():
+            print 'End of request'
+
+        def error_404(error):
+            return 'No such a page yet, hire me !!!'
+
+        def error_403(error):
+            return 'Inaccessible page...'
+
+        def error_500(error):
+            return 'Our server blown up,... please contact us by phone'
+
+        hooks = (
+           ('before_request', before_request),
+           ('after_request', after_request)
+        )
+
+        errors = (
+           ('404', error_404),
+           ('403', error_403),
+           ('500', error_500)
+        )
+    </textarea>
+    <ul>
+        <li>
+            <b>Line 1 - 14 :</b> Define several functions for hook and error
+        </li>
+        <li>
+            <b>Line 16 - 25 :</b> Define <b>hooks</b> and <b>erros</b> tupples. These tupples are used to define hook and error message redirection
+        </li>
+    </ul>
+    <h3 id="use_matplotlib">Use matplotlib</h3>
+    <textarea class="language-python" readonly="readonly">
+        from kokoropy import draw_matplotlib_figure, Autoroute_Controller
+
+        class My_Controller(Autoroute_Controller):
+            '''
+            Plotting example
+            '''
+
+            def action_plot(self):
+                max_range = 6.28
+                # import things
+                import numpy as np
+                import matplotlib.pyplot as plt
+                # determine x, sin(x) and cos(x)
+                x = np.arange(0, max_range, 0.1)
+                y1 = np.sin(x)
+                y2 = np.cos(x)
+                # make figure
+                fig = plt.figure()
+                fig.subplots_adjust(hspace = 0.5, wspace = 0.5)
+                fig.suptitle('The legendary sine and cosine curves')
+                # first subplot
+                ax = fig.add_subplot(2, 1, 1)
+                ax.plot(x, y1, 'b')
+                ax.plot(x, y1, 'ro')
+                ax.set_title ('y = sin(x)')
+                ax.set_xlabel('x')
+                ax.set_ylabel('y')
+                # second subplot
+                ax = fig.add_subplot(2, 1, 2)
+                ax.plot(x, y2, 'b')
+                ax.plot(x, y2, 'ro')
+                ax.set_title ('y = cos(x)')
+                ax.set_xlabel('x')
+                ax.set_ylabel('y')
+                # make canvas
+                return draw_matplotlib_figure(fig)
+    </textarea>
+    <h1 id="deployment">Deployment</h1>
+    <h2 id="apache">Apache</h2>
+    <p>
+        This is how to deploy kokoropy on apache web server (assuming you use ubuntu or debian):
+    </p>
+    <ul>
+        <li>
+            You need to have mod-wsgi enabled.
+        </li>
+        <li>
+            If you do not have mod-wsgi installed, please do: sudo apt-get install libapache2-mod-wsgi.
+        </li>
+        <li>
+            If you do not have mod-wsgi enabled, please do: sudo a2enmod wsgi.
+        </li>
+        <li>
+            Copy kokoro.apache_conf, put it on /etc/apache2/sites-available/kokoro.apache_conf (For other OS, please append this file contents to httpd.conf).
+        </li>
+        <li>
+            Enable this configuration by doing: sudo a2ensite kokoro.apache_conf.
+        </li>
+        <li>
+            Modify /etc/apache2/sites-available/kokoro.apache_conf as follows:
+            <ul>
+                <li>
+                    Replace every /home/gofrendi/workspace/kokoropy with your kokoropy directory location.
+                </li>
+                <li>
+                    In case of you already have php installed, please don't use localhost as ServerName. Use another valid ServerName instead.
+                </li>
+                <li>
+                    You can add valid ServerName by add a line at /etc/hosts (e.g: 127.0.1.1 arcaneSanctum will add arcaneSanctum as valid ServerName).
+                </li>
+                <li>
+                    Note, that by default apache will greedily take over every request and left nothing to be handled by your application. If you are using ubuntu/debian, modify /etc/apache2/sites-enabled/000-default. <br />
+                    Change this part &lt;VirtualHost *:80&gt; into &lt;VirtualHost localhost:80&gt;
+                </li>
+            </ul>
+        </li>
+        <li>
+            Reload your apache by using sudo service apache2 reload. If it does not work, restart your apache by using sudo service apache2 restart
+        </li>
+    </ul>
+    <h2 id="heroku">Heroku</h2>
+    <p>
+        This is how to deploy kokoropy on heroku (assuming you use ubuntu):
+    </p>
+    <ul>
+        <li>
+            Make heroku account, and visit https://devcenter.heroku.com/articles/python for more detail instruction
+        </li>
+        <li>
+            get and install heroku toolbelt by using this command: wget -qO- https://toolbelt.heroku.com/install-ubuntu.sh | sh. For other OS, please visit the heroku website for more information.
+        </li>
+        <li>
+            init a git repo by using this command: git init
+        </li>
+        <li>
+            login to heroku (make sure you already have an account on heroku.com) by using this command: heroku login
+        </li>
+        <li>
+            Set up heroku with a special buildpack (needed for matplotlib demo) by using this command heroku create --buildpack https://github.com/dbrgn/heroku-buildpack-python-sklearn/
+        </li>
+        <li>
+            If you do not need matplotlib at all, just do heroku create
+        </li>
+        <li>
+            If you have already do heroku create but change your mind later, and think that you need matplotlib, do this: heroku config:set BUILDPACK_URL=https://github.com/dbrgn/heroku-buildpack-python-sklearn/
+        </li>
+        <li>
+            make heroku_app.py installable by using this command chmod a+x heroku_app.py
+        </li>
+        <li>
+            detect all changes and deploy by using commit &amp; push
+        </li>
+    </ul>
+
+    <pre>
+        git add . -A
+        git commit -m "Initial commit for heroku deployment"
+        git push heroku master
+    </pre>
+
 </div>

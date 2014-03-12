@@ -366,7 +366,28 @@ def _publish_methods(directory, controller, prefix, methods=[], publishers=[]):
         for single_route in routes:
             for publisher in publishers:
                 publisher(single_route)(method_object)
-    
+
+def import_routes(route_location):
+    # import route
+    module_obj = None
+    __import__(route_location, globals(), locals())
+    module_obj = sys.modules[route_location]
+    # urls
+    if hasattr(module_obj, 'urls'):
+        for url_pair in module_obj.urls:
+            slashed_url = add_trailing_slash(url_pair[0])
+            unslashed_url = remove_trailing_slash(url_pair[0])
+            route(slashed_url)(url_pair[1])
+            route(unslashed_url)(url_pair[1])
+    # hooks
+    if hasattr(module_obj, 'hooks'):
+        for hook_pair in module_obj.hooks:
+            hook(hook_pair[0])(hook_pair[1])
+    # errors
+    if hasattr(module_obj, 'errors'):
+        for error_pair in module_obj.errors:
+            error(error_pair[0])(error_pair[1])
+
 def kokoro_init(**kwargs):
     """ Start a server instance. This method blocks until the server terminates.
 
@@ -466,16 +487,16 @@ def kokoro_init(**kwargs):
     hook('before_request')(kokoro_router.before_request)
     
     print("LOAD GLOBAL ROUTES")
-    # Ah,... I really need to run "exec" at this point, any better solution?
-    exec("from "+APPLICATION_PACKAGE+".routes import *")
+    import_routes(APPLICATION_PACKAGE + ".routes")
+    # exec("from "+APPLICATION_PACKAGE+".routes import *")
     ###################################################################################################
     # Load routes
     ###################################################################################################
     for application in application_list:
         if os.path.isfile(os.path.join(APPLICATION_PATH, application, "routes.py")):
             print("LOAD ROUTES : "+application)
-            # Ah,... I really need to run "exec" at this point, any better solution?
-            exec("from "+APPLICATION_PACKAGE+"."+application+".routes import *")
+            import_routes(APPLICATION_PACKAGE + ".routes")
+            # exec("from "+APPLICATION_PACKAGE+"."+application+".routes import *")
     ###################################################################################################
     # Load Autoroute inside controller modules
     ###################################################################################################
