@@ -55,12 +55,13 @@ class Db_Model(object):
         db_session.commit()
 
 # just a simple upgrade
+def upgrade():
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+    from sqlalchemy import DateTime
 
-def upgrade_add_column(table_name, column_name, column_type):
-    from sqlalchemy import MetaData, Table
-    metadata = MetaData() 
-    metadata.bind = engine 
-    table = Table(table_name, metadata, autoload=True, autoload_with=engine)
-    if column_name not in table.columns:
-        engine.execute('ALTER TABLE %s ADD COLUMN %s %s' % (table_name, column_name, column_type))
-        db_session.commit()
+    conn = engine.connect()
+    ctx = MigrationContext.configure(conn)
+    op = Operations(ctx)
+
+    op.add_column('pokemon', Column('last_transaction_date', DateTime))
