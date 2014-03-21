@@ -2,14 +2,14 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="icon" href="{{BASE_URL}}index/assets/index/favicon.ico" />
+        <link rel="icon" href="{{BASE_URL}}index/assets/favicon.ico" />
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="description" content="">
         <meta name="author" content="">
         <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/bootstrap/css/bootstrap.min.css" />
         <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/bootstrap/css/bootstrap-theme.min.css" />
-        <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}example/assets/css/style.css" /> 
+        <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}example/assets/css/style.css" />
         <title>{{ title or 'Kokoropy' }}</title>
         <style type="text/css">
             /* Space out content a bit */
@@ -17,12 +17,12 @@
                 padding-top: 20px;
                 padding-bottom: 20px;
             }
-            
+
             .jumbotron{
                 padding-top: 5px;
                 padding-bottom: 5px;
             }
-            
+
             /* Everything but the jumbotron gets side spacing for mobile first views */
             .header,
             .marketing,
@@ -30,7 +30,7 @@
                 padding-left: 15px;
                 padding-right: 15px;
             }
-            
+
             /* Custom page header */
             .header {
                 border-bottom: 1px solid #e5e5e5;
@@ -42,14 +42,14 @@
                 line-height: 40px;
                 padding-bottom: 19px;
             }
-            
+
             /* Custom page footer */
             .footer {
                 padding-top: 19px;
                 color: #777;
                 border-top: 1px solid #e5e5e5;
             }
-            
+
             /* Main marketing message and sign up button */
             .jumbotron {
                 text-align: center;
@@ -59,7 +59,7 @@
                 font-size: 21px;
                 padding: 14px 24px;
             }
-            
+
             /* Responsive: Portrait tablets and up */
             @media screen and (min-width: 768px) {
                 /* Remove the padding we set earlier */
@@ -89,12 +89,12 @@
                 </ul>
                 <h3 class="text-muted">Kokoropy</h3>
             </div>
-            
+
             <div class="jumbotron">
                 <img src ="{{ BASE_URL }}index/assets/images/kokoropy.png" />
                 <p class="lead">心から MVC Web Framework in Python</p>
             </div>
-            
+
             <!-- content -->
             <div  id="layout-content">
                 <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
@@ -107,7 +107,7 @@
                 % setdefault('base', 'nothing')
                 {{!base}}
             </div>
-            
+
             <!-- footer -->
             <div class="footer">
               <p>&copy; Go Frendi Gunawan 2014</p>

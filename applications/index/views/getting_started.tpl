@@ -132,10 +132,35 @@
     $(document).ready(function(){
         $('textarea, pre').each(function(){
             var html = $(this).html();
-            // ommit the first line's preceeding spaces
-            html = html.replace('        ','');
-            // ommit every other line's preceeding spaces
-            html = html.replace(/\n        /gi, '\n');
+            var lines = html.split('\n');
+            var new_lines = Array();
+            var spaces = '';
+            for(var i=0; i<lines.length; i++){
+                // determine how many spaces would we need
+                if(lines[i][0] == ' ' && spaces == ''){
+                    for(var j=0; j<lines[i].length; j++){
+                        if(lines[i][j] == ' '){
+                            spaces += ' ';
+                        }else{
+                            break;
+                        }
+                    }
+                }
+                if(spaces != ''){
+                    var str = lines[i].replace(spaces, '');
+                    var the_end = str.trim() == '';
+                    for(var j=i+1; j<lines.length; j++){
+                        if(lines[j].trim() != ''){
+                            the_end = false;
+                        }
+                    }
+                    if(the_end){
+                        break;
+                    }
+                    new_lines[new_lines.length] = str;
+                }
+            }
+            html = new_lines.join('\n');
             $(this).html(html);
         });
         // make textarea autosize
@@ -243,13 +268,15 @@
     </p>
     <pre>
         cd path/to/kokoropy
-        python start.py
+        python manage.py start
     </pre>
 
     <p>
         Now, open up your browser, and type
     </p>
-    <pre>http://localhost:8080</pre>
+    <pre>
+        http://localhost:8080
+    </pre>
     <p>
         in the address bar
     </p>
@@ -294,6 +321,7 @@
             |       |--- __init__.py          * __init__.py
             |       |--- /beaker              * beaker package
             |       |--- /sqlalchemy          * sqlalchemy package
+            |       |--- /alembic             * alembic package
             |       |--- bottle.py            * bottle module
             |       |--- kokoro.py            * kokoropy's main program
             |
@@ -302,12 +330,7 @@
             |--- README.md                    DOCUMENTATION & TUTORIAL
             |
             |                                 DEVELOPMENT & DEBUGGING
-            |--- start.py                     * script to run bootstrapper.py
-            |--- bootstrapper.py              * bootstrapper
-            |
-            |                                 APACHE DEPLOYMENT FILES
-            |--- kokoro.wsgi                  * bootstrapper for apache
-            |--- kokoro.apache_conf           * configuration example
+            |--- manage.py                    * script to manage kokoropy
             |
             |                                 HEROKU DEPLOYMENT FILES
             |--- heroku.sh                    * heroku command example
@@ -774,40 +797,78 @@
     </p>
     <ul>
         <li>
-            You need to have mod-wsgi enabled.
+            Install mod-wsgi: <code>sudo apt-get install libapache2-mod-wsgi</code>.
         </li>
         <li>
-            If you do not have mod-wsgi installed, please do: sudo apt-get install libapache2-mod-wsgi.
+            Enable mod-wsgi: <code>sudo a2enmod wsgi</code>.
         </li>
         <li>
-            If you do not have mod-wsgi enabled, please do: sudo a2enmod wsgi.
+            Create wsgi script <code>/path/to/kokoropy/kokoro.wsgi</code>.
+            <textarea class="language-python" readonly="readonly">
+                import os, sys
+                import kokoropy
+
+                PWD = './'
+                if os.path.dirname(__file__) == '':
+                    PWD = os.path.abspath(os.getcwd())
+                else:
+                    PWD = os.path.dirname(os.path.abspath(__file__))
+                os.chdir(PWD)
+                if PWD not in sys.path:
+                    sys.path.append(PWD)
+
+                APP_DIRECTORY = 'applications'
+                APPLICATION_PATH = os.path.join(PWD, APP_DIRECTORY)
+                application = kokoropy.kokoro_init(application_path = APPLICATION_PATH, run = False,
+                    runtime_path = '.apache_runtime/', base_url = '/')
+            </textarea>
         </li>
         <li>
-            Copy kokoro.apache_conf, put it on /etc/apache2/sites-available/kokoro.apache_conf (For other OS, please append this file contents to httpd.conf).
-        </li>
-        <li>
-            Enable this configuration by doing: sudo a2ensite kokoro.apache_conf.
-        </li>
-        <li>
-            Modify /etc/apache2/sites-available/kokoro.apache_conf as follows:
+            Create apache configuration file <code>/etc/apache2/sites-available/kokoro.apache_conf</code>
+            (For other OS, please append this file contents to <code>httpd.conf</code>)<br /><br />
+            <pre>
+                &lt;VirtualHost *&gt;
+                    # replace this with your absolute path to kokoropy
+                    DocumentRoot /absolute/path/to/kokoropy
+                    # server name, usually localhost, but you can also use another alias if DNS set correctly
+                    ServerName localhost
+
+                    WSGIDaemonProcess kokoropy user=www-data group=www-data processes=1 threads=5
+                    # replace this with your absolute path to kokoropy + kokoro.wsgi location
+                    WSGIScriptAlias / /absolute/path/to/kokoropy/kokoro.wsgi
+                    # absolute path to kokoropy
+                    &lt;Directory /absolute/path/to/kokoropy&gt;
+                        WSGIProcessGroup kokoropy
+                        WSGIApplicationGroup %{GLOBAL}
+                        Options ExecCGI
+                        Order deny,allow
+                        Allow from all
+                    &lt;/Directory&gt;
+
+                &lt;/VirtualHost&gt;
+            </pre>
+            Adjust some values as follows:
             <ul>
                 <li>
-                    Replace every /home/gofrendi/workspace/kokoropy with your kokoropy directory location.
+                    Replace every <code>/absolute/path/to/kokoropy</code> with your kokoropy directory location.
                 </li>
                 <li>
                     In case of you already have php installed, please don't use localhost as ServerName. Use another valid ServerName instead.
                 </li>
                 <li>
-                    You can add valid ServerName by add a line at /etc/hosts (e.g: 127.0.1.1 arcaneSanctum will add arcaneSanctum as valid ServerName).
+                    You can add valid ServerName by add a line at <code>/etc/hosts</code> (e.g: <code>127.0.1.1</code> arcaneSanctum will add arcaneSanctum as valid ServerName).
                 </li>
                 <li>
                     Note, that by default apache will greedily take over every request and left nothing to be handled by your application. If you are using ubuntu/debian, modify /etc/apache2/sites-enabled/000-default. <br />
-                    Change this part &lt;VirtualHost *:80&gt; into &lt;VirtualHost localhost:80&gt;
+                    Change this part <code>&lt;VirtualHost *:80&gt;</code> into <code>&lt;VirtualHost localhost:80&gt;</code>
                 </li>
             </ul>
         </li>
         <li>
-            Reload your apache by using sudo service apache2 reload. If it does not work, restart your apache by using sudo service apache2 restart
+            Enable this configuration by doing: <code>sudo a2ensite kokoro.apache_conf</code>.
+        </li>
+        <li>
+            Reload your apache by using <code>sudo service apache2 reload</code>. If it does not work, restart your apache by using <code>sudo service apache2 restart</code>.
         </li>
     </ul>
     <h2 id="heroku">Heroku</h2>
@@ -816,38 +877,97 @@
     </p>
     <ul>
         <li>
-            Make heroku account, and visit https://devcenter.heroku.com/articles/python for more detail instruction
+            Make heroku account, and visit <a target="blank" href="https://devcenter.heroku.com/articles/python">https://devcenter.heroku.com/articles/python</a> for more detail instruction
         </li>
         <li>
-            get and install heroku toolbelt by using this command: wget -qO- https://toolbelt.heroku.com/install-ubuntu.sh | sh. For other OS, please visit the heroku website for more information.
+            get and install heroku toolbelt by using this command: <code>wget -qO- https://toolbelt.heroku.com/install-ubuntu.sh | sh</code>. For other OS, please visit the heroku website for more information.
         </li>
         <li>
-            init a git repo by using this command: git init
+            init a git repo by using this command: <code>git init</code>
         </li>
         <li>
-            login to heroku (make sure you already have an account on heroku.com) by using this command: heroku login
+            Add several files in your kokoropy directory:
+            <ul>
+                <li>
+                    <b>runtime.txt</b><br />
+                    <pre>
+                        python-2.7.4
+                    </pre>
+                </li>
+                <li>
+                    <b>requirements.txt</b><br />
+                    <pre>
+                        argparse==1.2.1
+                        distribute==0.6.24
+                        gunicorn==17.5
+                        wsgiref==0.1.2
+                        numpy==1.7.0
+                        matplotlib==1.1.0
+                        scipy==0.11.0
+                    </pre>
+                </li>
+                <li>
+                    <b>Procfile</b><br />
+                    <pre>
+                        web: python heroku_app.py
+                    </pre>
+                </li>
+                <li>
+                    <b>heroku_app.py</b><br />
+                    <textarea class="language-python" readonly="readonly">
+                        import os, sys
+                        import kokoropy
+
+                        PWD = './'
+                        if os.path.dirname(__file__) == '':
+                            PWD = os.path.abspath(os.getcwd())
+                        else:
+                            PWD = os.path.dirname(os.path.abspath(__file__))
+                        os.chdir(PWD)
+                        if PWD not in sys.path:
+                            sys.path.append(PWD)
+
+                        APP_DIRECTORY = 'applications'
+                        APPLICATION_PATH = os.path.join(PWD, APP_DIRECTORY)
+                        application = kokoropy.kokoro_init(application_path = APPLICATION_PATH, run = False,
+                            runtime_path = '.heroku_runtime/', base_url = '/')
+
+                        if __name__ == '__main__':
+                            print "=== Run the server ==="
+                            processor_count = 1
+                            try:
+                                import multiprocessing
+                                processor_count = multiprocessing.cpu_count()
+                            except (ImportError,NotImplementedError):
+                                processor_count = 1
+                            kokoropy.run(app=application, server='gunicorn', host = '0.0.0.0',
+                                port = os.environ.get('PORT', 5000), workers = processor_count*2+1)
+                    </textarea>
+                </li>
+            </ul>
         </li>
         <li>
-            Set up heroku with a special buildpack (needed for matplotlib demo) by using this command heroku create --buildpack https://github.com/dbrgn/heroku-buildpack-python-sklearn/
+            login to heroku (make sure you already have an account on heroku.com) by using this command: <code>heroku login</code>
         </li>
         <li>
-            If you do not need matplotlib at all, just do heroku create
+            Set up heroku with a special buildpack (needed for matplotlib demo) by using this command: <code>heroku create --buildpack https://github.com/dbrgn/heroku-buildpack-python-sklearn/</code>
         </li>
         <li>
-            If you have already do heroku create but change your mind later, and think that you need matplotlib, do this: heroku config:set BUILDPACK_URL=https://github.com/dbrgn/heroku-buildpack-python-sklearn/
+            If you do not need matplotlib at all, just do <code>heroku create</code>
         </li>
         <li>
-            make heroku_app.py installable by using this command chmod a+x heroku_app.py
+            If you have already do <code>heroku create</code> but change your mind later, and think that you need matplotlib, do this: <code>heroku config:set BUILDPACK_URL=https://github.com/dbrgn/heroku-buildpack-python-sklearn/</code>
+        </li>
+        <li>
+            make <code>heroku_app.py</code> executable by using this command chmod a+x heroku_app.py
         </li>
         <li>
             detect all changes and deploy by using commit &amp; push
+            <pre>
+                git add . -A
+                git commit -m "Initial commit for heroku deployment"
+                git push heroku master
+            </pre>
         </li>
     </ul>
-
-    <pre>
-        git add . -A
-        git commit -m "Initial commit for heroku deployment"
-        git push heroku master
-    </pre>
-
 </div>
