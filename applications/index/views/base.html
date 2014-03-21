@@ -78,6 +78,9 @@
                 }
             }
         </style>
+        % if defined('style_view'):
+        %     include(style_view)
+        % end
     </head>
     <body>
         <div class="container" role="main">
@@ -113,5 +116,8 @@
               <p>&copy; Go Frendi Gunawan 2014</p>
             </div>
         </div>
+        % if defined('script_view'):
+        %     include(script_view)
+        % end
     </body>
 </html>

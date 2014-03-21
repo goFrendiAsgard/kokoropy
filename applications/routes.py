@@ -25,10 +25,10 @@ from kokoropy import load_view, base_url, template, remove_trailing_slash
 
 ################### These functions are used for routes (url) #######################
 def index():
-    return load_view('index', 'index.tpl', active_page = 'home')
+    return load_view('index', 'index.html', active_page = 'home')
 
 def getting_started():
-    return load_view('index', 'getting_started.tpl', active_page = 'getting_started')
+    return load_view('index', 'getting_started.html', active_page = 'getting_started')
 
 ####################### These functions are used for hooks ##########################
 def before_request():
