@@ -68,28 +68,6 @@ class KokoroWSGIRefServer(bottle.ServerAdapter):
 class Autoroute_Controller(object):
     pass
 
-# Override bottle's template function
-def template(*args, **kwargs):
-    '''
-    Get a rendered template as a string iterator.
-    You can use a name, a filename or a template string as first parameter.
-    Template rendering arguments can be passed as dictionaries
-    or directly (as keyword arguments).
-    '''    
-    if not request.BASE_URL is None:
-        kwargs['BASE_URL'] = request.BASE_URL
-    else:
-        kwargs['BASE_URL'] = base_url()
-    kwargs['RUNTIME_PATH']      = runtime_path()
-    kwargs['APPLICATION_PATH']  = application_path()
-    # adjust args[0]
-    path_list = list(args[0].split('/'))
-    if len(path_list) >= 2 and path_list[1] != 'views':
-        path_list = [path_list[0],] + ['views',] + path_list[1:]
-        args_list = list(args)
-        args_list[0] = '/'.join(path_list)
-        args = tuple(args_list)
-    return _bottle_template(*args, **kwargs)
 
 # load model
 def load_model(application_name, model_name, object_name = None):
@@ -134,7 +112,21 @@ def load_view(application_name, view_name, *args, **kwargs):
     args_list = list(args)
     args_list.insert(0, "/".join((application_name , "views" , view_name)))
     args = tuple(args_list)
-    return template(*args, **kwargs)
+    
+    if not request.BASE_URL is None:
+        kwargs['BASE_URL'] = request.BASE_URL
+    else:
+        kwargs['BASE_URL'] = base_url()
+    kwargs['RUNTIME_PATH']      = runtime_path()
+    kwargs['APPLICATION_PATH']  = application_path()
+    # adjust args[0]
+    path_list = list(args[0].split('/'))
+    if len(path_list) >= 2 and path_list[1] != 'views':
+        path_list = [path_list[0],] + ['views',] + path_list[1:]
+        args_list = list(args)
+        args_list[0] = '/'.join(path_list)
+        args = tuple(args_list)
+    return _bottle_template(*args, **kwargs)
 
 # This class serve kokoropy static files routing & some injection into request object
 class _Kokoro_Router(object):

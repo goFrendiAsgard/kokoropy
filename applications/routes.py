@@ -21,7 +21,7 @@ CUSTOM_ERROR = False
 # End of configuration
 #####################################################################################
 
-from kokoropy import load_view, base_url, template, remove_trailing_slash
+from kokoropy import load_view, base_url
 
 ################### These functions are used for routes (url) #######################
 def index():
@@ -51,7 +51,7 @@ def error_404(error):
        'error_title'  : '404, Page not found',
        'error_message' : error_message,
     }
-    return template('example/error', data = data)
+    return load_view('index','error', data = data)
 
 def error_403(error):
     import random
@@ -66,7 +66,7 @@ def error_403(error):
        'error_title'  : '403, Forbidden',
        'error_message' : error_message,
     }
-    return template('example/error', data = data)
+    return load_view('index','error', data = data)
 
 def error_500(error):
     import random
@@ -81,7 +81,7 @@ def error_500(error):
        'error_title'  : '500, Internal Server Error',
        'error_message' : error_message,
     }
-    return template('example/error', data = data)
+    return load_view('index','error', data = data)
 
 if FIRST_TIME:
     urls = (

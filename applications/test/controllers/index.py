@@ -1,4 +1,4 @@
-from kokoropy import template, request, response, Autoroute_Controller
+from kokoropy import request, response, Autoroute_Controller
 
 class Default_Controller(Autoroute_Controller):
     def action_index(self):
