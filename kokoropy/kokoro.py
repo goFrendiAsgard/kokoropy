@@ -24,7 +24,7 @@ from bottle import default_app, debug, run, static_file,\
     response, request, TEMPLATE_PATH, route, get,\
     post, put, delete, error, hook, Bottle, redirect
 
-from bottle import template as _bottle_template
+from bottle import jinja2_template as _bottle_template
 
 ###################################################################################################
 # Hacks & Dirty Tricks :)

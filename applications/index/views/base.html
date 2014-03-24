@@ -1,4 +1,4 @@
-% setdefault('active_page', 'example')
+{% set active_page = active_page or 'example' %}
 <!DOCTYPE html>
 <html>
     <head>
@@ -78,9 +78,7 @@
                 }
             }
         </style>
-        % if defined('style_view'):
-        %     include(style_view)
-        % end
+        {% block style %}{% endblock %}
     </head>
     <body>
         <div class="container" role="main">
@@ -107,8 +105,7 @@
                 <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery.min.js"></script>
                 <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/bootstrap/js/bootstrap.min.js"></script>
                 <script type="text/javascript" src="{{ BASE_URL }}example/assets/js/script.js"></script>
-                % setdefault('base', 'nothing')
-                {{!base}}
+                {% block content %}Nothing{% endblock %}
             </div>
 
             <!-- footer -->
@@ -116,8 +113,6 @@
               <p>&copy; Go Frendi Gunawan 2014</p>
             </div>
         </div>
-        % if defined('script_view'):
-        %     include(script_view)
-        % end
+        {% block script %}{% endblock %}
     </body>
 </html>

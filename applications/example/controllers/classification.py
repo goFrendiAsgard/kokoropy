@@ -78,7 +78,8 @@ class My_Controller(Autoroute_Controller):
             }
 
     def action_index(self):
-        return load_view('example', 'classification', classifiers = self.classifiers)
+        import json
+        return load_view('example', 'classification', classifiers = self.classifiers, json_classifiers = json.dumps(self.classifiers))
 
     def is_number(self, value):
         try:

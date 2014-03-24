@@ -30,6 +30,8 @@ Kokoropy stands in the shoulder of the giants. Here are projects that make kokor
 * bottlepy 0.12 dev (https://github.com/defnull/bottle)
 * sqlalchemy 0.9.0 dev (https://github.com/zzzeek/sqlalchemy)
 * beaker 1.6.4 (https://github.com/bbangert/beaker)
+* alembic
+* jinja2
 
 Also, kokoropy come with several third-party css & javascript framework (so you do not need to download them anymore):
 * jquery 1.11.0

@@ -1,13 +1,23 @@
-<link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/jquery-ui/css/ui-lightness/jquery-ui-1.10.4.custom.min.css" />
-<h4>Matplotlib and StringIO should be installed on server</h4>
-<div>
-    <label>Range : </label>
-    <input type="text" name="range" id="range" class="spinner" value="6.3" />
-</div>
-<br />
-<div id="plot">
-    <p>Image will be loaded here ... </p>
-</div>
+{% extends 'index/views/base.html' %}
+{% set title='Getting Started' %}
+
+{% block style %}
+    <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/jquery-ui/css/ui-lightness/jquery-ui-1.10.4.custom.min.css" />
+{% endblock %}
+
+{% block content %}
+    <h4>Matplotlib and StringIO should be installed on server</h4>
+    <div>
+        <label>Range : </label>
+        <input type="text" name="range" id="range" class="spinner" value="6.3" />
+    </div>
+    <br />
+    <div id="plot">
+        <p>Image will be loaded here ... </p>
+    </div>
+{% endblock %}
+
+{% block script %}
 <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-ui/js/jquery-ui-1.10.4.custom.min.js"></script>
 <script type="text/javascript">
     $(document).ready(function(){
@@ -38,4 +48,4 @@
         }
     }
 </script>
-%rebase('index/views/base',title='Plot')
+{% endblock %}
