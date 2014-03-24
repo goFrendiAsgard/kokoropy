@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+from ..configs.db import engine, db_session
 
 ############################### SQL ALCHEMY SCRIPT ####################################
 
@@ -17,12 +17,6 @@ class Pokemon(Base):
     def __init__(self, name, image):
         self.name = name
         self.image = image
-
-# create engine
-engine = create_engine('sqlite:///db/pokemon.db', echo=True)
-
-# create db session
-db_session = scoped_session(sessionmaker(bind=engine))
 
 class Db_Model(object):
     '''
@@ -53,15 +47,3 @@ class Db_Model(object):
         if image != '':
             pokemon.image = image
         db_session.commit()
-
-# just a simple upgrade
-def upgrade():
-    from alembic.migration import MigrationContext
-    from alembic.operations import Operations
-    from sqlalchemy import DateTime
-
-    conn = engine.connect()
-    ctx = MigrationContext.configure(conn)
-    op = Operations(ctx)
-
-    op.add_column('pokemon', Column('last_transaction_date', DateTime))

@@ -10,9 +10,7 @@ os.chdir(PWD)
 if PWD not in sys.path:
     sys.path.append(PWD)
 
-APP_DIRECTORY = 'applications'
-APPLICATION_PATH = os.path.join(PWD, APP_DIRECTORY)
-application = kokoropy.kokoro_init(application_path = APPLICATION_PATH, run = False, 
+application = kokoropy.kokoro_init(run = False, 
                                    runtime_path = '.heroku_runtime/', 
                                    base_url = '/')
 

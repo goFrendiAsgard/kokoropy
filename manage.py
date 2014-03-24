@@ -8,7 +8,6 @@ PORT                = 8080                      # http port
 DEBUG               = True                      # True or False
 RELOADER            = False                     # True or False
 SERVER              = 'kokoro'                  # or wsgiref or whatever
-APP_DIRECTORY       = 'applications'            # applications package
 RUNTIME_PATH        = '.development_runtime'    # runtime path
 BASE_URL            = '/kokoropy'               # base url, start with '/'
 
@@ -22,9 +21,8 @@ FILE_STAT = {}
 #####################################################################################################
 # RUN THE SERVER
 #####################################################################################################
-def _run_server(host, port, debug, reloader, server, app_directory, base_url, runtime_path):
-    application_path = os.path.join(PWD, app_directory)
-    kokoropy.kokoro_init(application_path=application_path, debug=debug, port=port, reloader=reloader,
+def _run_server(host, port, debug, reloader, server, base_url, runtime_path):
+    kokoropy.kokoro_init(debug=debug, port=port, reloader=reloader,
                          host=host, server=server, base_url=base_url, runtime_path=runtime_path)
 
 def run_server_once():
@@ -32,7 +30,7 @@ def run_server_once():
     args = sys.argv[2:]
     # pass arguments
     options, remainder = getopt.getopt(args, '', ['debug', 'reload', 'host=', 'port=', 'server=', 
-                                                  'appdir=', 'baseurl=', 'runtimepath='])
+                                                  'baseurl=', 'runtimepath='])
     host = 'localhost'
     port = 8080 
     debug = True
@@ -54,20 +52,17 @@ def run_server_once():
             port = arg
         elif opt == 'server':
             server = arg
-        elif opt == 'appdir':
-            app_directory = arg
         elif opt == 'runtimepath':
             runtime_path = arg
         elif opt == 'baseurl':
             base_url = arg
                 
-    _run_server(host, port, debug, reloader, server, app_directory, base_url, runtime_path)
+    _run_server(host, port, debug, reloader, server, base_url, runtime_path)
 
 def _run_server_as_subprocess():
-    # PWD = os.path.dirname(os.path.abspath(__file__))
     SCRIPT_PATH = os.path.abspath(__file__)
     RUN_COMMAND = '%s %s' %(sys.executable, SCRIPT_PATH)
-    ARGUMENTS = 'run_server_once --host=%s --port=%d --server=%s --appdir=%s --baseurl=%s --runtimepath=%s' %(HOST, PORT, SERVER, APP_DIRECTORY, BASE_URL, RUNTIME_PATH)
+    ARGUMENTS = 'run_server_once --host=%s --port=%d --server=%s --baseurl=%s --runtimepath=%s' %(HOST, PORT, SERVER, BASE_URL, RUNTIME_PATH)
     if RELOADER:
         ARGUMENTS += ' --reload'
     if DEBUG:
@@ -82,10 +77,9 @@ def _get_modification_date(filename):
 def _is_anything_modified():
     MODIFICATION_FLAG = False
     PWD = os.path.dirname(os.path.abspath(__file__))
-    APP_PATH = os.path.join(PWD, APP_DIRECTORY)
     CHECKED_STAT = []
     REMOVED_STAT = []
-    for dirpath, dirnames, filenames in os.walk(APP_PATH, topdown=True):
+    for dirpath, dirnames, filenames in os.walk('./applications', topdown=True):
         del dirnames
         for filename in filenames:
             absolute_filename = os.path.join(dirpath, filename)

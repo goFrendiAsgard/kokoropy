@@ -400,7 +400,6 @@ def kokoro_init(**kwargs):
     ###################################################################################################
     # kwargs arguments
     ###################################################################################################    
-    APPLICATION_PATH    = kwargs.pop("application_path",    "./applications"    )
     APP                 = kwargs.pop("app",                 bottle.app()        )
     SERVER              = kwargs.pop("server",              "kokoro"            )
     DEBUG               = kwargs.pop("debug",               True                )
@@ -416,7 +415,7 @@ def kokoro_init(**kwargs):
     ###################################################################################################
     # parameters
     ###################################################################################################
-    APPLICATION_PATH                = add_trailing_slash(os.path.abspath(APPLICATION_PATH))
+    APPLICATION_PATH                = add_trailing_slash(os.path.abspath('./applications'))
     BASE_URL                        = add_trailing_slash(add_begining_slash(BASE_URL))
     RUNTIME_PATH                    = add_trailing_slash(os.path.join(tempfile.gettempdir(), RUNTIME_PATH))
     UNTRAILED_SLASH_RUNTIME_PATH    = remove_trailing_slash(RUNTIME_PATH)
