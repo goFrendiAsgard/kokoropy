@@ -31,10 +31,12 @@ from bottle import jinja2_template as _bottle_template
 ###################################################################################################  
 # Python 3 hack for xrange
 if sys.version_info >= (3,0,0):
-    exec('xrange = range')
-    exec('from urllib.parse import urlparse')
+    xrange = range
+    from urllib.parse import urlparse
+    from urllib.request import urlopen
 else:
     from urlparse import urlparse
+    from urllib2 import urlopen
 
 # intellisense hack
 request.SESSION = []
@@ -204,7 +206,7 @@ def application_path(path=''):
     if '__KOKOROPY_APPLICATION_PATH__' in os.environ:
         APPLICATION_PATH = os.environ['__KOKOROPY_APPLICATION_PATH__']
     else:
-        APPLICATION_PATH = '.applications/'
+        APPLICATION_PATH = './applications/'
     return APPLICATION_PATH + remove_begining_slash(path)
 
 def application_package():
@@ -247,6 +249,20 @@ def copytree(src, dst, symlinks=False, ignore=None):
             else:
                 if not os.path.exists(d) or os.stat(src).st_mtime - os.stat(dst).st_mtime > 1:
                     shutil.copy2(s, d)
+
+def makedirs(directory, mode='0777'):
+    os.makedirs(directory, mode)
+
+def file_put_contents(filename, data):
+    f = open(filename, 'w')
+    f.write(data)
+    f.close()
+
+def file_get_contents(filename):
+    if os.path.exists(filename):
+        return ''.join(open(filename).readlines())
+    else:
+        return ''.join(urlopen(filename).readlines())
 
 def _sort_names(names=[], key=None):
     """ Sort list or list of dictionary for routing
@@ -598,5 +614,24 @@ def remove_asset(path, application_name='index'):
     asset_path = _asset_path(path, application_name)
     try:
         os.remove(asset_path)
+        return True
     except OSError:
-        pass
+        return False
+
+def make_timestamp():
+    return datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')
+
+def scaffold_application(application_name):
+    source = os.path.join(os.path.dirname(__file__), 'scaffold_application')
+    destination = application_path(application_name)
+    copytree(source, destination)
+
+def scaffold_migration(application_name, migration_name):
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffold_migration.py'))
+    timestamp = make_timestamp()
+    content = content.replace('g_timestamp', timestamp)
+    filename = timestamp+'-'+migration_name+'.py'
+    if not os.path.exists(application_path(application_name)):
+        scaffold_application(application_name)
+    filename = application_path(os.path.join(application_name, 'migrations', filename))
+    file_put_contents(filename, content)

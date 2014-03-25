@@ -99,10 +99,6 @@ def _is_anything_modified():
         FILE_STAT.pop(absolute_filename,None)
     return MODIFICATION_FLAG
 
-def help():
-    print('python manage.py start')
-
-
 def run_server_forever():
     STOP_FLAG = False
     PROCESS = None
@@ -121,11 +117,33 @@ def run_server_forever():
         os.killpg(PROCESS.pid, signal.SIGTERM)
     print ("\nEND OF KOKOROPY DEBUGGING SESSION")
 
+def scaffold_application():
+    if len(sys.argv)>2:
+        application_name = sys.argv[2]
+        kokoropy.scaffold_application(application_name)
+    else:
+        help()
+
+def scaffold_migration():
+    if len(sys.argv)>3:
+        application_name = sys.argv[2]
+        migration_name = sys.argv[3]
+        kokoropy.scaffold_migration(application_name, migration_name)
+    else:
+        help()
+
+def help():
+    print('Run Server: python manage.py start')
+    print('Scaffold Application: python manage.py scaffold-application [application-name]')
+    print('Scaffold Migration: python manage.py scaffold-migration [application-name] [migration-name]')
+
 if __name__ == '__main__':
     # define function_dict
     function_dict = {
             'run_server_once' : run_server_once, # only for internal call as subprocess
-            'start' : run_server_forever,        # manage.py serve
+            'start' : run_server_forever,        # manage.py start
+            'scaffold-application' : scaffold_application,
+            'scaffold-migration' : scaffold_migration,
             'help' : help
         }
     # get action
