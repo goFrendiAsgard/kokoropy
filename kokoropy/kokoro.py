@@ -611,7 +611,7 @@ def _migration_connection_string(application_name):
     return 'sqlite:///'+application_path(os.path.join(application_name, 'db','__migration.db'))
 
 def _migration_session(application_name):
-    engine = create_engine(_migration_connection_string(application_name), echo=True)
+    engine = create_engine(_migration_connection_string(application_name), echo=False)
     # create db session
     db_session = scoped_session(sessionmaker(bind=engine))
     Base.metadata.create_all(bind=engine)
@@ -658,12 +658,13 @@ def migration_upgrade(application_name=None, migration_name=None):
         migration_list = []
         for migration_name in os.listdir(application_path(os.path.join(application_name, 'migrations'))):
             file_name, extension = os.path.splitext(migration_name)
-            if extension == 'py':
+            if extension == '.py' and file_name != '__init__':
                 migration_list.append(file_name)
         migration_list = _sort_names(migration_list)
         # do migration
         for migration_name in migration_list:
-            migration_upgrade(migration_name)
+            print (application_name, migration_name)
+            migration_upgrade(application_name, migration_name)
     else:
         application_package = os.path.split(remove_trailing_slash(application_path()))[-1]
         module_obj = None
@@ -672,7 +673,10 @@ def migration_upgrade(application_name=None, migration_name=None):
         module_obj = sys.modules[import_location]
         # get max_signature from database
         max_migration = _migration_max(application_name)
-        max_signature = max_migration.signature
+        if max_migration is None:
+            max_signature = ''
+        else:
+            max_signature = max_migration.signature
         # define session
         db_session = _migration_session(application_name)
         if hasattr(module_obj, 'upgrade'):
@@ -687,7 +691,7 @@ def migration_upgrade(application_name=None, migration_name=None):
 def migration_downgrade(application_name):
     # get max migration
     max_migration = _migration_max(application_name)
-    migration_name = max_migration.name
+    migration_name = max_migration.migration_name
     # look for migration script
     application_package = os.path.split(remove_trailing_slash(application_path()))[-1]
     module_obj = None
@@ -699,7 +703,7 @@ def migration_downgrade(application_name):
         # define session
         db_session = _migration_session(application_name)
         # remove max migration
-        db_session.remove(max_migration)
+        db_session.delete(max_migration)
         db_session.commit()
 
 def make_timestamp():

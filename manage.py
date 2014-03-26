@@ -153,7 +153,7 @@ def migration_list():
         migrations = kokoropy.migration_list()
     for key in migrations:
         print ('application ' + key)
-        for migration in migrations:
+        for migration in migrations[key]:
             print (migration.name)
 
 def help():
