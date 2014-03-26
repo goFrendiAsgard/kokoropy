@@ -13,7 +13,7 @@ __license__ = 'MIT'
 import os, inspect, sys, shutil
 from datetime import datetime
 if os.path.dirname(__file__) not in sys.path:
-    sys.path.append(os.path.dirname(__file__))
+    sys.path.append(os.path.join(os.path.dirname(__file__),'packages'))
 
 ###################################################################################################
 # Import things
@@ -25,6 +25,27 @@ from bottle import default_app, debug, run, static_file,\
     post, put, delete, error, hook, Bottle, redirect
 
 from bottle import jinja2_template as _bottle_template
+
+from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.sql.expression import desc
+
+############################### SQL ALCHEMY SCRIPT ####################################
+
+# create Base
+Base = declarative_base()
+
+# create Migration class
+class Migration(Base):
+    __tablename__ = 'migration'
+    id = Column(Integer, primary_key=True)
+    signature = Column(String)
+    migration_name = Column(String)
+    
+    def __init__(self, signature, migration_name):
+        self.signature = signature
+        self.migration_name = migration_name
 
 ###################################################################################################
 # Hacks & Dirty Tricks :)
@@ -69,45 +90,6 @@ class KokoroWSGIRefServer(bottle.ServerAdapter):
 ###################################################################################################
 class Autoroute_Controller(object):
     pass
-
-
-# load model
-def load_model(application_name, model_name, object_name = None):
-    '''
-    DEPRECATED, USE RELATIVE IMPORT INSTEAD (from ..models.your_model import Object)
-    return function or class in your model file
-    '''
-    result = None
-    import_location = ".".join((application_package() , application_name , "models" , model_name))
-    if object_name is None:
-        object_name = model_name.title()
-    try:
-        # Import the module
-        __import__(import_location, globals(), locals(), ['*'])
-        # Get the class
-        result = getattr(sys.modules[import_location], object_name)
-    except:
-        raise ImportError(import_location + "." + object_name + " doesn't exist")
-    return result
-
-# load controller
-def load_controller(application_name, controller_name, object_name = None):
-    '''
-    DEPRECATED, USE RELATIVE IMPORT INSTEAD (from ..controllers.your_controller import Object)
-    return function or class in your controller file
-    '''
-    result = None
-    import_location = ".".join((application_package() , application_name , "controllers" , controller_name))
-    if object_name is None:
-        object_name = controller_name.title()
-    try:
-        # Import the module
-        __import__(import_location, globals(), locals(), ['*'])
-        # Get the class
-        result = getattr(sys.modules[import_location], object_name)
-    except:
-        raise ImportError(import_location + "." + object_name + " doesn't exist")
-    return result
 
 # load view
 def load_view(application_name, view_name, *args, **kwargs):
@@ -380,13 +362,22 @@ def import_routes(route_location):
     module_obj = None
     __import__(route_location, globals(), locals())
     module_obj = sys.modules[route_location]
+    url_properties = {
+            'urls' : ['GET', 'POST', 'PUT', 'DELETE'],
+            'gets' : ['GET'],
+            'posts': ['POST'],
+            'puts' : ['PUT'],
+            'deletes': ['DELETE']
+        }
     # urls
-    if hasattr(module_obj, 'urls'):
-        for url_pair in module_obj.urls:
-            slashed_url = add_trailing_slash(url_pair[0])
-            unslashed_url = remove_trailing_slash(url_pair[0])
-            route(slashed_url)(url_pair[1])
-            route(unslashed_url)(url_pair[1])
+    for url_property in url_properties:
+        methods = url_properties[url_property]
+        if hasattr(module_obj, url_property):
+            for url_pair in module_obj.urls:
+                slashed_url = add_trailing_slash(url_pair[0])
+                unslashed_url = remove_trailing_slash(url_pair[0])
+                route(slashed_url, methods, url_pair[1])
+                route(unslashed_url, methods, url_pair[1])
     # hooks
     if hasattr(module_obj, 'hooks'):
         for hook_pair in module_obj.hooks:
@@ -462,7 +453,7 @@ def kokoro_init(**kwargs):
         if os.path.isfile(os.path.join(APPLICATION_PATH, application, "__init__.py")) and \
         os.path.isfile(os.path.join(APPLICATION_PATH, application, "controllers", "__init__.py")):
             application_list.append(application)
-    application_list = _sort_names(application_list)    
+    application_list = _sort_names(application_list)
     ###################################################################################################
     # get application controller modules
     ###################################################################################################
@@ -495,7 +486,6 @@ def kokoro_init(**kwargs):
     
     print("LOAD GLOBAL ROUTES")
     import_routes(APPLICATION_PACKAGE + ".routes")
-    # exec("from "+APPLICATION_PACKAGE+".routes import *")
     ###################################################################################################
     # Load routes
     ###################################################################################################
@@ -503,7 +493,6 @@ def kokoro_init(**kwargs):
         if os.path.isfile(os.path.join(APPLICATION_PATH, application, "routes.py")):
             print("LOAD ROUTES : "+application)
             import_routes(APPLICATION_PACKAGE + ".routes")
-            # exec("from "+APPLICATION_PACKAGE+"."+application+".routes import *")
     ###################################################################################################
     # Load Autoroute inside controller modules
     ###################################################################################################
@@ -617,6 +606,101 @@ def remove_asset(path, application_name='index'):
         return True
     except OSError:
         return False
+
+def _migration_connection_string(application_name):
+    return 'sqlite:///'+application_path(os.path.join(application_name, 'db','__migration.db'))
+
+def _migration_session(application_name):
+    engine = create_engine(_migration_connection_string(application_name), echo=True)
+    # create db session
+    db_session = scoped_session(sessionmaker(bind=engine))
+    Base.metadata.create_all(bind=engine)
+    return db_session
+
+def migration_list(application_name=None):
+    if application_name is None:
+        app_path = application_path()
+        # get application_list and sort it by name
+        application_list = []
+        for application_name in os.listdir(app_path):
+            if os.path.isfile(os.path.join(app_path, application_name, "__init__.py")) and \
+            os.path.isfile(os.path.join(app_path, application_name, "controllers", "__init__.py")):
+                application_list.append(application_name)
+        application_list = _sort_names(application_list)
+        # migration list
+        migrations = {}
+        for application_name in application_list:
+            migrations[application_name] = migration_list(application_name)
+        return migrations
+    else:
+        db_session = _migration_session(application_name)
+        return db_session.query(Migration).order_by(desc(Migration.signature)).all()
+
+def _migration_max(application_name):
+    db_session = _migration_session(application_name)
+    return db_session.query(Migration).order_by(desc(Migration.signature)).first()
+
+def migration_upgrade(application_name=None, migration_name=None):
+    if application_name is None:
+        app_path = application_path()
+        # get application_list and sort it by name
+        application_list = []
+        for application_name in os.listdir(app_path):
+            if os.path.isfile(os.path.join(app_path, application_name, "__init__.py")) and \
+            os.path.isfile(os.path.join(app_path, application_name, "controllers", "__init__.py")):
+                application_list.append(application_name)
+        application_list = _sort_names(application_list)
+        # do migration
+        for application_name in application_list:
+            migration_upgrade(application_name)
+    elif migration_name is None:
+        # get migration list and sort it by name
+        migration_list = []
+        for migration_name in os.listdir(application_path(os.path.join(application_name, 'migrations'))):
+            file_name, extension = os.path.splitext(migration_name)
+            if extension == 'py':
+                migration_list.append(file_name)
+        migration_list = _sort_names(migration_list)
+        # do migration
+        for migration_name in migration_list:
+            migration_upgrade(migration_name)
+    else:
+        application_package = os.path.split(remove_trailing_slash(application_path()))[-1]
+        module_obj = None
+        import_location = application_package + "." + application_name + ".migrations." + migration_name
+        __import__(import_location, globals(), locals())
+        module_obj = sys.modules[import_location]
+        # get max_signature from database
+        max_migration = _migration_max(application_name)
+        max_signature = max_migration.signature
+        # define session
+        db_session = _migration_session(application_name)
+        if hasattr(module_obj, 'upgrade'):
+            signature = module_obj.signature
+            if signature > max_signature:
+                module_obj.upgrade()
+                # save the new migration
+                new_migration = Migration(signature, migration_name)
+                db_session.add(new_migration)
+                db_session.commit()
+
+def migration_downgrade(application_name):
+    # get max migration
+    max_migration = _migration_max(application_name)
+    migration_name = max_migration.name
+    # look for migration script
+    application_package = os.path.split(remove_trailing_slash(application_path()))[-1]
+    module_obj = None
+    import_location = application_package + "." + application_name + ".migrations." + migration_name
+    __import__(import_location, globals(), locals())
+    module_obj = sys.modules[import_location]
+    if hasattr(module_obj, 'downgrade'):
+        module_obj.downgrade()
+        # define session
+        db_session = _migration_session(application_name)
+        # remove max migration
+        db_session.remove(max_migration)
+        db_session.commit()
 
 def make_timestamp():
     return datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')

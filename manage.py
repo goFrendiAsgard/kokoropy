@@ -132,10 +132,37 @@ def scaffold_migration():
     else:
         help()
 
+def migration_upgrade():
+    if len(sys.argv)>2:
+        application_name = sys.argv[2]
+        kokoropy.migration_upgrade(application_name)
+    else:
+        kokoropy.migration_upgrade()
+
+def migration_downgrade():
+    if len(sys.argv)>2:
+        application_name = sys.argv[2]
+        kokoropy.migration_downgrade(application_name)
+
+def migration_list():
+    migrations = {}
+    if len(sys.argv)>2:
+        application_name = sys.argv[2]
+        migrations[application_name] = kokoropy.migration_list(application_name)
+    else:
+        migrations = kokoropy.migration_list()
+    for key in migrations:
+        print ('application ' + key)
+        for migration in migrations:
+            print (migration.name)
+
 def help():
     print('Run Server: python manage.py start')
-    print('Scaffold Application: python manage.py scaffold-application [application-name]')
-    print('Scaffold Migration: python manage.py scaffold-migration [application-name] [migration-name]')
+    print('Scaffold Application: python manage.py scaffold-application APPLICATION-NAME')
+    print('Scaffold Migration: python manage.py scaffold-migration APPLICATION-NAME MIGRATION-NAME')
+    print('Migration Upgrade: python manage.py migration-upgrade [APPLICATION-NAME]')
+    print('Migration Downgrade: python manage.py migration-downgrade APPLICATION-NAME')
+    print('Migration Upgrade: python manage.py migration-list [APPLICATION-NAME]')
 
 if __name__ == '__main__':
     # define function_dict
@@ -144,6 +171,9 @@ if __name__ == '__main__':
             'start' : run_server_forever,        # manage.py start
             'scaffold-application' : scaffold_application,
             'scaffold-migration' : scaffold_migration,
+            'migration-upgrade' : migration_upgrade,
+            'migration-downgrade' : migration_downgrade,
+            'migration-list' : migration_list,
             'help' : help
         }
     # get action
