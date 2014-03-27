@@ -15,7 +15,10 @@ BASE_URL            = '/kokoropy'               # base url, start with '/'
 # DON'T TOUCH FOLLOWING CODES
 ###########################################################################
 import subprocess, signal, time, datetime, os, sys, getopt, kokoropy
-PWD = os.path.dirname(os.path.abspath(__file__))
+from kokoropy import RED, GREEN, BLUE, YELLOW, PURPLE, ENDCOLOR
+
+VERSION   = '0.0.1'
+PWD       = os.path.dirname(os.path.abspath(__file__))
 FILE_STAT = {}
 
 #####################################################################################################
@@ -102,7 +105,7 @@ def _is_anything_modified():
 def run_server_forever():
     STOP_FLAG = False
     PROCESS = None
-    print ('KOKOROPY DEBUGGING SESSION\n')
+    print ('%sDevelopment Server Started ...%s\n' % (PURPLE, ENDCOLOR))
     while not STOP_FLAG:
         try:
             MODIFIED = _is_anything_modified()
@@ -115,7 +118,7 @@ def run_server_forever():
             STOP_FLAG = True
     if PROCESS is not None:
         os.killpg(PROCESS.pid, signal.SIGTERM)
-    print ("\nEND OF KOKOROPY DEBUGGING SESSION")
+    print ('\n%sDevelopment Server Stopped ...%s\n' % (PURPLE, ENDCOLOR))
 
 def scaffold_application():
     if len(sys.argv)>2:
@@ -144,37 +147,48 @@ def migration_downgrade():
         application_name = sys.argv[2]
         kokoropy.migration_downgrade(application_name)
 
-def migration_list():
+def migration_log():
     migrations = {}
     if len(sys.argv)>2:
         application_name = sys.argv[2]
-        migrations[application_name] = kokoropy.migration_list(application_name)
+        migrations[application_name] = kokoropy.migration_log(application_name)
     else:
-        migrations = kokoropy.migration_list()
+        migrations = kokoropy.migration_log()
     for key in migrations:
-        print ('application ' + key)
+        print (' * APPLICATION NAME : %s ' % key)
         for migration in migrations[key]:
-            print (migration.name)
+            print ('     %s' % migration.migration_name)
 
-def help():
-    print('Run Server: python manage.py start')
-    print('Scaffold Application: python manage.py scaffold-application APPLICATION-NAME')
-    print('Scaffold Migration: python manage.py scaffold-migration APPLICATION-NAME MIGRATION-NAME')
-    print('Migration Upgrade: python manage.py migration-upgrade [APPLICATION-NAME]')
-    print('Migration Downgrade: python manage.py migration-downgrade APPLICATION-NAME')
-    print('Migration Upgrade: python manage.py migration-list [APPLICATION-NAME]')
+def info():
+    print('')
+    print(' %sVERSION:%s %s\n' % (PURPLE, ENDCOLOR, VERSION))
+    print(' %sUSAGE:%s\n' % (PURPLE, ENDCOLOR))
+    print(' * Help')
+    print('     %spython %s%s help%s\n' % (GREEN, __file__, YELLOW, ENDCOLOR))
+    print(' * Run Server')
+    print('     %spython %s%s start%s\n' % (GREEN, __file__, YELLOW, ENDCOLOR))
+    print(' * Scaffold Application')
+    print('     %spython %s%s scaffold-application %sAPPLICATION-NAME%s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print(' * Scaffold Migration')
+    print('     %spython %s%s scaffold-migration %sAPPLICATION-NAME MIGRATION-NAME%s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print(' * Migration upgrade (to the newest version)')
+    print('     %spython %s%s migration-upgrade %s[APPLICATION-NAME]%s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print(' * Migration downgrade (to the previous version)')
+    print('     %spython %s%s migration-downgrade %sAPPLICATION-NAME%s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print(' * List of migration applied')
+    print('     %spython %s%s migration-log %s[APPLICATION-NAME]%s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
 
 if __name__ == '__main__':
     # define function_dict
     function_dict = {
-            'run_server_once' : run_server_once, # only for internal call as subprocess
-            'start' : run_server_forever,        # manage.py start
+            'run_server_once' : run_server_once,
+            'start' : run_server_forever,
             'scaffold-application' : scaffold_application,
             'scaffold-migration' : scaffold_migration,
             'migration-upgrade' : migration_upgrade,
             'migration-downgrade' : migration_downgrade,
-            'migration-list' : migration_list,
-            'help' : help
+            'migration-log' : migration_log,
+            'help' : info
         }
     # get action
     action = sys.argv[1] if len(sys.argv)>1 else 'help'

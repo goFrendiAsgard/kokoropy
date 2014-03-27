@@ -8,7 +8,7 @@ __version__ = 'development'
 __license__ = 'MIT'
 
 ###################################################################################################
-# Add this directory to sys.path
+# Add package directory to sys.path
 ###################################################################################################
 import os, inspect, sys, shutil
 from datetime import datetime
@@ -30,6 +30,13 @@ from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.sql.expression import desc
+
+PURPLE    = '\033[95m'
+BLUE      = '\033[94m'
+GREEN     = '\033[92m'
+YELLOW    = '\033[93m'
+RED       = '\033[91m'
+ENDCOLOR  = '\033[0m'
 
 ############################### SQL ALCHEMY SCRIPT ####################################
 
@@ -102,7 +109,7 @@ def load_view(application_name, view_name, *args, **kwargs):
     else:
         kwargs['BASE_URL'] = base_url()
     kwargs['RUNTIME_PATH']      = runtime_path()
-    kwargs['APPLICATION_PATH']  = application_path()
+    kwargs['app_path']  = application_path()
     # adjust args[0]
     path_list = list(args[0].split('/'))
     if len(path_list) >= 2 and path_list[1] != 'views':
@@ -386,7 +393,17 @@ def import_routes(route_location):
     if hasattr(module_obj, 'errors'):
         for error_pair in module_obj.errors:
             error(error_pair[0])(error_pair[1])
-
+            
+def _application_list():
+    app_path = application_path()
+    application_list = []
+    for application in os.listdir(app_path):
+        if os.path.isfile(os.path.join(app_path, application, "__init__.py")) and \
+        os.path.isfile(os.path.join(app_path, application, "controllers", "__init__.py")):
+            application_list.append(application)
+    application_list = _sort_names(application_list)
+    return application_list
+    
 def kokoro_init(**kwargs):
     """ Start a server instance. This method blocks until the server terminates.
 
@@ -435,7 +452,9 @@ def kokoro_init(**kwargs):
     ###################################################################################################
     # prepare runtime path
     ###################################################################################################
-    print ("PREPARE RUNTIME PATH " + UNTRAILED_SLASH_RUNTIME_PATH)
+    
+    print (YELLOW + 'Version : ' + BLUE + __version__ + ENDCOLOR)
+    print (YELLOW + "* Create Runtime Path : " + BLUE + UNTRAILED_SLASH_RUNTIME_PATH + ENDCOLOR)
     if not os.path.exists(UNTRAILED_SLASH_RUNTIME_PATH):
         os.makedirs(UNTRAILED_SLASH_RUNTIME_PATH)
     if not os.path.exists(MPL_CONFIG_DIR_PATH):
@@ -447,13 +466,8 @@ def kokoro_init(**kwargs):
     # get all kokoropy application
     ###################################################################################################
     # init application_list
-    print ("INIT APPLICATION DIRECTORIES")
-    application_list = []
-    for application in os.listdir(APPLICATION_PATH):
-        if os.path.isfile(os.path.join(APPLICATION_PATH, application, "__init__.py")) and \
-        os.path.isfile(os.path.join(APPLICATION_PATH, application, "controllers", "__init__.py")):
-            application_list.append(application)
-    application_list = _sort_names(application_list)
+    print (YELLOW + "* Detect Applications" + ENDCOLOR)
+    application_list = _application_list()
     ###################################################################################################
     # get application controller modules
     ###################################################################################################
@@ -484,21 +498,21 @@ def kokoro_init(**kwargs):
     route(base_url("assets/<path:re:.+>"))(kokoro_router.serve_assets)
     hook('before_request')(kokoro_router.before_request)
     
-    print("LOAD GLOBAL ROUTES")
+    print(YELLOW + "* Register Global Routes" + ENDCOLOR)
     import_routes(APPLICATION_PACKAGE + ".routes")
     ###################################################################################################
     # Load routes
     ###################################################################################################
     for application in application_list:
         if os.path.isfile(os.path.join(APPLICATION_PATH, application, "routes.py")):
-            print("LOAD ROUTES : "+application)
+            print(YELLOW + "* Register Routes : " + BLUE + application + ENDCOLOR)
             import_routes(APPLICATION_PACKAGE + ".routes")
     ###################################################################################################
     # Load Autoroute inside controller modules
     ###################################################################################################
     for application in controller_dict_list:
         for controller in controller_dict_list[application]:
-            print("INSPECT CONTROLLER : "+application+".controllers."+controller)
+            print(YELLOW + "* Find Controller : "+ BLUE + application + ".controllers." + controller + ENDCOLOR)
             # import our controllers
             module_obj = None
             import_location = APPLICATION_PACKAGE+"."+application+".controllers."+controller
@@ -530,8 +544,8 @@ def kokoro_init(**kwargs):
             # publish all methods with action prefix
             _publish_methods(application, controller, "action", methods, [route, get, post,
                                                                           put, delete]      )
-            print("LOAD AUTOROUTE CONTROLLER : "+application+".controllers."+\
-                  controller+"."+autoroute_controller_name)
+            print(YELLOW + "   Register Autoroute Controller : " + BLUE + 
+                  autoroute_controller_name + ENDCOLOR)
     ###################################################################################################
     # add template & assets path
     ###################################################################################################
@@ -549,8 +563,10 @@ def kokoro_init(**kwargs):
     if RUN:
         if SERVER == 'kokoro':
             SERVER = KokoroWSGIRefServer(host=HOST, port=port)
+        print(GREEN)
         run(app=app, server=SERVER, reloader=RELOADER, host=HOST, 
             port=port, quiet=QUIET, interval=INTERVAL, debug=DEBUG, plugins=PLUGINS, **kwargs)
+        print(ENDCOLOR)
     else:
         return app
 
@@ -617,20 +633,14 @@ def _migration_session(application_name):
     Base.metadata.create_all(bind=engine)
     return db_session
 
-def migration_list(application_name=None):
+def migration_log(application_name=None):
     if application_name is None:
-        app_path = application_path()
         # get application_list and sort it by name
-        application_list = []
-        for application_name in os.listdir(app_path):
-            if os.path.isfile(os.path.join(app_path, application_name, "__init__.py")) and \
-            os.path.isfile(os.path.join(app_path, application_name, "controllers", "__init__.py")):
-                application_list.append(application_name)
-        application_list = _sort_names(application_list)
+        application_list = _application_list()
         # migration list
         migrations = {}
         for application_name in application_list:
-            migrations[application_name] = migration_list(application_name)
+            migrations[application_name] = migration_log(application_name)
         return migrations
     else:
         db_session = _migration_session(application_name)
@@ -642,27 +652,21 @@ def _migration_max(application_name):
 
 def migration_upgrade(application_name=None, migration_name=None):
     if application_name is None:
-        app_path = application_path()
         # get application_list and sort it by name
-        application_list = []
-        for application_name in os.listdir(app_path):
-            if os.path.isfile(os.path.join(app_path, application_name, "__init__.py")) and \
-            os.path.isfile(os.path.join(app_path, application_name, "controllers", "__init__.py")):
-                application_list.append(application_name)
-        application_list = _sort_names(application_list)
+        application_list = _application_list()
         # do migration
         for application_name in application_list:
             migration_upgrade(application_name)
     elif migration_name is None:
         # get migration list and sort it by name
-        migration_list = []
+        migration_log = []
         for migration_name in os.listdir(application_path(os.path.join(application_name, 'migrations'))):
             file_name, extension = os.path.splitext(migration_name)
             if extension == '.py' and file_name != '__init__':
-                migration_list.append(file_name)
-        migration_list = _sort_names(migration_list)
+                migration_log.append(file_name)
+        migration_log = _sort_names(migration_log)
         # do migration
-        for migration_name in migration_list:
+        for migration_name in migration_log:
             print (application_name, migration_name)
             migration_upgrade(application_name, migration_name)
     else:

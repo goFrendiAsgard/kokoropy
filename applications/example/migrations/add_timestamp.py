@@ -6,6 +6,7 @@ from ..configs.db import engine
 conn = engine.connect()
 ctx = MigrationContext.configure(conn)
 op = Operations(ctx)
+signature = '2013'
 
 # just a simple upgrade
 def upgrade():    

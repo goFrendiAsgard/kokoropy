@@ -204,6 +204,7 @@
                         <li><a href="#configuration">Configuration</a></li>
                     </ul>
                 </li>
+                <li><a href="#rossian">Rossian</a></li>
                 <li><a href="#coding">Coding</a>
                     <ul class="nav">
                         <li><a href="#simple_hello_world">Simple Hello World</a></li>
@@ -277,7 +278,7 @@
         </p>
         <pre>
             cd path/to/kokoropy
-            python manage.py start
+            python rossian.py start
         </pre>
 
         <p>
@@ -339,7 +340,7 @@
                 |--- README.md                    DOCUMENTATION & TUTORIAL
                 |
                 |                                 DEVELOPMENT & DEBUGGING
-                |--- manage.py                    * script to manage kokoropy
+                |--- rossian.py                   * script to manage kokoropy
                 |
                 |                                 HEROKU DEPLOYMENT FILES
                 |--- heroku.sh                    * heroku command example
@@ -374,12 +375,62 @@
             BASE_URL            = '/kokoropy'               # base url, start with '/'
         </pre>
 
+        <h1 id="rossian">Rossian (Script generator and more)</h1>
+        <p>
+            Building everything from scratch is such a pain. Therefore, some frameworks provide generator scripts.
+            FuelPHP has <code>oil</code>, Laravel has <code>artisan</code>, Django has <code>manage.py</code>,
+            Ruby on Rails has <code>rails</code>.
+        </p>
+        <p>
+            In kokoropy, we have <code>rossian.py</code>, a smart, cute, little script that help you do most of things and help you to do everything better.
+            You can do:
+        </p>
+        <pre>
+            python rossian.py
+        </pre>
+        <p>to see how it works.</p>
+        <p>Currently, here is a list of commands that might be useful</p>
+        <pre>
+             VERSION: 0.0.1
+
+             USAGE:
+
+             * Help
+                 python rossian.py help
+
+             * Run Server
+                 python rossian.py start
+
+             * Scaffold Application
+                 python rossian.py scaffold-application APPLICATION-NAME
+
+             * Scaffold Migration
+                 python rossian.py scaffold-migration APPLICATION-NAME MIGRATION-NAME
+
+             * Migration upgrade (to the newest version)
+                 python rossian.py migration-upgrade [APPLICATION-NAME]
+
+             * Migration downgrade (to the previous version)
+                 python rossian.py migration-downgrade APPLICATION-NAME
+
+             * List of migration applied
+                 python rossian.py migration-log [APPLICATION-NAME]
+        </pre>
+        <p>
+            <b>Note: </b> <code>rossian.py</code> is named after my smart and cute girlfriend.
+            She always encourage and help me to do many new things (including ride a motorbike)
+            and do everything better.
+        </p>
+
         <h1 id="coding">Coding</h1>
 
         <h2 id="simple_hello_world">Simple Hello world</h2>
         <p>Okay, let's try your first hello world program</p>
-        <p>first, make directory inside <b>/applications</b>, name it as <b>demo</b>. Create <b>__init__.py</b> and <b>routes.py</b>
-        </p>
+        <p>First, do:</p>
+        <pre>
+            python rossian.py scaffolding-application demo
+        </pre>
+        <p>This will make <code>demo</code> directory inside your <code>applications</code></p>
         <pre>
             kokoropy
                 |--- /applications
