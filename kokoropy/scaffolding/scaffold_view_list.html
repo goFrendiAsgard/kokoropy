@@ -1,0 +1,8 @@
+% rebase('index/views/base')
+{% block content %}
+    <ul>
+    % for g_table_name in g_table_name_list:
+        <li>{{ g_table_name.id }}</li>
+    % end
+    </ul>
+{% endblock %}

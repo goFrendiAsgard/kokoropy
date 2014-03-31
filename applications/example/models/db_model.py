@@ -1,6 +1,14 @@
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from ..configs.db import engine, db_session
+from sqlalchemy.orm import scoped_session, sessionmaker
+from ..configs.db import connection_string
+
+
+# create engine
+engine = create_engine(connection_string, echo=True)
+
+# create db session
+db_session = scoped_session(sessionmaker(bind=engine))
 
 ############################### SQL ALCHEMY SCRIPT ####################################
 

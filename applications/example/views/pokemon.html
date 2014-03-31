@@ -1,5 +1,4 @@
-{% extends 'index/views/base.html' %}
-{% set title='Pokemon List' %}
+% rebase('index/views/base.html', title='Pokemon List')
 
 {% block content %}
     <h3>Pokemon List</h3>
@@ -17,15 +16,15 @@
             </tr>
         </thead>
         <tbody>
-            {% for pokemon in pokemon_list: %}
+            % for pokemon in pokemon_list:
             <tr>
                 <td>{{ pokemon.name }}</td>
                 <td>
-                    {% if pokemon.image == '' %}
+                    % if pokemon.image == '':
                     <img src="{{ BASE_URL }}example/assets/images/pokemon-no-image.png" style="height:65px;" />
-                    {% else %}
+                    % else:
                     <img src="{{ BASE_URL }}example/assets/uploads/{{ pokemon.image }}" style="height:65px;" />
-                    {% endif %}
+                    % end
                 </td>
                 <td width="50px">
                    <a class="btn btn-warning" href="{{ BASE_URL }}example/pokemon/form_edit_pokemon/{{ pokemon.id }}" >
@@ -41,7 +40,7 @@
                    </form>
                 </td>
             </tr>
-            {% endfor %}
+            % end
         </tbody>
     </table>
 

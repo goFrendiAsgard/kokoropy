@@ -1,4 +1,4 @@
-{% set active_page = active_page or 'example' %}
+% setdefault('active_page', 'example')
 <!DOCTYPE html>
 <html>
     <head>
@@ -10,7 +10,7 @@
         <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/bootstrap/css/bootstrap.min.css" />
         <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/bootstrap/css/bootstrap-theme.min.css" />
         <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}example/assets/css/style.css" />
-        <title>{{ title or 'Kokoropy' }}</title>
+        <title>{{ get('title', 'kokoropy') }}</title>
         <style type="text/css">
             /* Space out content a bit */
             body {
@@ -105,7 +105,8 @@
                 <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery.min.js"></script>
                 <script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/bootstrap/js/bootstrap.min.js"></script>
                 <script type="text/javascript" src="{{ BASE_URL }}example/assets/js/script.js"></script>
-                {% block content %}Nothing{% endblock %}
+                {{ !base }}
+                {% block content %}No content{% endblock %}
             </div>
 
             <!-- footer -->

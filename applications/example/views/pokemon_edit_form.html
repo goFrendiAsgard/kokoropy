@@ -1,5 +1,4 @@
-{% extends 'index/views/base.html' %}
-{% set title='Edit Pokemon' %}
+% rebase('index/views/base.html', title='Edit Pokemon')
 
 {% block content %}
   <form action="{{ BASE_URL }}example/pokemon" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
@@ -12,11 +11,11 @@
     <div class="form-group">
       <label for="pokemon_name" class="col-lg-3 col-md-3 control-label">Image</label>
       <div class="col-lg-7 col-md-8">
-          {% if pokemon.image == '' %}
+          % if pokemon.image == '':
           <img src="{{ BASE_URL }}example/assets/images/pokemon-no-image.png" style="height:65px;" />
-          {% else %}
+          % else:
           <img src="{{ BASE_URL }}example/assets/uploads/{{ pokemon.image }}" style="height:65px;" />
-          {% endif %}
+          % end
         <input type="file" class="form-control" id="pokemon_image" name="pokemon_image" placeholder="Image" />
       </div>
     </div>

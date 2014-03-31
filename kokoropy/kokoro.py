@@ -18,13 +18,13 @@ if os.path.dirname(__file__) not in sys.path:
 ###################################################################################################
 # Import things
 ###################################################################################################
-import bottle, beaker, threading, time, tempfile
+import bottle, beaker, threading, time, tempfile, re
 import beaker.middleware
 from bottle import default_app, debug, run, static_file,\
     response, request, TEMPLATE_PATH, route, get,\
     post, put, delete, error, hook, Bottle, redirect
 
-from bottle import jinja2_template as _bottle_template
+from bottle import template as _bottle_template
 
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -101,22 +101,70 @@ class Autoroute_Controller(object):
 # load view
 def load_view(application_name, view_name, *args, **kwargs):
     args_list = list(args)
-    args_list.insert(0, "/".join((application_name , "views" , view_name)))
-    args = tuple(args_list)
-    
+    args_list.insert(0, os.path.join(application_name , "views" , view_name))
+    # get view_path (relative to template path
     if not request.BASE_URL is None:
         kwargs['BASE_URL'] = request.BASE_URL
     else:
         kwargs['BASE_URL'] = base_url()
     kwargs['RUNTIME_PATH']      = runtime_path()
     kwargs['app_path']  = application_path()
-    # adjust args[0]
-    path_list = list(args[0].split('/'))
+    # adjust args[0], add "'views' if it is not exits
+    path_list = list(args_list[0].split('/'))
     if len(path_list) >= 2 and path_list[1] != 'views':
         path_list = [path_list[0],] + ['views',] + path_list[1:]
-        args_list = list(args)
-        args_list[0] = '/'.join(path_list)
-        args = tuple(args_list)
+    # get view_path
+    view_path = os.path.join(*path_list)    
+    # get template's content
+    default_extensions = ['html', 'tpl', 'stpl', 'thtml']
+    extension = view_path.split('.')[-1]
+    for template_path in TEMPLATE_PATH:
+        if extension in default_extensions:
+            path = os.path.join(template_path, view_path)
+            if os.path.exists(path):
+                break
+        else:
+            for default_extension in default_extensions:
+                path = os.path.join(template_path, view_path + '.' + default_extension)
+                if os.path.exists(path):
+                    break
+    content = file_get_contents(path)
+    # add \n to prevent content rendered as path
+    if not '\n' in content:
+        content = content + '\n'
+    # create block pattern
+    block_pattern = r'{%( *)block( *)([A-Za-z0-9_-]*)( *)%}((.|\n)*?){%( *)endblock( *)%}+?'
+    # get block_chunks
+    block_chunks = re.findall(block_pattern, content)
+    # remove all literal block from content
+    content = re.sub(block_pattern, r'', content)
+    # get content by rendering template
+    args_list[0] = content
+    args = tuple(args_list)
+    content = _bottle_template(*args, **kwargs)
+    for chunk in block_chunks:
+        block_name = chunk[2]
+        block_content = chunk[4]
+        # change {% parent %} into % __base_block_BLOCKNAME()\n
+        block_content = re.sub(r'{%( *)parent( *)%}+?',
+                               r'\n% __base_block_'+block_name+'()\n',
+                               block_content)
+        content = '% def __block_' + block_name + '():\n' + block_content + '\n% end\n' + content
+    # change 
+    #    {% block X %}Y{% endblock %}" 
+    # into 
+    #     % def __base_block_X:
+    #         Y
+    #     % end
+    #     % setdefault('__block_X', __base_block_X)
+    #     % __block_X()
+    content = re.sub(block_pattern, 
+                     r'% def __base_block_\3():\n\5\n% end\n% setdefault("__block_\3", __base_block_\3)\n%__block_\3()\n',
+                     content)
+    # render again
+    args_list[0] = content
+    args = tuple(args_list)
+    content = _bottle_template(*args, **kwargs)
     return _bottle_template(*args, **kwargs)
 
 # This class serve kokoropy static files routing & some injection into request object
@@ -549,6 +597,8 @@ def kokoro_init(**kwargs):
     ###################################################################################################
     # add template & assets path
     ###################################################################################################
+    TEMPLATE_PATH.pop()
+    TEMPLATE_PATH.pop()
     TEMPLATE_PATH.append(APPLICATION_PATH)
     ###################################################################################################
     # run the application
@@ -714,16 +764,88 @@ def make_timestamp():
     return datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')
 
 def scaffold_application(application_name):
-    source = os.path.join(os.path.dirname(__file__), 'scaffold_application')
+    source = os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_application')
     destination = application_path(application_name)
     copytree(source, destination)
 
-def scaffold_migration(application_name, migration_name):
-    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffold_migration.py'))
+def scaffold_migration(application_name, migration_name, table_name='your_table', *columns):
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_migration.py'))
     timestamp = make_timestamp()
+    # make timestamp
     content = content.replace('g_timestamp', timestamp)
-    filename = timestamp+'-'+migration_name+'.py'
+    # make add column and drop column scripts
+    add_column_scripts = []
+    drop_column_scripts = []
+    for column in columns:
+        column = column.split(':')
+        if len(column)>1:
+            coltype= column[1]
+            column = column[0]
+        else:
+            coltype = 'String'
+            column = column[0]
+        add_column_scripts.append('op.add_column(\'%s\', Column(\'%s\', %s))' % (table_name, column, coltype))
+        drop_column_scripts.append('op.drop_column(\'%s\', \'%s\')' % (table_name, column))
+    add_column_scripts = '\n    '.join(add_column_scripts)
+    drop_column_scripts = '\n    '.join(drop_column_scripts)
+    content = content.replace('# g_add_column', add_column_scripts)
+    content = content.replace('# g_drop_column', drop_column_scripts)
+    # make application if not exists
     if not os.path.exists(application_path(application_name)):
         scaffold_application(application_name)
+    # determine file name
+    filename = timestamp+'_'+migration_name+'.py'
     filename = application_path(os.path.join(application_name, 'migrations', filename))
+    # write file
+    file_put_contents(filename, content)
+
+def scaffold_model(application_name, table_name, *columns):
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_model.py'))
+    ucase_table_name = table_name.title()
+    content = content.replace('G_Table_Name', ucase_table_name)
+    content = content.replace('g_table_name', table_name)
+    # create columns
+    column_scripts = []
+    for column in columns:
+        column = column.split(':')
+        if len(column)>1:
+            coltype= column[1]
+            column = column[0]
+        else:
+            coltype = 'String'
+            column = column[0]
+        column_scripts.append('%s = Column(%s)' % (column, coltype))
+    column_scripts = '\n    '.join(column_scripts)
+    content = content.replace('# g_column', column_scripts)
+    # make application if not exists
+    if not os.path.exists(application_path(application_name)):
+        scaffold_application(application_name)
+    # determine file name
+    filename = table_name+'.py'
+    filename = application_path(os.path.join(application_name, 'models', filename))
+    # write file
+    file_put_contents(filename, content)
+
+def scaffold_crud(application_name, table_name, *columns):
+    scaffold_model(application_name, table_name, *columns)
+    ucase_table_name = table_name.title()
+    
+    # controller
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_controller.py'))    
+    content = content.replace('G_Table_Name', ucase_table_name)
+    content = content.replace('g_table_name', table_name)
+    content = content.replace('g_application_name', application_name)
+    filename = table_name+'.py'
+    filename = application_path(os.path.join(application_name, 'controllers', filename))
+    # write file
+    file_put_contents(filename, content)
+    
+    # view
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_list.html'))    
+    content = content.replace('G_Table_Name', ucase_table_name)
+    content = content.replace('g_table_name', table_name)
+    content = content.replace('g_application_name', application_name)
+    filename = table_name+'_list.html'
+    filename = application_path(os.path.join(application_name, 'views', filename))
+    # write file
     file_put_contents(filename, content)

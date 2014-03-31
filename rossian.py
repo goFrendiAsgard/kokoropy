@@ -131,10 +131,48 @@ def scaffold_migration():
     if len(sys.argv)>3:
         application_name = sys.argv[2]
         migration_name = sys.argv[3]
-        kokoropy.scaffold_migration(application_name, migration_name)
+        if len(sys.argv)>4:
+            table_name = sys.argv[4]
+        else:
+            table_name = 'table'
+        if len(sys.argv)>5:
+            columns = sys.argv[5:]
+        else:
+            columns = []
+        kokoropy.scaffold_migration(application_name, migration_name, table_name, *columns)
     else:
         help()
 
+def scaffold_model():
+    if len(sys.argv)>3:
+        application_name = sys.argv[2]
+        if len(sys.argv)>3:
+            table_name = sys.argv[3]
+        else:
+            table_name = 'table'
+        if len(sys.argv)>4:
+            columns = sys.argv[4:]
+        else:
+            columns = []
+        kokoropy.scaffold_model(application_name, table_name, *columns)
+    else:
+        help()
+
+def scaffold_crud():
+    if len(sys.argv)>3:
+        application_name = sys.argv[2]
+        if len(sys.argv)>3:
+            table_name = sys.argv[3]
+        else:
+            table_name = 'table'
+        if len(sys.argv)>4:
+            columns = sys.argv[4:]
+        else:
+            columns = []
+        kokoropy.scaffold_crud(application_name, table_name, *columns)
+    else:
+        help()
+        
 def migration_upgrade():
     if len(sys.argv)>2:
         application_name = sys.argv[2]
@@ -170,7 +208,11 @@ def info():
     print(' * Scaffold Application')
     print('     %spython %s%s scaffold-application %sAPPLICATION-NAME%s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
     print(' * Scaffold Migration')
-    print('     %spython %s%s scaffold-migration %sAPPLICATION-NAME MIGRATION-NAME%s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print('     %spython %s%s scaffold-migration %sAPPLICATION-NAME MIGRATION-NAME [table-name] [column-name:type] ... %s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print(' * Scaffold Model')
+    print('     %spython %s%s scaffold-model %sAPPLICATION-NAME [table-name] [column-name:type] ... %s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print(' * Scaffold CRUD')
+    print('     %spython %s%s scaffold-crud %sAPPLICATION-NAME [table-name] [column-name:type] ... %s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
     print(' * Migration upgrade (to the newest version)')
     print('     %spython %s%s migration-upgrade %s[APPLICATION-NAME]%s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
     print(' * Migration downgrade (to the previous version)')
@@ -185,6 +227,8 @@ if __name__ == '__main__':
             'start' : run_server_forever,
             'scaffold-application' : scaffold_application,
             'scaffold-migration' : scaffold_migration,
+            'scaffold-model' : scaffold_model,
+            'scaffold-crud' : scaffold_crud,
             'migration-upgrade' : migration_upgrade,
             'migration-downgrade' : migration_downgrade,
             'migration-log' : migration_log,

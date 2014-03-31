@@ -1,9 +1,16 @@
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from sqlalchemy import Column, BIGINT, BigInteger, BINARY, Binary,\
+from sqlalchemy import create_engine, Column, BIGINT, BigInteger, BINARY, Binary,\
     BOOLEAN, Boolean, DATE, Date, DATETIME, DateTime, FLOAT, Float,\
     INTEGER, Integer, VARCHAR, String, TEXT, Text
-from ..configs.db import engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+from ..configs.db import connection_string
+
+# create engine
+engine = create_engine(connection_string, echo=True)
+
+# create db session
+db_session = scoped_session(sessionmaker(bind=engine))
 
 conn = engine.connect()
 ctx = MigrationContext.configure(conn)
@@ -25,6 +32,7 @@ def upgrade():
     # alter_column:
         op.alter_column('table_name', 'name', nullable = True)
     '''
+    # g_add_column
     pass
 
 def downgrade():
@@ -36,4 +44,5 @@ def downgrade():
     # alter_column
         op.alter_column('table_name', 'name', nullable = False)
     '''
+    # g_drop_column
     pass
