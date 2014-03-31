@@ -79,11 +79,15 @@ def _get_modification_date(filename):
 
 def _is_anything_modified():
     MODIFICATION_FLAG = False
-    PWD = os.path.dirname(os.path.abspath(__file__))
     CHECKED_STAT = []
     REMOVED_STAT = []
+    exclude = ('assets', 'db', 'migrations')
+    
     for dirpath, dirnames, filenames in os.walk('./applications', topdown=True):
         del dirnames
+        dirpart = dirpath.split('/')
+        if len(dirpart)>3 and dirpart[3] in exclude:
+            continue
         for filename in filenames:
             absolute_filename = os.path.join(dirpath, filename)
             last_change = _get_modification_date(absolute_filename)
