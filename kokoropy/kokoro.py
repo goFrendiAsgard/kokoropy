@@ -31,13 +31,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.sql.expression import desc
 
-PURPLE    = '\033[95m'
-BLUE      = '\033[94m'
-GREEN     = '\033[92m'
-YELLOW    = '\033[93m'
-RED       = '\033[91m'
-ENDCOLOR  = '\033[0m'
-
+from colorama import init, Fore, Back
+init()
 ############################### SQL ALCHEMY SCRIPT ####################################
 
 # create Base
@@ -129,7 +124,7 @@ def load_view(application_name, view_name, *args, **kwargs):
                 if os.path.exists(path):
                     break
     content = file_get_contents(path)
-    # add \n to prevent content rendered as path
+    # add \n to prevent content rendeFore.RED as path
     if not '\n' in content:
         content = content + '\n'
     # create block pattern
@@ -199,7 +194,7 @@ class _Kokoro_Router(object):
         return output
 
 def isset(variable):
-    """ PHP favored isset. 
+    """ PHP favoFore.RED isset. 
         Usage: isset("a_variable_name")
     """
     return variable in locals() or variable in globals()
@@ -271,7 +266,7 @@ def copytree(src, dst, symlinks=False, ignore=None):
     """ Enchancement of shutil.copytree
         Will really copy directory recursively.
         If dst is not exists, it will be created.
-        If src is not exists, it will be ignored without throwing any error
+        If src is not exists, it will be ignoFore.RED without throwing any error
         Normal usage:
             copytree("source_directory", "destination_directory")
     """
@@ -501,8 +496,8 @@ def kokoro_init(**kwargs):
     # prepare runtime path
     ###################################################################################################
     
-    print (YELLOW + 'Version : ' + BLUE + __version__ + ENDCOLOR)
-    print (YELLOW + "* Create Runtime Path : " + BLUE + UNTRAILED_SLASH_RUNTIME_PATH + ENDCOLOR)
+    print (Fore.YELLOW + 'Version : ' + Fore.BLUE + __version__ + Fore.RESET)
+    print (Fore.YELLOW + "* Create Runtime Path : " + Fore.BLUE + UNTRAILED_SLASH_RUNTIME_PATH + Fore.RESET)
     if not os.path.exists(UNTRAILED_SLASH_RUNTIME_PATH):
         os.makedirs(UNTRAILED_SLASH_RUNTIME_PATH)
     if not os.path.exists(MPL_CONFIG_DIR_PATH):
@@ -514,7 +509,7 @@ def kokoro_init(**kwargs):
     # get all kokoropy application
     ###################################################################################################
     # init application_list
-    print (YELLOW + "* Detect Applications" + ENDCOLOR)
+    print (Fore.YELLOW + "* Detect Applications" + Fore.RESET)
     application_list = _application_list()
     ###################################################################################################
     # get application controller modules
@@ -537,7 +532,7 @@ def kokoro_init(**kwargs):
                 controller_dict_list[application] = []
             controller_dict_list[application].append(module_name)   
     ###################################################################################################
-    # some predefined routes
+    # some pFore.REDefined routes
     ###################################################################################################
     application_pattern = "|".join(application_list)
     kokoro_router = _Kokoro_Router()
@@ -546,21 +541,21 @@ def kokoro_init(**kwargs):
     route(base_url("assets/<path:re:.+>"))(kokoro_router.serve_assets)
     hook('before_request')(kokoro_router.before_request)
     
-    print(YELLOW + "* Register Global Routes" + ENDCOLOR)
+    print(Fore.YELLOW + "* Register Global Routes" + Fore.RESET)
     import_routes(APPLICATION_PACKAGE + ".routes")
     ###################################################################################################
     # Load routes
     ###################################################################################################
     for application in application_list:
         if os.path.isfile(os.path.join(APPLICATION_PATH, application, "routes.py")):
-            print(YELLOW + "* Register Routes : " + BLUE + application + ENDCOLOR)
+            print(Fore.YELLOW + "* Register Routes : " + Fore.BLUE + application + Fore.RESET)
             import_routes(APPLICATION_PACKAGE + ".routes")
     ###################################################################################################
     # Load Autoroute inside controller modules
     ###################################################################################################
     for application in controller_dict_list:
         for controller in controller_dict_list[application]:
-            print(YELLOW + "* Find Controller : "+ BLUE + application + ".controllers." + controller + ENDCOLOR)
+            print(Fore.YELLOW + "* Find Controller : "+ Fore.BLUE + application + ".controllers." + controller + Fore.RESET)
             # import our controllers
             module_obj = None
             import_location = APPLICATION_PACKAGE+"."+application+".controllers."+controller
@@ -592,8 +587,8 @@ def kokoro_init(**kwargs):
             # publish all methods with action prefix
             _publish_methods(application, controller, "action", methods, [route, get, post,
                                                                           put, delete]      )
-            print(YELLOW + "   Register Autoroute Controller : " + BLUE + 
-                  autoroute_controller_name + ENDCOLOR)
+            print(Fore.YELLOW + "   Register Autoroute Controller : " + Fore.BLUE + 
+                  autoroute_controller_name + Fore.RESET)
     ###################################################################################################
     # add template & assets path
     ###################################################################################################
@@ -613,10 +608,10 @@ def kokoro_init(**kwargs):
     if RUN:
         if SERVER == 'kokoro':
             SERVER = KokoroWSGIRefServer(host=HOST, port=port)
-        print(GREEN)
+        print(Fore.GREEN)
         run(app=app, server=SERVER, reloader=RELOADER, host=HOST, 
             port=port, quiet=QUIET, interval=INTERVAL, debug=DEBUG, plugins=PLUGINS, **kwargs)
-        print(ENDCOLOR)
+        print(Fore.RESET)
     else:
         return app
 

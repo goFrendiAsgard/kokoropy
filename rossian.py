@@ -15,7 +15,7 @@ BASE_URL            = '/kokoropy'               # base url, start with '/'
 # DON'T TOUCH FOLLOWING CODES
 ###########################################################################
 import subprocess, signal, time, datetime, os, sys, getopt, kokoropy
-from kokoropy import RED, GREEN, BLUE, YELLOW, PURPLE, ENDCOLOR
+from kokoropy import Fore, Back
 
 VERSION   = '0.0.1'
 PWD       = os.path.dirname(os.path.abspath(__file__))
@@ -71,7 +71,7 @@ def _run_server_as_subprocess():
     if DEBUG:
         ARGUMENTS += ' --debug'
     RUN_COMMAND = RUN_COMMAND + ' ' + ARGUMENTS
-    return subprocess.Popen(RUN_COMMAND, shell=True, preexec_fn=os.setsid)
+    return subprocess.Popen(RUN_COMMAND, shell=True)
 
 def _get_modification_date(filename):
     t = os.path.getmtime(filename)
@@ -109,20 +109,20 @@ def _is_anything_modified():
 def run_server_forever():
     STOP_FLAG = False
     PROCESS = None
-    print ('%sDevelopment Server Started ...%s\n' % (PURPLE, ENDCOLOR))
+    print ('%sDevelopment Server Started ...%s\n' % (Fore.MAGENTA, Fore.RESET))
     while not STOP_FLAG:
         try:
             MODIFIED = _is_anything_modified()
             if MODIFIED:
                 if PROCESS is not None:
-                    os.killpg(PROCESS.pid, signal.SIGTERM)
+                    os.kill(PROCESS.pid, signal.SIGTERM)
                 PROCESS = _run_server_as_subprocess()
             time.sleep(1)
         except(KeyboardInterrupt, SystemExit):
             STOP_FLAG = True
     if PROCESS is not None:
-        os.killpg(PROCESS.pid, signal.SIGTERM)
-    print ('\n%sDevelopment Server Stopped ...%s\n' % (PURPLE, ENDCOLOR))
+        os.kill(PROCESS.pid, signal.SIGTERM)
+    print ('\n%sDevelopment Server Stopped ...%s\n' % (Fore.MAGENTA, Fore.RESET))
 
 def scaffold_application():
     if len(sys.argv)>2:
@@ -203,26 +203,26 @@ def migration_log():
 
 def info():
     print('')
-    print(' %sVERSION:%s %s\n' % (PURPLE, ENDCOLOR, VERSION))
-    print(' %sUSAGE:%s\n' % (PURPLE, ENDCOLOR))
+    print(' %sVERSION:%s %s\n' % (Fore.MAGENTA, Fore.RESET, VERSION))
+    print(' %sUSAGE:%s\n' % (Fore.MAGENTA, Fore.RESET))
     print(' * Help')
-    print('     %spython %s%s help%s\n' % (GREEN, __file__, YELLOW, ENDCOLOR))
+    print('     %spython %s%s help%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.RESET))
     print(' * Run Server')
-    print('     %spython %s%s start%s\n' % (GREEN, __file__, YELLOW, ENDCOLOR))
+    print('     %spython %s%s start%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.RESET))
     print(' * Scaffold Application')
-    print('     %spython %s%s scaffold-application %sAPPLICATION-NAME%s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print('     %spython %s%s scaffold-application %sAPPLICATION-NAME%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.BLUE, Fore.RESET))
     print(' * Scaffold Migration')
-    print('     %spython %s%s scaffold-migration %sAPPLICATION-NAME MIGRATION-NAME [table-name] [column-name:type] ... %s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print('     %spython %s%s scaffold-migration %sAPPLICATION-NAME MIGRATION-NAME [table-name] [column-name:type] ... %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.BLUE, Fore.RESET))
     print(' * Scaffold Model')
-    print('     %spython %s%s scaffold-model %sAPPLICATION-NAME [table-name] [column-name:type] ... %s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print('     %spython %s%s scaffold-model %sAPPLICATION-NAME [table-name] [column-name:type] ... %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.BLUE, Fore.RESET))
     print(' * Scaffold CRUD')
-    print('     %spython %s%s scaffold-crud %sAPPLICATION-NAME [table-name] [column-name:type] ... %s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print('     %spython %s%s scaffold-crud %sAPPLICATION-NAME [table-name] [column-name:type] ... %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.BLUE, Fore.RESET))
     print(' * Migration upgrade (to the newest version)')
-    print('     %spython %s%s migration-upgrade %s[APPLICATION-NAME]%s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print('     %spython %s%s migration-upgrade %s[APPLICATION-NAME]%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.BLUE, Fore.RESET))
     print(' * Migration downgrade (to the previous version)')
-    print('     %spython %s%s migration-downgrade %sAPPLICATION-NAME%s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print('     %spython %s%s migration-downgrade %sAPPLICATION-NAME%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.BLUE, Fore.RESET))
     print(' * List of migration applied')
-    print('     %spython %s%s migration-log %s[APPLICATION-NAME]%s\n' % (GREEN, __file__, YELLOW, BLUE, ENDCOLOR))
+    print('     %spython %s%s migration-log %s[APPLICATION-NAME]%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.BLUE, Fore.RESET))
 
 if __name__ == '__main__':
     # define function_dict
