@@ -14,7 +14,8 @@ BASE_URL            = '/kokoropy'               # base url, start with '/'
 ###########################################################################
 # DON'T TOUCH FOLLOWING CODES
 ###########################################################################
-import subprocess, signal, time, datetime, os, sys, getopt, kokoropy
+import subprocess, signal, time, datetime, os, sys, getopt, kokoropy, atexit
+
 from kokoropy import Fore, Back
 
 VERSION   = '0.0.1'
@@ -39,7 +40,6 @@ def run_server_once():
     debug = True
     reloader = False
     server = 'kokoro'
-    app_directory = 'applications'
     runtime_path = '.runtime/'
     base_url = '/'
     for opt, arg in options:
@@ -59,7 +59,6 @@ def run_server_once():
             runtime_path = arg
         elif opt == 'baseurl':
             base_url = arg
-                
     _run_server(host, port, debug, reloader, server, base_url, runtime_path)
 
 def _run_server_as_subprocess():
@@ -106,22 +105,29 @@ def _is_anything_modified():
         FILE_STAT.pop(absolute_filename,None)
     return MODIFICATION_FLAG
 
-def run_server_forever():
-    STOP_FLAG = False
-    PROCESS = None
-    print ('%sDevelopment Server Started ...%s\n' % (Fore.MAGENTA, Fore.RESET))
-    while not STOP_FLAG:
+def _kill_process(process):
+    if process is not None:
         try:
-            MODIFIED = _is_anything_modified()
-            if MODIFIED:
-                if PROCESS is not None:
-                    os.kill(PROCESS.pid, signal.SIGTERM)
-                PROCESS = _run_server_as_subprocess()
-            time.sleep(1)
-        except(KeyboardInterrupt, SystemExit):
-            STOP_FLAG = True
-    if PROCESS is not None:
-        os.kill(PROCESS.pid, signal.SIGTERM)
+            process.kill()
+            os.kill(process.pid, signal.SIGTERM)
+        except OSError:
+            pass
+
+def run_server_forever():
+    print ('%sDevelopment Server Started ...%s\n' % (Fore.MAGENTA, Fore.RESET))
+    STOP_FLAG = False
+    try:
+        while not STOP_FLAG:
+            try:
+                MODIFIED = _is_anything_modified()
+                if MODIFIED:
+                    _kill_process(PROCESS)
+                    PROCESS = _run_server_as_subprocess()
+                time.sleep(1)
+            except(KeyboardInterrupt, SystemExit):
+                STOP_FLAG = True
+    finally:
+        _kill_process(PROCESS)
     print ('\n%sDevelopment Server Stopped ...%s\n' % (Fore.MAGENTA, Fore.RESET))
 
 def scaffold_application():
@@ -242,5 +248,6 @@ if __name__ == '__main__':
     action = sys.argv[1] if len(sys.argv)>1 else 'help'
     if action not in function_dict:
         action = 'help'
+    
     # execute the action
     function_dict[action]()

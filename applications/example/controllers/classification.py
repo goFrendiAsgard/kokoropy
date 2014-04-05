@@ -28,7 +28,7 @@ class My_Controller(Autoroute_Controller):
                         'random_state': 'None'
                     },
                 'sklearn.svm.LinearSVC' : {
-                        'penalt'      : 'l2',
+                        'penalty'     : 'l2',
                         'loss'        : 'l2',
                         'dual'        : 'True',
                         'tol'         : 0.0001,

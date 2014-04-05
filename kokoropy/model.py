@@ -6,35 +6,79 @@ import datetime, time, json
 Base = declarative_base()
 
 class Mixin(object):
+    '''
+    Don't use these names as field name:
+    * engine
+    * session
+    * error_message
+    * success
+    * id
+    * get
+    * find
+    * before_save
+    * before_insert
+    * before_update
+    * before_trash
+    * before_untrash
+    * before_delete
+    * save
+    * trash
+    * untrash
+    * delete
+    * generate_prefix_id
+    * generate_id
+    * to_dict
+    * to_json
+    '''
     _real_id = Column(Integer, primary_key=True)
     _trashed = Column(Boolean, default=False)
     _created_at = Column(DateTime, default=func.now())
     _updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-    id = Column(String, unique=True)
+    id = Column(String, unique=True, default=func.current_timestamp())
     
     __connectionstring__ = ''
     __echo__ = True
     __prefixid__ = '%Y%m%d-'
     __digitid__ = 3
     
+    
     @property
     def engine(self):
-        if not hasattr(self, '_engine'):
-            self._engine = create_engine(self.__connectionstring__, echo=self.__echo__)
-        return self._engine
+        if hasattr(self, '__session__'):
+            self.__engine__ = self.session.bind
+        elif not hasattr(self, '__engine__'):
+            self.__engine__ = create_engine(self.__connectionstring__, echo=self.__echo__)
+        return self.__engine__
     
     @property
     def session(self):
-        if not hasattr(self, '_session'):
-            self._session = scoped_session(sessionmaker(bind=self.engine))
-        return self._session
-    '''
-    def _init_db(self):
-        # don't make session if it is already created
-        if not hasattr(self, 'session'):
-            self.engine = create_engine(self.__connectionstring__, echo=self.__echo__)
-            self.session = scoped_session(sessionmaker(bind=self.engine))
-    '''
+        if not hasattr(self, '__session__'):
+            if not hasattr(self, '__engine__'):
+                self.__engine__ = create_engine(self.__connectionstring__, echo=self.__echo__)
+            self.__session__ = scoped_session(sessionmaker(bind=self.__engine__))
+        return self.__session__
+    
+    @property
+    def error_message(self):
+        if hasattr(self, '_error_message'):
+            return self._error_message
+        else:
+            return ''
+    
+    @error_message.setter
+    def error_message(self, val):
+        self._error_message = val
+        
+    @property
+    def success(self):
+        if hasattr(self, '_success'):
+            return self._success
+        else:
+            return True
+    
+    @success.setter
+    def success(self, val):
+        self._success = val
     
     @classmethod
     def get(cls, *criterion, **kwargs):
@@ -59,30 +103,62 @@ class Mixin(object):
         if len(result)>0:
             return result[0]
     
+    def before_save(self):
+        self.success = True
+    
+    def before_insert(self):
+        self.success = True
+    
+    def before_update(self):
+        self.success = True
+    
+    def before_trash(self):
+        self.success = True
+    
+    def before_untrash(self):
+        self.success = True
+    
+    def before_delete(self):
+        self.success = True
+    
+    def _commit(self):
+        # success or rollback
+        if self.success:
+            self.session.commit()
+        else:
+            self.session.rollback()
+            
     def save(self):
-        #self._init_db()
         if self._real_id is None:
-            self.session.add(self)
             # generate id if not exists
             if self.id is None:
                 self.generate_id()
-        self.session.commit()
-        
+            # insert
+            self.before_insert()
+            if self.success:
+                self.session.add(self)
+        else:
+            self.before_update()
+        self.before_save()
+        self._commit()
     
     def trash(self):
-        #self._init_db()
-        self._trashed = True
-        self.session.commit()
+        self.before_trash()
+        if self.success:
+            self._trashed = True
+        self._commit()
     
     def untrash(self):
-        #self._init_db()
-        self._trashed = False
-        self.session.commit()
+        self.before_untrash()
+        if self.success:
+            self._trashed = False
+        self._commit()
     
     def delete(self):
-        #self._init_db()
-        self.session.delete(self)
-        self.session.commit()
+        self.before_delete()
+        if self.success:
+            self.session.delete(self)
+        self._commit()
     
     def generate_prefix_id(self):
         return datetime.datetime.fromtimestamp(time.time()).strftime(self.__prefixid__)
@@ -92,7 +168,6 @@ class Mixin(object):
             prefix = self.generate_prefix_id()
             classobj = self.__class__
             # get maxid
-            #self._init_db()
             query = self.session.query(func.max(classobj.id).label("maxid")).filter(classobj.id.like(prefix+'%')).one()
             maxid = query.maxid
             if maxid is None:

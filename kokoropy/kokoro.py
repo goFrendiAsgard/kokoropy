@@ -18,8 +18,7 @@ if os.path.dirname(__file__) not in sys.path:
 ###################################################################################################
 # Import things
 ###################################################################################################
-import bottle, beaker, threading, time, tempfile, re
-import beaker.middleware
+import bottle, beaker, threading, time, tempfile, re, beaker.middleware
 from bottle import default_app, debug, run, static_file,\
     response, request, TEMPLATE_PATH, route, get,\
     post, put, delete, error, hook, Bottle, redirect
@@ -495,7 +494,6 @@ def kokoro_init(**kwargs):
     ###################################################################################################
     # prepare runtime path
     ###################################################################################################
-    
     print (Fore.YELLOW + 'Version : ' + Fore.BLUE + __version__ + Fore.RESET)
     print (Fore.YELLOW + "* Create Runtime Path : " + Fore.BLUE + UNTRAILED_SLASH_RUNTIME_PATH + Fore.RESET)
     if not os.path.exists(UNTRAILED_SLASH_RUNTIME_PATH):
