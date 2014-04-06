@@ -14,7 +14,7 @@ BASE_URL            = '/kokoropy'               # base url, start with '/'
 ###########################################################################
 # DON'T TOUCH FOLLOWING CODES
 ###########################################################################
-import subprocess, signal, time, datetime, os, sys, getopt, kokoropy, atexit
+import subprocess, signal, time, datetime, os, sys, getopt, kokoropy
 
 from kokoropy import Fore, Back
 
@@ -70,7 +70,10 @@ def _run_server_as_subprocess():
     if DEBUG:
         ARGUMENTS += ' --debug'
     RUN_COMMAND = RUN_COMMAND + ' ' + ARGUMENTS
-    return subprocess.Popen(RUN_COMMAND, shell=True)
+    if hasattr(os, 'setsid'):
+        return subprocess.Popen(RUN_COMMAND, shell=True, preexec_fn=os.setsid)
+    else:
+        return subprocess.Popen(RUN_COMMAND, shell=True)
 
 def _get_modification_date(filename):
     t = os.path.getmtime(filename)
@@ -107,15 +110,16 @@ def _is_anything_modified():
 
 def _kill_process(process):
     if process is not None:
-        try:
-            process.kill()
-            os.kill(process.pid, signal.SIGTERM)
-        except OSError:
-            pass
+        if hasattr(os, 'killpg'):
+            os.killpg(process.pid, signal.SIGTERM)
+        else:
+            subprocess.call(['taskkill', '/F', '/T', '/PID', str(process.pid)])
+            # os.kill(process.pid, signal.SIGTERM)
 
 def run_server_forever():
     print ('%sDevelopment Server Started ...%s\n' % (Fore.MAGENTA, Fore.RESET))
     STOP_FLAG = False
+    PROCESS = None
     try:
         while not STOP_FLAG:
             try:
