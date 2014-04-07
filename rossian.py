@@ -25,9 +25,6 @@ FILE_STAT = {}
 #####################################################################################################
 # RUN THE SERVER
 #####################################################################################################
-def _run_server(host, port, debug, reloader, server, base_url, runtime_path):
-    kokoropy.kokoro_init(debug=debug, port=port, reloader=reloader,
-                         host=host, server=server, base_url=base_url, runtime_path=runtime_path)
 
 def run_server_once():
     
@@ -59,7 +56,8 @@ def run_server_once():
             runtime_path = arg
         elif opt == 'baseurl':
             base_url = arg
-    _run_server(host, port, debug, reloader, server, base_url, runtime_path)
+    kokoropy.kokoro_init(debug=debug, port=port, reloader=reloader,
+                         host=host, server=server, base_url=base_url, runtime_path=runtime_path)
 
 def _run_server_as_subprocess():
     SCRIPT_PATH = os.path.abspath(__file__)
