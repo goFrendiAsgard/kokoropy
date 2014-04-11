@@ -285,7 +285,7 @@ def makedirs(directory, mode='0777'):
     os.makedirs(directory, mode)
 
 def file_put_contents(filename, data):
-    f = open(filename, 'w')
+    f = file(filename, 'w')
     f.write(data)
     f.close()
 
@@ -792,24 +792,89 @@ def scaffold_migration(application_name, migration_name, table_name='your_table'
     # write file
     file_put_contents(filename, content)
 
+def add_to_structure(structure, table_name, column_name = None, content = None):
+    '''
+    return new column_name
+    '''
+    if table_name not in structure:
+        structure[table_name] = {}
+    if column_name is not None:
+        if column_name in structure[table_name]:
+            i = 1
+            while column_name + '_' + str(i) in table_name:
+                i += 1
+            column_name = column_name + '_' + str(i)
+        if content is None:
+            content = 'Column(String)'
+        structure[table_name][column_name] = content
+    return column_name
+
+def _structure_to_script(structure):
+    '''
+    example of data structure:
+        structure = [
+            'nerd' = {
+                'name' : 'Column(String)',
+                'address' : 'Column(String)'
+            },
+            'os' = {
+                'name' : 'Column(String)',
+                'version' : 'Column(String)'
+            }
+        ]
+    '''
+    script = ''
+    for table_name in sorted(structure):
+        ucase_table_name = table_name.title()
+        script += 'class ' + ucase_table_name + '(Model):\n'
+        script += '    __session__ = session\n'
+        for column_name in sorted(structure[table_name]):
+            content = structure[table_name][column_name]
+            script += '    ' + column_name + ' = ' + content + '\n'
+        script += '\n'
+    return script
+
 def scaffold_model(application_name, table_name, *columns):
     content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_model.py'))
+    # define structure
     ucase_table_name = table_name.title()
-    content = content.replace('G_Table_Name', ucase_table_name)
-    content = content.replace('g_table_name', table_name)
-    # create columns
-    column_scripts = []
+    structure = {}
     for column in columns:
         column = column.split(':')
-        if len(column)>1:
-            coltype= column[1]
-            column = column[0]
+        if len(column)>2:
+            colname = column[0]
+            other_table_name = column[1]
+            relationship = column[2]
+            ucase_other_table_name = other_table_name.title()
+            if relationship == 'onetomany' or relationship == 'one_to_many':
+                # other table
+                add_to_structure(structure, other_table_name)
+                # foreign key
+                coltype = 'Column(Integer, ForeignKey("' + table_name + '._real_id"))'
+                fk_col_name = '_' + table_name + '_real_id'
+                fk_col_name = add_to_structure(structure, other_table_name, fk_col_name, coltype)
+                # relationship
+                coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_other_table_name + '.' + fk_col_name + '")'
+                add_to_structure(structure, table_name, colname, coltype)
+            elif relationship == 'manytoone' or relationship == 'many_to_one':
+                # other table
+                add_to_structure(structure, other_table_name)
+                # foreign key
+                coltype = 'Column(Integer, ForeignKey("' + other_table_name + '._real_id"))'
+                fk_col_name = '_' + other_table_name + '_real_id'
+                fk_col_name = add_to_structure(structure, table_name, fk_col_name, coltype)
+                # relationship
+                coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_table_name + '.' + fk_col_name + '")'
+                add_to_structure(structure, table_name, colname, coltype)
         else:
-            coltype = 'String'
-            column = column[0]
-        column_scripts.append('%s = Column(%s)' % (column, coltype))
-    column_scripts = '\n    '.join(column_scripts)
-    content = content.replace('# g_column', column_scripts)
+            colname = column[0]
+            if len(column)>1:
+                coltype = column[1]
+            else:
+                coltype = 'String'
+            add_to_structure(structure, table_name, colname, 'Column('+coltype+')')
+    # replace content
+    content = content.replace('# g_structure', _structure_to_script(structure))
     # make application if not exists
     if not os.path.exists(application_path(application_name)):
         scaffold_application(application_name)

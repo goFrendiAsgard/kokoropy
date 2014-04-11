@@ -1,11 +1,13 @@
 from sqlalchemy import create_engine, Column, func, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
 import datetime, time, json
 # create Base
 Base = declarative_base()
-
-class Mixin(object):
+''' TODO:
+Play with counter + maxid
+'''
+class Model(Base):
     '''
     Don't use these names as field name:
     * engine
@@ -34,13 +36,17 @@ class Mixin(object):
     _trashed = Column(Boolean, default=False)
     _created_at = Column(DateTime, default=func.now())
     _updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-    id = Column(String, unique=True, default=func.current_timestamp())
+    id = Column(String, unique=True)
     
+    __abstract__ = True
     __connectionstring__ = ''
     __echo__ = True
     __prefixid__ = '%Y%m%d-'
     __digitid__ = 3
     
+    @declared_attr
+    def __tablename__(cls):
+        return cls.__name__.lower()
     
     @property
     def engine(self):
@@ -121,6 +127,9 @@ class Mixin(object):
     def before_delete(self):
         self.success = True
     
+    def _begin(self):
+        self.session.begin(subtransactions=True)
+    
     def _commit(self):
         # success or rollback
         if self.success:
@@ -129,6 +138,7 @@ class Mixin(object):
             self.session.rollback()
             
     def save(self):
+        self._begin()
         if self._real_id is None:
             # generate id if not exists
             if self.id is None:
