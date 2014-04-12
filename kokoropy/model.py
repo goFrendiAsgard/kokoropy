@@ -4,33 +4,10 @@ from sqlalchemy.ext.declarative import declarative_base, declared_attr
 import datetime, time, json
 # create Base
 Base = declarative_base()
-''' TODO:
-Play with counter + maxid
-'''
+        
 class Model(Base):
     '''
-    Don't use these names as field name:
-    * engine
-    * session
-    * error_message
-    * success
-    * id
-    * get
-    * find
-    * before_save
-    * before_insert
-    * before_update
-    * before_trash
-    * before_untrash
-    * before_delete
-    * save
-    * trash
-    * untrash
-    * delete
-    * generate_prefix_id
-    * generate_id
-    * to_dict
-    * to_json
+    Model
     '''
     _real_id = Column(Integer, primary_key=True)
     _trashed = Column(Boolean, default=False)
@@ -88,20 +65,35 @@ class Model(Base):
     
     @classmethod
     def get(cls, *criterion, **kwargs):
-        cls_name = cls.__name__
-        obj = cls()
-        #obj._init_db()
-        trashed_property = cls_name + '._trashed'
-        # define default value for limit and offset
+        '''
+        Usage:
+            Model.get(Model.name=="whatever", limit=1000, offset=0, include_trashed=True, as_json=True, include_relation=True)
+        '''
+        # get kwargs parameters
         limit = kwargs.pop('limit', 1000)
         offset = kwargs.pop('offset', 0)
-        # make query, by default trashed = False
-        trashed = kwargs.pop(trashed_property, False)
-        query = obj.session.query(cls)
-        if trashed == False:
+        include_trashed = kwargs.pop('include_trashed', False)
+        as_json = kwargs.pop('as_json', False)
+        include_relation = kwargs.pop('include_relation', False)
+        # get / make session if not exists
+        if hasattr(cls,'__session__ '):
+            session = cls.__session__
+        else:
+            obj = cls()
+            session = obj.session
+        query = session.query(cls)
+        if include_trashed == False:
             query = query.filter(cls._trashed == False)
         # run the query
-        return query.filter(*criterion).limit(limit).offset(offset).all()
+        result = query.filter(*criterion).limit(limit).offset(offset).all()
+        if as_json:
+            kwargs = {'include_relation' : include_relation, 'isoformat' : True}
+            result_list = []
+            for row in result:
+                result_list.append(row.to_dict(**kwargs))
+            return json.dumps(result_list)
+        else:
+            return result
     
     @classmethod
     def find(cls, id_value):
@@ -127,8 +119,39 @@ class Model(Base):
     def before_delete(self):
         self.success = True
     
-    def _begin(self):
-        self.session.begin(subtransactions=True)
+    def after_save(self):
+        self.success = True
+    
+    def after_insert(self):
+        self.success = True
+    
+    def after_update(self):
+        self.success = True
+    
+    def after_trash(self):
+        self.success = True
+    
+    def after_untrash(self):
+        self.success = True
+    
+    def after_delete(self):
+        self.success = True
+    
+    def _get_relation_name(self):
+        return self.__mapper__.relationships._data
+    
+    def _get_relation(self, relation_name):
+        return getattr(self, relation_name)
+    
+    def _save_relation(self):
+        for relation_name in self._get_relation_name():
+            relation = self._get_relation(relation_name)
+            if isinstance(relation, Model):
+                relation.save()
+            elif isinstance(relation, list):
+                for child in relation:
+                    if isinstance(child, Model):
+                        child.save()
     
     def _commit(self):
         # success or rollback
@@ -138,37 +161,53 @@ class Model(Base):
             self.session.rollback()
             
     def save(self):
-        self._begin()
+        inserting = False
         if self._real_id is None:
-            # generate id if not exists
-            if self.id is None:
-                self.generate_id()
-            # insert
+            inserting = True
+            # before insert
             self.before_insert()
+            # insert
             if self.success:
                 self.session.add(self)
         else:
+            #before update
             self.before_update()
         self.before_save()
+        # save
         self._commit()
+        # generate id if not exists
+        if self.id is None:
+            self.generate_id()
+        self._commit()
+        # after insert, after update and after save
+        if inserting:
+            self.after_insert()
+        else:
+            self.after_update()
+        self.after_save()
+        # also trigger save of relation
+        self._save_relation()
     
     def trash(self):
         self.before_trash()
         if self.success:
             self._trashed = True
         self._commit()
+        self.after_trash()
     
     def untrash(self):
         self.before_untrash()
         if self.success:
             self._trashed = False
         self._commit()
+        self.after_untrash()
     
     def delete(self):
         self.before_delete()
         if self.success:
             self.session.delete(self)
         self._commit()
+        self.after_delete()
     
     def generate_prefix_id(self):
         return datetime.datetime.fromtimestamp(time.time()).strftime(self.__prefixid__)
@@ -189,19 +228,41 @@ class Model(Base):
             newid = prefix + str(number+1).zfill(self.__digitid__)
             self.id = newid
     
-    def to_dict(self):
+    def to_dict(self, **kwargs):
+        '''
+        Usage:
+            model_instance.to_dict()
+            model_instance.to_dict(include_relation = True, isoformat = True)
+        '''
+        include_relation = kwargs.pop('include_relation', False)
+        isoformat = kwargs.pop('isoformat', False)
         dictionary = {}
         for column in self.__table__.columns:
-            dictionary[column.name] = getattr(self, column.name)
+            val = getattr(self, column.name)
+            if isoformat and hasattr(val, 'isoformat'):
+                val = val.isoformat()
+            dictionary[column.name] = val
+        # also include_relation
+        if include_relation:
+            kwargs = {'isoformat': isoformat}
+            # also add relation to dictionary
+            for relation_name in self._get_relation_name():
+                relation = self._get_relation(relation_name)
+                if isinstance(relation, Model):
+                    dictionary[relation_name] = relation.to_dict(**kwargs)
+                elif isinstance(relation, list):
+                    dictionary[relation_name] = []
+                    for child in relation:
+                        if isinstance(child, Model):
+                            dictionary[relation_name].append(child.to_dict(**kwargs))
         return dictionary
     
-    def to_json(self):
-        dictionary = self.to_dict()
-        for key in dictionary:
-            val = dictionary[key]
-            if hasattr(val, 'to_dict'):
-                val = val.to_dict()
-            elif hasattr(val, 'isoformat'):
-                val = val.isoformat()
-            dictionary[key] = val
+    def to_json(self, **kwargs):
+        '''
+        Usage:
+            model_instance.to_json()
+            model_instance.to_json(include_relation = True)
+        '''
+        kwargs['isoformat'] = True
+        dictionary = self.to_dict(**kwargs)
         return json.dumps(dictionary)
