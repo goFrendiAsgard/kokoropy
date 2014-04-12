@@ -34,14 +34,9 @@ Kokoropy stands in the shoulder of the giants. Here are projects that make kokor
 * jinja2
 
 Also, kokoropy come with several third-party css & javascript framework (so you do not need to download them anymore):
-* jquery 1.11.0
-* jquery-ui 1.10.4
-* jquery-mobile 1.4.0
-* bootstrap 3.0.3
-* colorbox 1.4.33
-* chosen 1.0.0
+* autosize
+* jquery-ui-bootstrap
 * leaflet 0.7.2
-* alertify.js 0.3.1.1
 * jquery-ace 1.0.3
 
 Documentation & Demo
