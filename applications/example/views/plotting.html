@@ -1,9 +1,5 @@
 % rebase('index/views/base.html', title='Plotting')
 
-{% block style %}
-    <link rel="stylesheet" type="text/css" href="{{ BASE_URL }}index/assets/static_libraries/jquery-ui/css/ui-lightness/jquery-ui-1.10.4.custom.min.css" />
-{% endblock %}
-
 {% block content %}
     <h4>Matplotlib and StringIO should be installed on server</h4>
     <div>
@@ -17,7 +13,6 @@
 {% endblock %}
 
 {% block script %}
-<script type="text/javascript" src="{{ BASE_URL }}index/assets/static_libraries/jquery-ui/js/jquery-ui-1.10.4.custom.min.js"></script>
 <script type="text/javascript">
     $(document).ready(function(){
         // mutate normal text into spinner
