@@ -531,25 +531,24 @@
             Put this in <b>my_model.py</b>:
         </p>
         <textarea class="language-python" readonly="readonly">
-            from sqlalchemy import create_engine, Column, func, Integer, String, DateTime, Boolean
-            from sqlalchemy.ext.declarative import declarative_base
-            from kokoropy.model import Mixin
+            from sqlalchemy import create_engine, Column, ForeignKey, func, Integer, String, DateTime, Boolean
+            from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
+            from kokoropy.model import Model
             from ..configs.db import connection_string
 
-            # create Base
-            Base = declarative_base()
+            engine = create_engine(connection_string, echo=False)
+            session = scoped_session(sessionmaker(bind=engine))
 
-            class Pokemon(Base, Mixin):
+            class Pokemon(Model):
                 __tablename__ = 'pokemon'
-                __connectionstring__ = connection_string
-                __echo__ = False
+                __session__ = session
                 name = Column(String)
                 image = Column(String)
 
-            Base.metadata.create_all(bind=Pokemon().engine)
+            Model.metadata.create_all(bind=Pokemon().engine)
         </textarea>
         <p>
-            Since we are using SQLALchemy's ORM and several custom Mixin code, there are many things you don't need to write by yourself.<br />
+            Since we are using SQLALchemy's ORM and a custom Model code, there are many things you don't need to write by yourself.<br />
             If you don't like (or not ready to use) ORM, you can also use classical SQL approach. SQL Alchemy supporting both ORM &amp; classical SQL approach. Please check <a target="blank" href="http://docs.sqlalchemy.org/">SQL Alchemy documentation</a> for more information.
             Now, here is some explanation of the code:
         </p>
@@ -558,20 +557,20 @@
                 <b>Line 1 - 2 :</b> Import some SQL-Alchemy's functions and classes.
             </li>
             <li>
-                <b>Line 3 :</b> Import kokoropy's model Mixin.
+                <b>Line 3 :</b> Import kokoropy's Model base.
             </li>
             <li>
                 <b>Line 4 :</b> Import <code>connection_string</code> from configuration.
             </li>
             <li>
-                <b>Line 7 :</b> Make <code>Base</code> class
+                <b>Line 6 - 7 :</b> Make engine and session
             </li>
             <li>
-                <b>Line 9 - 14 :</b> Pokemon Class, inherited from <code>Base</code> and <code>Mixin</code>.
+                <b>Line 9 - 13 :</b> Pokemon Class, inherited from <code>Base</code> and <code>Mixin</code>.
                  It has 2 properties mapped to column, name and image.
             </li>
             <li>
-                <b>Line 16 :</b> Make the real table for the first time, otherwise you should use migration.
+                <b>Line 15 :</b> Make the real table for the first time, otherwise you should use migration.
             </li>
         </ul>
 
