@@ -89,7 +89,7 @@ if FIRST_TIME:
        ('/', index),
        (base_url(), index),
        # getting_started
-       (base_url('getting_started'), getting_started)
+       (base_url('getting_started'), getting_started),
     )
 
 if CUSTOM_ERROR:

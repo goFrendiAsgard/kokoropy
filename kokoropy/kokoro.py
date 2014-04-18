@@ -189,7 +189,8 @@ class _Kokoro_Router(object):
         if os.path.exists(os.path.join(APP_PATH, application, "assets", path)):
             output = static_file(path, root=os.path.join(APP_PATH, application, "assets"))
         else:
-            output = static_file(path, root=os.path.join(APP_PATH, application, "assets", "index"))
+            default_root = os.path.join(os.path.dirname(__file__),'statics')
+            output = static_file(path, root=default_root)
         return output
 
 def isset(variable):
@@ -422,11 +423,38 @@ def import_routes(route_location):
     for url_property in url_properties:
         methods = url_properties[url_property]
         if hasattr(module_obj, url_property):
-            for url_pair in module_obj.urls:
-                slashed_url = add_trailing_slash(url_pair[0])
-                unslashed_url = remove_trailing_slash(url_pair[0])
-                route(slashed_url, methods, url_pair[1])
-                route(unslashed_url, methods, url_pair[1])
+            for url_pair in module_obj.urls: 
+                # address               
+                route_address = url_pair[0]
+                slashed_url = add_trailing_slash(route_address)
+                unslashed_url = remove_trailing_slash(route_address)
+                # callback
+                if len(url_pair)==1:
+                    route_callback = 'Undefined callback'
+                else:
+                    route_callback = url_pair[1]
+                if isinstance(route_callback, str):
+                    content = route_callback
+                    def wrapper():
+                        return content
+                    route_callback = wrapper
+                # default values
+                name, apply, skip, configs = None, None, None, {}
+                # name
+                if len(url_pair)>2:
+                    name = url_pair[2]
+                    # apply
+                    if len(url_pair)>3:
+                        apply = url_pair[3]
+                        # skip
+                        if len(url_pair)>4:
+                            skip = url_pair[4]
+                            # configs
+                            if len(url_pair)>5:
+                                configs = url_pair[5]
+                # call the routes
+                route(slashed_url, methods, route_callback, name, apply, skip, **configs)
+                route(unslashed_url, methods, route_callback, name, apply, skip, **configs)
     # hooks
     if hasattr(module_obj, 'hooks'):
         for hook_pair in module_obj.hooks:
@@ -530,7 +558,7 @@ def kokoro_init(**kwargs):
                 controller_dict_list[application] = []
             controller_dict_list[application].append(module_name)   
     ###################################################################################################
-    # some pFore.REDefined routes
+    # some predefined routes
     ###################################################################################################
     application_pattern = "|".join(application_list)
     kokoro_router = _Kokoro_Router()
@@ -861,7 +889,8 @@ def scaffold_model(application_name, table_name, *columns):
                 add_to_structure(structure, other_table_name)
                 # foreign key
                 coltype = 'Column(Integer, ForeignKey("' + other_table_name + '._real_id"))'
-                fk_col_name = '_' + other_table_name + '_real_id'
+                #fk_col_name = '_' + other_table_name + '_real_id'
+                fk_col_name = '_' + colname + '_real_id'
                 fk_col_name = add_to_structure(structure, table_name, fk_col_name, coltype)
                 # relationship
                 coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_table_name + '.' + fk_col_name + '")'
@@ -883,13 +912,19 @@ def scaffold_model(application_name, table_name, *columns):
     filename = application_path(os.path.join(application_name, 'models', filename))
     # write file
     file_put_contents(filename, content)
+    return structure
 
 def scaffold_crud(application_name, table_name, *columns):
-    scaffold_model(application_name, table_name, *columns)
+    structure = scaffold_model(application_name, table_name, *columns)
     ucase_table_name = table_name.title()
+    ucase_table_name_list = []
+    for table_name in structure:
+        ucase_table_name_list.append(table_name.title())
+    ucase_table_name_list = ", ".join(ucase_table_name_list)
     
     # controller
     content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_controller.py'))    
+    content = content.replace('G_Table_Name_List', ucase_table_name_list)
     content = content.replace('G_Table_Name', ucase_table_name)
     content = content.replace('g_table_name', table_name)
     content = content.replace('g_application_name', application_name)

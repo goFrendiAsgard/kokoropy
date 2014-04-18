@@ -12,11 +12,12 @@ class Child(Model):
 
 class Entitas(Model):
     __session__ = session
-    _parent_real_id = Column(Integer, ForeignKey("parent._real_id"))
-    _parent_real_id_1 = Column(Integer, ForeignKey("parent._real_id"))
+    _father_real_id = Column(Integer, ForeignKey("parent._real_id"))
+    _mother_real_id = Column(Integer, ForeignKey("parent._real_id"))
+    alamat = Column(String)
     children = relationship("Child", foreign_keys="Child._entitas_real_id")
-    father = relationship("Parent", foreign_keys="Entitas._parent_real_id")
-    mother = relationship("Parent", foreign_keys="Entitas._parent_real_id_1")
+    father = relationship("Parent", foreign_keys="Entitas._father_real_id")
+    mother = relationship("Parent", foreign_keys="Entitas._mother_real_id")
     nama = Column(String)
 
 class Parent(Model):

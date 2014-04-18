@@ -1,5 +1,5 @@
 from kokoropy import Autoroute_Controller, load_view
-from ..models.g_table_name import G_Table_Name
+from ..models.g_table_name import G_Table_Name_List
 
 class G_Table_Name_Controller(Autoroute_Controller):
     
