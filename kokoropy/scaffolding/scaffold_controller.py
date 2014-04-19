@@ -16,7 +16,7 @@ class G_Table_Name_Controller(Autoroute_Controller):
     
     def action_form_update(self, id):
         g_table_name = G_Table_Name.find(id)
-        return load_view('g_application_name', 'g_table_name_form_insert', g_table_name = g_table_name)
+        return load_view('g_application_name', 'g_table_name_form_update', g_table_name = g_table_name)
     
     def action_insert(self):
         g_table_name = G_Table_Name()
