@@ -934,11 +934,41 @@ def scaffold_crud(application_name, table_name, *columns):
     file_put_contents(filename, content)
     
     # view
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view.html'))    
+    content = content.replace('G_Table_Name', ucase_table_name)
+    content = content.replace('g_table_name', table_name)
+    content = content.replace('g_application_name', application_name)
+    filename = table_name+'.html'
+    filename = application_path(os.path.join(application_name, 'views', filename))
+    # write file
+    file_put_contents(filename, content)
+    
+    # view_list
     content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_list.html'))    
     content = content.replace('G_Table_Name', ucase_table_name)
     content = content.replace('g_table_name', table_name)
     content = content.replace('g_application_name', application_name)
     filename = table_name+'_list.html'
+    filename = application_path(os.path.join(application_name, 'views', filename))
+    # write file
+    file_put_contents(filename, content)
+    
+    # view_form_insert
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_form_insert.html'))    
+    content = content.replace('G_Table_Name', ucase_table_name)
+    content = content.replace('g_table_name', table_name)
+    content = content.replace('g_application_name', application_name)
+    filename = table_name+'_form_insert.html'
+    filename = application_path(os.path.join(application_name, 'views', filename))
+    # write file
+    file_put_contents(filename, content)
+    
+    # view_form_update
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_form_update.html'))    
+    content = content.replace('G_Table_Name', ucase_table_name)
+    content = content.replace('g_table_name', table_name)
+    content = content.replace('g_application_name', application_name)
+    filename = table_name+'_form_update.html'
     filename = application_path(os.path.join(application_name, 'views', filename))
     # write file
     file_put_contents(filename, content)
