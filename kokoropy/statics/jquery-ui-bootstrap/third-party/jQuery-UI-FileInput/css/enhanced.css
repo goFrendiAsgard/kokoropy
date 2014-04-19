@@ -13,7 +13,7 @@
     border: 1px solid #cccccc;
 }
 .customfile-disabled { opacity: .5; filter:progid:DXImageTransform.Microsoft.Alpha(opacity=0); cursor: default;  }
-.customfile-feedback { border: 1px solid #CCCCCC; color: #808080; display: inline-block; font-size: 13px; line-height: 18px; padding: 4px; 
+.customfile-feedback { border: 1px solid #CCCCCC; color: #808080; display: inline-block; font-size: 13px; line-height: 18px; padding: 4px;
   -webkit-transition: border linear 0.2s, box-shadow linear 0.2s;
   -moz-transition: border linear 0.2s, box-shadow linear 0.2s;
   -ms-transition: border linear 0.2s, box-shadow linear 0.2s;
@@ -57,5 +57,5 @@
     font-size: 12px;
     line-height: 1.5;
     min-width: 70px;
-    height: 26px;
+    height: 28px;
 }
