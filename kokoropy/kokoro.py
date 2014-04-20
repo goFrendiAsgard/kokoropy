@@ -824,8 +824,11 @@ def add_to_structure(structure, table_name, column_name = None, content = None):
     '''
     return new column_name
     '''
+    if '__list__' not in structure:
+        structure['__list__'] = []
     if table_name not in structure:
-        structure[table_name] = {}
+        structure[table_name] = {'__list__' : []}
+        structure['__list__'].append(table_name)
     if column_name is not None:
         if column_name in structure[table_name]:
             i = 1
@@ -835,6 +838,7 @@ def add_to_structure(structure, table_name, column_name = None, content = None):
         if content is None:
             content = 'Column(String)'
         structure[table_name][column_name] = content
+        structure[table_name]['__list__'].append(column_name)
     return column_name
 
 def _structure_to_script(structure):
@@ -852,11 +856,11 @@ def _structure_to_script(structure):
         ]
     '''
     script = ''
-    for table_name in sorted(structure):
+    for table_name in structure['__list__']:
         ucase_table_name = table_name.title()
         script += 'class ' + ucase_table_name + '(Model):\n'
         script += '    __session__ = session\n'
-        for column_name in sorted(structure[table_name]):
+        for column_name in structure[table_name]['__list__']:
             content = structure[table_name][column_name]
             script += '    ' + column_name + ' = ' + content + '\n'
         script += '\n'
@@ -866,7 +870,7 @@ def scaffold_model(application_name, table_name, *columns):
     content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_model.py'))
     # define structure
     ucase_table_name = table_name.title()
-    structure = {}
+    structure = {'__list__' : []}
     for column in columns:
         column = column.split(':')
         if len(column)>2:
@@ -879,7 +883,7 @@ def scaffold_model(application_name, table_name, *columns):
                 add_to_structure(structure, other_table_name)
                 # foreign key
                 coltype = 'Column(Integer, ForeignKey("' + table_name + '._real_id"))'
-                fk_col_name = '_' + table_name + '_real_id'
+                fk_col_name = 'fk_' + table_name
                 fk_col_name = add_to_structure(structure, other_table_name, fk_col_name, coltype)
                 # relationship
                 coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_other_table_name + '.' + fk_col_name + '")'
@@ -889,8 +893,7 @@ def scaffold_model(application_name, table_name, *columns):
                 add_to_structure(structure, other_table_name)
                 # foreign key
                 coltype = 'Column(Integer, ForeignKey("' + other_table_name + '._real_id"))'
-                #fk_col_name = '_' + other_table_name + '_real_id'
-                fk_col_name = '_' + colname + '_real_id'
+                fk_col_name = 'fk_' + colname
                 fk_col_name = add_to_structure(structure, table_name, fk_col_name, coltype)
                 # relationship
                 coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_table_name + '.' + fk_col_name + '")'
@@ -919,6 +922,8 @@ def scaffold_crud(application_name, table_name, *columns):
     ucase_table_name = table_name.title()
     ucase_table_name_list = []
     for table_name in structure:
+        if table_name == '__list__':
+            continue
         ucase_table_name_list.append(table_name.title())
     ucase_table_name_list = ", ".join(ucase_table_name_list)
     
@@ -933,42 +938,14 @@ def scaffold_crud(application_name, table_name, *columns):
     # write file
     file_put_contents(filename, content)
     
-    # view
-    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view.html'))    
-    content = content.replace('G_Table_Name', ucase_table_name)
-    content = content.replace('g_table_name', table_name)
-    content = content.replace('g_application_name', application_name)
-    filename = table_name+'.html'
-    filename = application_path(os.path.join(application_name, 'views', filename))
-    # write file
-    file_put_contents(filename, content)
-    
-    # view_list
-    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_list.html'))    
-    content = content.replace('G_Table_Name', ucase_table_name)
-    content = content.replace('g_table_name', table_name)
-    content = content.replace('g_application_name', application_name)
-    filename = table_name+'_list.html'
-    filename = application_path(os.path.join(application_name, 'views', filename))
-    # write file
-    file_put_contents(filename, content)
-    
-    # view_form_insert
-    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_form_insert.html'))    
-    content = content.replace('G_Table_Name', ucase_table_name)
-    content = content.replace('g_table_name', table_name)
-    content = content.replace('g_application_name', application_name)
-    filename = table_name+'_form_insert.html'
-    filename = application_path(os.path.join(application_name, 'views', filename))
-    # write file
-    file_put_contents(filename, content)
-    
-    # view_form_update
-    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_form_update.html'))    
-    content = content.replace('G_Table_Name', ucase_table_name)
-    content = content.replace('g_table_name', table_name)
-    content = content.replace('g_application_name', application_name)
-    filename = table_name+'_form_update.html'
-    filename = application_path(os.path.join(application_name, 'views', filename))
-    # write file
-    file_put_contents(filename, content)
+    # views
+    view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
+    for view in view_list:
+        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_' + view + '.html'))    
+        content = content.replace('G_Table_Name', ucase_table_name)
+        content = content.replace('g_table_name', table_name)
+        content = content.replace('g_application_name', application_name)
+        filename = table_name + '_' + view + '.html'
+        filename = application_path(os.path.join(application_name, 'views', filename))
+        # write file
+        file_put_contents(filename, content)

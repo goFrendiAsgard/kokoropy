@@ -194,6 +194,14 @@ class Model(Base):
             self._trashed = True
         self._commit()
         self.after_trash()
+        # also trash children
+        for relation_name in self._get_relation_name():
+            relation = self._get_relation(relation_name)
+            if isinstance(relation, list):
+                for child in relation:
+                    if isinstance(child, Model):
+                        child.trash()
+                        child.save()
     
     def untrash(self):
         self.before_untrash()
@@ -201,6 +209,14 @@ class Model(Base):
             self._trashed = False
         self._commit()
         self.after_untrash()
+        # also untrash children
+        for relation_name in self._get_relation_name():
+            relation = self._get_relation(relation_name)
+            if isinstance(relation, list):
+                for child in relation:
+                    if isinstance(child, Model):
+                        child.untrash()
+                        child.save()
     
     def delete(self):
         self.before_delete()
@@ -208,6 +224,14 @@ class Model(Base):
             self.session.delete(self)
         self._commit()
         self.after_delete()
+        # also delete children
+        for relation_name in self._get_relation_name():
+            relation = self._get_relation(relation_name)
+            if isinstance(relation, list):
+                for child in relation:
+                    if isinstance(child, Model):
+                        child.trash()
+                        child.delete()
     
     def generate_prefix_id(self):
         return datetime.datetime.fromtimestamp(time.time()).strftime(self.__prefixid__)
