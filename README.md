@@ -51,6 +51,8 @@ Kokoropy is for you if you:
 * Want to have a "educational" web framework that can be run everywhere.
 * Desire explicity of framework, so that popular IDE such as eclipse can help in auto-completion (intellisense).
 * Don't like complicated framework, you want a framework with small learning steep.
+* Want an `automatic migration` for development.
+* Want a magical generator (under construction).
 
 Change Log:
 ===========
