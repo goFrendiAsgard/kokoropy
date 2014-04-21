@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, Column, ForeignKey, func, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
-from kokoropy.model import Model
+from kokoropy.model import Model, auto_migrate
 from ..configs.db import connection_string
 
 engine = create_engine(connection_string, echo=False)
@@ -8,8 +8,9 @@ session = scoped_session(sessionmaker(bind=engine))
 
 class Entitas(Model):
     __session__ = session
-    nama = Column(String)
-    alamat = Column(String)
+    nama = Column(String(50))
+    alamat = Column(String(20))
+    tanggal_lahir = Column(DateTime(20))
     children = relationship("Child", foreign_keys="Child.fk_entitas")
     fk_father = Column(Integer, ForeignKey("parent._real_id"))
     father = relationship("Parent", foreign_keys="Entitas.fk_father")
@@ -23,10 +24,4 @@ class Child(Model):
 class Parent(Model):
     __session__ = session
 
-
-Model.metadata.create_all(bind=engine)
-for table_name in Model.metadata.tables:
-    print table_name
-    table = Model.metadata.tables[table_name]
-    for column in table.columns:
-        print column, column.name, column.type
+auto_migrate(engine)

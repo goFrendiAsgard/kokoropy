@@ -1,7 +1,13 @@
-from sqlalchemy import create_engine, Column, func, Integer, String, DateTime, Boolean
+from sqlalchemy import create_engine, Column, func, BIGINT, BigInteger, BINARY, Binary,\
+    BOOLEAN, Boolean, DATE, Date, DATETIME, DateTime, FLOAT, Float,\
+    INTEGER, Integer, VARCHAR, String, TEXT, Text, MetaData
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
 import datetime, time, json
+from kokoropy import Fore, Back
+
 # create Base
 Base = declarative_base()
         
@@ -13,7 +19,7 @@ class Model(Base):
     _trashed = Column(Boolean, default=False)
     _created_at = Column(DateTime, default=func.now())
     _updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-    id = Column(String, unique=True)
+    id = Column(String(35), unique=True)
     
     __abstract__ = True
     __connectionstring__ = ''
@@ -290,3 +296,84 @@ class Model(Base):
         kwargs['isoformat'] = True
         dictionary = self.to_dict(**kwargs)
         return json.dumps(dictionary)
+
+def auto_migrate(engine):
+    print('    %s%s WARNING %s%s%s : You are using auto_migrate()\n    Note that not all operation supported. Be prepared to do things manually.\n    Using auto_migration in production mode is not recommended.%s%s' %(Fore.BLACK, Back.GREEN, Fore.RESET, Back.RESET, Fore.GREEN, Fore.RESET, Fore.MAGENTA))
+    # make model_meta & db_meta
+    Model.metadata.create_all(bind=engine)
+    model_meta = Model.metadata
+    db_meta = MetaData()
+    db_meta.reflect(bind=engine)
+    # create db session & alembic operation
+    db_session = scoped_session(sessionmaker(bind=engine))
+    conn = engine.connect()
+    ctx = MigrationContext.configure(conn)
+    op = Operations(ctx)
+    # default parameters
+    default_column_names = ['_real_id', '_trashed', '_created_at', '_updated_at', 'id']
+    column_properties = ['key', 'primary_key', 'nullable', 'default',
+                         'server_default', 'server_onupdate', 'index',
+                         'unique', 'system', 'quote', 'doc', 'onupdate',
+                         'autoincrement', 'constraints', 'foreign_keys']
+    for model_table_name in model_meta.tables:
+        # get model_table from model_meta
+        model_table = model_meta.tables[model_table_name]
+        db_table = None
+        db_column_list = None
+        # make model_table with alembic if necessary
+        if model_table_name not in db_meta.tables:
+            try:
+                op.create_table(
+                    model_table_name,
+                    Column('_real_id', Integer, primary_key = True),
+                    Column('_trashed', Boolean, default = False),
+                    Column('_created_at', DateTime, default=func.now()),
+                    Column('_updated_at', DateTime, default=func.now(), onupdate=func.now()),
+                    Column('id', String(35), unique = True)
+                )
+            except:
+                print('    Fail to make table: %s, please add it manually' % (model_table_name))
+        else:
+            db_table = db_meta.tables[model_table_name]
+        for model_column in model_table.columns:
+            # don't create or alter default columns
+            if model_column.name in default_column_names:
+                continue
+            # get model_column properties
+            model_column_kwargs = {}
+            for prop in column_properties:
+                model_column_kwargs[prop] = getattr(model_column, prop)
+            # make model_column with alembic if necessary
+            if model_column.name not in db_meta.tables[model_table_name].columns:
+                try:
+                    op.add_column(model_table_name, Column(model_column.name, model_column.type, **model_column_kwargs))
+                except:
+                    print('    Fail to make column %s.%s, please add it manually' % (model_table_name, model_column.name))
+            else:
+                # get db_column information
+                db_column = None
+                if db_table is not None:
+                    for column in db_table.columns:
+                        if column.name == model_column.name:
+                            db_column = column
+                            break
+                db_column_kwargs = {}
+                for prop in column_properties:
+                    db_column_kwargs[prop] = getattr(db_column, prop)
+                # is alter column needed?
+                need_alter = str(model_column.type) != str(db_column.type) or model_column_kwargs['nullable'] != db_column_kwargs['nullable']
+                if need_alter:
+                    # alter model_table with alembic
+                    try:
+                        op.alter_column(model_table_name, 
+                                        model_column.name, 
+                                        nullable = model_column_kwargs['nullable'], # None, 
+                                        server_default = False, 
+                                        new_column_name = None, 
+                                        type_ = model_column.type, # None 
+                                        existing_type=None, 
+                                        existing_server_default=False, 
+                                        existing_nullable=None)
+                    except:
+                        print('    Fail to alter column %s.%s, please alter it manually.\n      Old type: %s, new type: %s' % (model_table_name, model_column.name, str(db_column.type), str(model_column.type)))
+    print(Fore.RESET)
