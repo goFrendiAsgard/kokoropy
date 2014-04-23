@@ -26,10 +26,48 @@ class Model(Base):
     __echo__ = True
     __prefixid__ = '%Y%m%d-'
     __digitid__ = 3
+    __showncolumn__ = None
+    __formcolumn__ = None
+    __insertformcolumn__ = None
+    __updateformcolumn__ = None
     
     @declared_attr
     def __tablename__(cls):
         return cls.__name__.lower()
+    
+    @property
+    def _shown_column(self):
+        if self.__showncolumn__ is None:
+            self.__showncolumn__ = []
+            for column in self.__table__.columns:
+                column = column.name
+                if column in ['_real_id', '_created_at', '_updated_at', '_trashed', 'id'] or column.split('_')[0] == 'fk':
+                    continue
+                self.__showncolumn__.append(column)
+            for relation_name in self._get_relation_name():
+                self.__showncolumn__.append(relation_name)
+        return self.__showncolumn__
+    
+    @property
+    def _form_column(self):
+        if self.__formcolumn__ is None:
+            return self._shown_column()
+        else:
+            return self.__formcolumn__
+    
+    @property
+    def _insert_form_column(self):
+        if self.__insertformcolumn__ is None:
+            return self._form_column()
+        else:
+            return self.__insertformcolumn__
+    
+    @property
+    def _update_form_column(self):
+        if self.__insertformcolumn__ is None:
+            return self._form_column()
+        else:
+            return self.__insertformcolumn__
     
     @property
     def engine(self):
@@ -285,6 +323,8 @@ class Model(Base):
                     for child in relation:
                         if isinstance(child, Model):
                             dictionary[relation_name].append(child.to_dict(**kwargs))
+                else:
+                    dictionary[relation_name] = relation
         return dictionary
     
     def to_json(self, **kwargs):
@@ -296,6 +336,77 @@ class Model(Base):
         kwargs['isoformat'] = True
         dictionary = self.to_dict(**kwargs)
         return json.dumps(dictionary)
+    
+    def build_column(self, column_name):
+        '''
+        Custom column if defined
+        '''
+        return None
+    
+    def build_input(self, column_name):
+        '''
+        Custom input if defined
+        '''
+        return None
+    
+    def quick_preview(self):
+        '''
+        Quick preview of record
+        '''
+        return self.id
+    
+    def detail_view(self):
+        '''
+        Detail view of record
+        '''
+        dictionary = self.to_dict(include_relation = True)
+        # tampilkan
+        html = '<div class="row container">'
+        html += '<div class="row container col-xs-12 col-sm-12 col-md-12 col-lg-12">'
+        html += '<h3>' + str(self.id) + '</h3>'
+        html += '</div>'
+        for key in self._shown_column:
+            # row
+            html += '<div class="row container col-xs-12 col-sm-12 col-md-12 col-lg-12">'
+            title = key.replace('_', ' ').title()
+            
+            custom_value = self.build_column(key)
+            if custom_value is not None:
+                value = custom_value
+            else:
+                if key in dictionary:
+                    value = dictionary[key]
+                else:
+                    value = None
+            # pre-process
+            if isinstance(value, list) and len(value)>0:
+                children = getattr(self,key)
+                # generate new value
+                value = '<ul>'
+                for child in children:
+                    value += '<li>' + child.quick_preview() + '</li>'
+                value += '<ul>'
+            label_class = 'col-xs-12 col-sm-12 col-md-3 col-lg-3'
+            content_class = 'col-xs-12 col-sm-12 col-md-9 col-lg-9'
+            # lookup value
+            if isinstance(value, dict):
+                    obj = getattr(self, key)
+                    value = obj.quick_preview()
+            # None or empty children
+            if value is None or (isinstance(value,list) and len(value)==0):
+                value = 'Not available'
+            # title
+            html += '<div class="' + label_class + '">'
+            html += '<label>' + str(title) + '</label>'
+            html += '</div>'
+            # value
+            html += '<div class="' + content_class + '">'
+            html += str(value)
+            html += '</div>'
+            # end of row
+            html += '</div>'
+        html += '</div>'        
+        return html
 
 def auto_migrate(engine):
     print('    %s%s WARNING %s%s%s : You are using auto_migrate()\n    Note that not all operation supported. Be prepared to do things manually.\n    Using auto_migration in production mode is not recommended.%s%s' %(Fore.BLACK, Back.GREEN, Fore.RESET, Back.RESET, Fore.GREEN, Fore.RESET, Fore.MAGENTA))

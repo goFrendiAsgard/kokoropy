@@ -1,8 +1,38 @@
 % rebase('coba/views/base')
 {% block content %}
-    <ul>
-    % for entitas in entitas_list:
-        <li>{{ entitas.id }}</li>
-    % end
-    </ul>
+    <h2>entitas list</h2>
+    <div class="pull-right">
+        <a class="btn btn-success" href="{{ url_list["new"] }}">
+            <i class="glyphicon glyphicon-plus"></i> New entitas
+        </a>
+    </div>
+    <table class="table table-striped">
+        <thead>
+            <th>Data</th>
+            <th>Action</th>
+        </thead>
+        <tbody>
+            % for entitas in entitas_list:
+                <tr>
+                    <!-- data -->
+                    <td>
+                        <a href="{{ url_list["show"] }}/{{ entitas.id }}">
+                            {{ entitas.quick_preview() }}</a>
+                    </td>
+                    <!-- action -->
+                    <td>
+                        <a class="btn btn-warning" href="{{ url_list["edit"] }}/{{ entitas.id }}">
+                            <i class="glyphicon glyphicon-pencil"></i> Edit
+                        </a>
+                        <a class="btn btn-danger" href="{{ url_list["trash"] }}/{{ entitas.id }}">
+                            <i class="glyphicon glyphicon-trash"></i> Trash
+                        </a>
+                        <a class="btn btn-danger" href="{{ url_list["delete"] }}/{{ entitas.id }}">
+                            <i class="glyphicon glyphicon-remove-sign"></i> Delete
+                        </a>
+                    </td>
+                </tr>
+            % end
+        </tbody>
+    </table>
 {% endblock %}

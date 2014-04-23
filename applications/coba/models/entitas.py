@@ -8,20 +8,26 @@ session = scoped_session(sessionmaker(bind=engine))
 
 class Entitas(Model):
     __session__ = session
-    nama = Column(String(50))
-    alamat = Column(String(20))
-    tanggal_lahir = Column(DateTime(20))
-    children = relationship("Child", foreign_keys="Child.fk_entitas")
+    nama = Column(String)
+    alamat = Column(String)
+    tanggal_lahir = Column(DateTime)
     fk_father = Column(Integer, ForeignKey("parent._real_id"))
     father = relationship("Parent", foreign_keys="Entitas.fk_father")
     fk_mother = Column(Integer, ForeignKey("parent._real_id"))
     mother = relationship("Parent", foreign_keys="Entitas.fk_mother")
+    children = relationship("Child", foreign_keys="Child.fk_entitas")
+
+class Parent(Model):
+    __session__ = session
 
 class Child(Model):
     __session__ = session
     fk_entitas = Column(Integer, ForeignKey("entitas._real_id"))
 
-class Parent(Model):
-    __session__ = session
 
+'''
+ By using auto_migrate, kokoropy will automatically adjust your database schema
+ based on Model changes. However this is not always works. This method is merely
+ there for the sake of easyness and not recommended for production environment.
+'''
 auto_migrate(engine)

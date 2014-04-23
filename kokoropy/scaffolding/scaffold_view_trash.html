@@ -1,0 +1,5 @@
+% rebase('g_application_name/views/base')
+{% block content %}
+    Are you sure want to delete {{ g_table_name.quick_preview() }}?
+    {{! g_table_name.detail_view() }}
+{% endblock %}
