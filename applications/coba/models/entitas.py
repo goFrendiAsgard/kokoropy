@@ -8,20 +8,17 @@ session = scoped_session(sessionmaker(bind=engine))
 
 class Entitas(Model):
     __session__ = session
-    nama = Column(String(50))
-    alamat = Column(String(50))
+    nama = Column(String)
+    alamat = Column(String)
     tanggal_lahir = Column(DateTime)
     fk_father = Column(Integer, ForeignKey("parent._real_id"))
     father = relationship("Parent", foreign_keys="Entitas.fk_father")
     fk_mother = Column(Integer, ForeignKey("parent._real_id"))
     mother = relationship("Parent", foreign_keys="Entitas.fk_mother")
     children = relationship("Child", foreign_keys="Child.fk_entitas")
-    def quick_preview(self):
-        return self.id + ' ' + self.nama
 
 class Parent(Model):
     __session__ = session
-    nama = Column(String(50))
 
 class Child(Model):
     __session__ = session

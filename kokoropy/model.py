@@ -140,6 +140,31 @@ class Model(Base):
             return result
     
     @classmethod
+    def count(cls, *criterion, **kwargs):
+        # get kwargs parameters
+        limit = kwargs.pop('limit', None)
+        offset = kwargs.pop('offset', None)
+        include_trashed = kwargs.pop('include_trashed', False)
+        include_relation = kwargs.pop('include_relation', False)
+        # get / make session if not exists
+        if hasattr(cls,'__session__ '):
+            session = cls.__session__
+        else:
+            obj = cls()
+            session = obj.session
+        query = session.query(cls)
+        if include_trashed == False:
+            query = query.filter(cls._trashed == False)
+        # apply filter
+        query = query.filter(*criterion)
+        # apply limit & offset
+        if limit is not None:
+            query = query.limit(limit)
+        if offset is not None:
+            query = query.offset(offset)
+        return query.count()
+        
+    @classmethod
     def find(cls, id_value):
         result = cls.get(cls.id == id_value)
         if len(result)>0:
@@ -379,6 +404,7 @@ class Model(Base):
             if custom_input is not None:
                 input_element = custom_input
             else:
+                value = getattr(self, key)
                 if key in relation_properties:
                     relation = relation_properties[key]
                     ref_class = getattr(self.__class__, key).property.mapper.class_
@@ -387,13 +413,38 @@ class Model(Base):
                         input_element = 'One to Many'
                     else:
                         # many to one
-                        input_element = '<select class="form-control" id="field_' + key + '" name ="' + key + '">'
                         option_obj = ref_class.get()
-                        for obj in option_obj:
-                            input_element += '<option value="' + obj.id + '">' + obj.quick_preview() + '</option>'
-                        input_element += '</select>'
+                        option_count = ref_class.count()
+                        input_element = ''
+                        if option_count == 0:
+                            input_element += 'No option available'
+                        elif option_count <= 3:
+                            xs_width = sm_width = str(12/option_count)
+                            md_width = lg_width = str(9/option_count)
+                            for obj in option_obj:
+                                if value == obj:
+                                    selected = 'selected'
+                                else:
+                                    selected = ''
+                                input_element += '<div class="col-xs-' + xs_width + ' col-sm-' + sm_width + ' col-md-' + md_width + ' col-lg-' + lg_width+ '">'
+                                input_element += '<label><input type="radio" ' + selected + ' name ="' + key + '" value="' + obj.id + '"/> ' + obj.quick_preview() + '</label>'
+                                input_element += '</div>'
+                        else:
+                            input_element += '<select class="form-control" id="field_' + key + '" name ="' + key + '">'
+                            input_element += '<option value="">None</option>'
+                            for obj in option_obj:
+                                if value == obj:
+                                    selected = 'selected'
+                                else:
+                                    selected = ''
+                                input_element += '<option ' + selected + ' value="' + obj.id + '">' + obj.quick_preview() + '</option>'
+                            input_element += '</select>'
                 else:
-                    input_element = '<input type="text" class="form-control" id="field_' + key + '" name="' + key + '" placeholder="' + label + '">'
+                    if value is None:
+                        value = ''
+                    else:
+                        value = str(value)
+                    input_element = '<input type="text" class="form-control" id="field_' + key + '" name="' + key + '" placeholder="' + label + '" value="' + value + '">'
             html += input_element
             html += '</div>'
             html += '</div>'
