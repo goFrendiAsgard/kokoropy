@@ -369,14 +369,35 @@ class Model(Base):
             input_column = self._update_form_column
         # build html
         html = ''
+        relation_properties = self.__mapper__.relationships._data
         for key in input_column:
             label = key.replace('_', ' ').title()
             html += '<div class="form-group">'
             html += '<label for="field_' + key + '" class="col-xs-12 col-sm-12 col-md-3 col-lg-3 control-label">' + label + '</label>'
             html += '<div class="col-xs-12 col-sm-12 col-md-9 col-lg-9">'
-            html += '<input type="text" class="form-control" id="field_' + key + '" name="field_' + key + '" placeholder="' + label + '">'
+            custom_input = self.build_input(key)
+            if custom_input is not None:
+                input_element = custom_input
+            else:
+                if key in relation_properties:
+                    relation = relation_properties[key]
+                    ref_class = getattr(self.__class__, key).property.mapper.class_
+                    if relation.uselist:
+                        # one to many
+                        input_element = 'One to Many'
+                    else:
+                        # many to one
+                        input_element = '<select class="form-control" id="field_' + key + '" name ="' + key + '">'
+                        option_obj = ref_class.get()
+                        for obj in option_obj:
+                            input_element += '<option value="' + obj.id + '">' + obj.quick_preview() + '</option>'
+                        input_element += '</select>'
+                else:
+                    input_element = '<input type="text" class="form-control" id="field_' + key + '" name="' + key + '" placeholder="' + label + '">'
+            html += input_element
             html += '</div>'
             html += '</div>'
+        
         return html
         
     
