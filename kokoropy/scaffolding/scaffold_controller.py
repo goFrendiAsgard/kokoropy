@@ -6,6 +6,7 @@ url_list = {
         'list'    : base_url('g_application_name/g_table_name/list'),
         'show'    : base_url('g_application_name/g_table_name/show'),
         'new'     : base_url('g_application_name/g_table_name/new'),
+        'create'  : base_url('g_application_name/g_table_name/create'),
         'edit'    : base_url('g_application_name/g_table_name/edit'),
         'update'  : base_url('g_application_name/g_table_name/update'),
         'trash'   : base_url('g_application_name/g_table_name/trash'),
@@ -33,7 +34,9 @@ class G_Table_Name_Controller(Autoroute_Controller):
     
     def action_new(self):
         ''' Insert Form '''
-        return load_view('g_application_name', 'g_table_name_new', url_list = url_list)
+        g_table_name = G_Table_Name()
+        return load_view('g_application_name', 'g_table_name_new', g_table_name = g_table_name, 
+            url_list = url_list)
     
     def action_create(self):
         ''' Insert Action '''

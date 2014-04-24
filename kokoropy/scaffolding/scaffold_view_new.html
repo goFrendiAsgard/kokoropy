@@ -1,0 +1,6 @@
+% rebase('g_application_name/views/base')
+{% block content %}
+    <form action="{{ url_list['create'] }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
+        {{! g_table_name.input_view() }}
+    </form>
+{% endblock %}

@@ -51,21 +51,21 @@ class Model(Base):
     @property
     def _form_column(self):
         if self.__formcolumn__ is None:
-            return self._shown_column()
+            return self._shown_column
         else:
             return self.__formcolumn__
     
     @property
     def _insert_form_column(self):
         if self.__insertformcolumn__ is None:
-            return self._form_column()
+            return self._form_column
         else:
             return self.__insertformcolumn__
     
     @property
     def _update_form_column(self):
         if self.__insertformcolumn__ is None:
-            return self._form_column()
+            return self._form_column
         else:
             return self.__insertformcolumn__
     
@@ -339,28 +339,53 @@ class Model(Base):
     
     def build_column(self, column_name):
         '''
-        Custom column if defined
+        Custom column if defined, override this if needed
         '''
         return None
     
     def build_input(self, column_name):
         '''
-        Custom input if defined
+        Custom input if defined, override this if needed
         '''
         return None
     
     def quick_preview(self):
         '''
-        Quick preview of record
+        Quick preview of record, override this
         '''
         return self.id
     
-    def detail_view(self):
+    def input_view(self, state = None):
         '''
-        Detail view of record
+        Input view of record
         '''
         dictionary = self.to_dict(include_relation = True)
-        # tampilkan
+        # determine which input column is used
+        if state is None:
+            input_column = self._form_column
+        if state == 'new' or state == 'create' or state == 'insert' or state == 'add':
+            input_column = self._insert_form_column
+        elif state == 'edit' or state == 'update':
+            input_column = self._update_form_column
+        # build html
+        html = ''
+        for key in input_column:
+            label = key.replace('_', ' ').title()
+            html += '<div class="form-group">'
+            html += '<label for="field_' + key + '" class="col-xs-12 col-sm-12 col-md-3 col-lg-3 control-label">' + label + '</label>'
+            html += '<div class="col-xs-12 col-sm-12 col-md-9 col-lg-9">'
+            html += '<input type="text" class="form-control" id="field_' + key + '" name="field_' + key + '" placeholder="' + label + '">'
+            html += '</div>'
+            html += '</div>'
+        return html
+        
+    
+    def detail_view(self):
+        '''
+        Detail view of record, override this with care
+        '''
+        dictionary = self.to_dict(include_relation = True)
+        # build html
         html = '<div class="row container">'
         html += '<div class="row container col-xs-12 col-sm-12 col-md-12 col-lg-12">'
         html += '<h3>' + str(self.id) + '</h3>'
@@ -368,7 +393,7 @@ class Model(Base):
         for key in self._shown_column:
             # row
             html += '<div class="row container col-xs-12 col-sm-12 col-md-12 col-lg-12">'
-            title = key.replace('_', ' ').title()
+            label = key.replace('_', ' ').title()
             
             custom_value = self.build_column(key)
             if custom_value is not None:
@@ -395,9 +420,9 @@ class Model(Base):
             # None or empty children
             if value is None or (isinstance(value,list) and len(value)==0):
                 value = 'Not available'
-            # title
+            # label
             html += '<div class="' + label_class + '">'
-            html += '<label>' + str(title) + '</label>'
+            html += '<label>' + str(label) + '</label>'
             html += '</div>'
             # value
             html += '<div class="' + content_class + '">'

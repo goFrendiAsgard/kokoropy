@@ -6,6 +6,7 @@ url_list = {
         'list'    : base_url('coba/entitas/list'),
         'show'    : base_url('coba/entitas/show'),
         'new'     : base_url('coba/entitas/new'),
+        'create'  : base_url('coba/entitas/create'),
         'edit'    : base_url('coba/entitas/edit'),
         'update'  : base_url('coba/entitas/update'),
         'trash'   : base_url('coba/entitas/trash'),
@@ -33,7 +34,9 @@ class Entitas_Controller(Autoroute_Controller):
     
     def action_new(self):
         ''' Insert Form '''
-        return load_view('coba', 'entitas_new', url_list = url_list)
+        entitas = Entitas()
+        return load_view('coba', 'entitas_new', entitas = entitas, 
+            url_list = url_list)
     
     def action_create(self):
         ''' Insert Action '''
