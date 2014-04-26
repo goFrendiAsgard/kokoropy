@@ -1,6 +1,16 @@
 % rebase('g_application_name/views/base')
+% g_table_name.generate_detail_view()
+
+{% block style %}
+    {{! g_table_name.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! g_table_name.generated_script }}
+{% endblock %}
+
 {% block content %}
-    Are you sure want to delete {{ g_table_name.quick_preview() }}?<br />
-    {{! g_table_name.detail_view() }}
-    This action is not recoverable
+    <h4>Are you sure want to delete {{ g_table_name.quick_preview() }}?</h4>
+    {{! g_table_name.generated_html }}
+    <div class="alert alert-danger">This action is not recoverable</div>
 {% endblock %}

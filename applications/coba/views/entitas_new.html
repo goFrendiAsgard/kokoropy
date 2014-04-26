@@ -1,7 +1,18 @@
 % rebase('coba/views/base')
+% entitas.generate_input_view()
+
+{% block style %}
+    {{! entitas.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! entitas.generated_script }}
+{% endblock %}
+
 {% block content %}
+    <h4>New entitas</h4>
     <form action="{{ url_list['create'] }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
-        {{! entitas.input_view() }}
+        {{! entitas.generated_html }}
         <!-- Form Control -->
         <div class="form-group">
             <div class="col-md-offset-3 col-lg-offset-3 col-xs-12 col-sm-12 col-md-9 col-lg-9">

@@ -6,7 +6,7 @@ from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 import datetime, time, json
-from kokoropy import Fore, Back
+from kokoropy import Fore, Back, base_url
 
 # create Base
 Base = declarative_base()
@@ -30,7 +30,7 @@ class Model(Base):
     __formcolumn__ = None
     __insertformcolumn__ = None
     __updateformcolumn__ = None
-    
+        
     @declared_attr
     def __tablename__(cls):
         return cls.__name__.lower()
@@ -41,7 +41,7 @@ class Model(Base):
             self.__showncolumn__ = []
             for column in self.__table__.columns:
                 column = column.name
-                if column in ['_real_id', '_created_at', '_updated_at', '_trashed', 'id'] or column.split('_')[0] == 'fk':
+                if column in ['_real_id', '_created_at', '_updated_at', '_trashed'] or column.split('_')[0] == 'fk':
                     continue
                 self.__showncolumn__.append(column)
             for relation_name in self._get_relation_name():
@@ -95,6 +95,39 @@ class Model(Base):
     @error_message.setter
     def error_message(self, val):
         self._error_message = val
+    
+    @property
+    def generated_html(self):
+        if hasattr(self, '_generated_html'):
+            return self._generated_html
+        else:
+            return ''
+        
+    @generated_html.setter
+    def generated_html(self, val):
+        self._generated_html = val
+    
+    @property
+    def generated_style(self):
+        if hasattr(self, '_generated_style'):
+            return self._generated_style
+        else:
+            return ''
+        
+    @generated_style.setter
+    def generated_style(self, val):
+        self._generated_style = val
+    
+    @property
+    def generated_script(self):
+        if hasattr(self, '_generated_script'):
+            return self._generated_script
+        else:
+            return ''
+        
+    @generated_script.setter
+    def generated_script(self, val):
+        self._generated_script = val
         
     @property
     def success(self):
@@ -362,17 +395,61 @@ class Model(Base):
         dictionary = self.to_dict(**kwargs)
         return json.dumps(dictionary)
     
-    def build_column(self, column_name):
+    def build_column(self, column_name, **kwargs):
         '''
-        Custom column if defined, override this if needed
+        Custom column if defined, override this if needed, but promise me 3 things:
+        * add any additional css into self.generated_style
+        * add any additional script into self.generated_script
+        * return your HTML as string
         '''
         return None
     
-    def build_input(self, column_name):
+    def build_input(self, column_name, **kwargs):
         '''
-        Custom input if defined, override this if needed
+        Custom input if defined, override this if needed, but promise me 3 things:
+        * add any additional css into self.generated_style
+        * add any additional script into self.generated_script
+        * return your HTML as string
         '''
         return None
+    
+    def reset_generated(self):
+        self._generated_html = ''
+        self._generated_script = ''
+        self._generated_css = ''
+    
+    def include_resource(self):
+        base_url = base_url()
+        self._generated_script += '<!--[if lt IE 9]>' + \
+            '<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>' + \
+            '<![endif]-->' + \
+            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/jquery-1.9.1.min.js" type="text/javascript"></script>' +\
+            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/jquery-migrate-1.2.1.min.js" type="text/javascript"></script>' +\
+            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/bootstrap.js" type="text/javascript"></script>' +\
+            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/holder.js" type="text/javascript"></script>' +\
+            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/jquery-ui-1.10.3.custom.min.js" type="text/javascript"></script>' +\
+            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/google-code-prettify/prettify.js" type="text/javascript"></script>'
+        self._generated_css += '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/css/bootstrap.min.css">' +\
+            '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/css/custom-theme/jquery-ui-1.10.3.custom.css">' +\
+            '<!--<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/css/custom-theme/jquery-ui-1.10.3.theme.css">-->' +\
+            '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/css/font-awesome.min.css">' +\
+            '<!--[if IE 7]>' +\
+            '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/css/font-awesome-ie7.min.css">' +\
+            '<![endif]-->' +\
+            '<!--[if lt IE 9]>' +\
+            '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/css/custom-theme/jquery.ui.1.10.3.ie.css">' +\
+            '<![endif]-->' +\
+            '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/google-code-prettify/prettify.css">' +\
+            '<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->' +\
+            '<!--[if lt IE 9]>' +\
+            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/html5shiv.js" type="text/javascript"></script>' +\
+            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/respond.min.js" type="text/javascript"></script>' +\
+            '<![endif]-->' +\
+            '<!-- Le fav and touch icons -->' +\
+            '<link rel="apple-touch-icon-precomposed" sizes="144x144" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/ico/apple-touch-icon-144-precomposed.png">' +\
+            '<link rel="apple-touch-icon-precomposed" sizes="114x114" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/ico/apple-touch-icon-114-precomposed.png">' +\
+            '<link rel="apple-touch-icon-precomposed" sizes="72x72" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/ico/apple-touch-icon-72-precomposed.png">' +\
+            '<link rel="apple-touch-icon-precomposed" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/ico/apple-touch-icon-57-precomposed.png">'
     
     def quick_preview(self):
         '''
@@ -380,11 +457,14 @@ class Model(Base):
         '''
         return self.id
     
-    def input_view(self, state = None):
+    def generate_input_view(self, state = None, include_resource = False):
         '''
         Input view of record
         '''
-        dictionary = self.to_dict(include_relation = True)
+        # prepare resource
+        self.reset_generated()
+        if include_resource:
+            self.include_resource()
         # determine which input column is used
         if state is None:
             input_column = self._form_column
@@ -423,11 +503,11 @@ class Model(Base):
                             md_width = lg_width = str(9/option_count)
                             for obj in option_obj:
                                 if value == obj:
-                                    selected = 'selected'
+                                    checked = 'checked'
                                 else:
-                                    selected = ''
+                                    checked = ''
                                 input_element += '<div class="col-xs-' + xs_width + ' col-sm-' + sm_width + ' col-md-' + md_width + ' col-lg-' + lg_width+ '">'
-                                input_element += '<label><input type="radio" ' + selected + ' name ="' + key + '" value="' + obj.id + '"/> ' + obj.quick_preview() + '</label>'
+                                input_element += '<label><input type="radio" ' + checked + ' name ="' + key + '" value="' + obj.id + '"/> ' + obj.quick_preview() + '</label>'
                                 input_element += '</div>'
                         else:
                             input_element += '<select class="form-control" id="field_' + key + '" name ="' + key + '">'
@@ -448,20 +528,20 @@ class Model(Base):
             html += input_element
             html += '</div>'
             html += '</div>'
-        
-        return html
+        self.generated_html = html
         
     
-    def detail_view(self):
+    def generate_detail_view(self, include_resource = False):
         '''
         Detail view of record, override this with care
         '''
+        # prepare resource
+        self.reset_generated()
+        if include_resource:
+            self.include_resource()
         dictionary = self.to_dict(include_relation = True)
         # build html
         html = '<div class="row container">'
-        html += '<div class="row container col-xs-12 col-sm-12 col-md-12 col-lg-12">'
-        html += '<h3>' + str(self.id) + '</h3>'
-        html += '</div>'
         for key in self._shown_column:
             # row
             html += '<div class="row container col-xs-12 col-sm-12 col-md-12 col-lg-12">'
@@ -503,7 +583,7 @@ class Model(Base):
             # end of row
             html += '</div>'
         html += '</div>'        
-        return html
+        self.generated_html = html
 
 def auto_migrate(engine):
     print('    %s%s WARNING %s%s%s : You are using auto_migrate()\n    Note that not all operation supported. Be prepared to do things manually.\n    Using auto_migration in production mode is not recommended.%s%s' %(Fore.BLACK, Back.GREEN, Fore.RESET, Back.RESET, Fore.GREEN, Fore.RESET, Fore.MAGENTA))

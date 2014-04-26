@@ -1,5 +1,15 @@
 % rebase('coba/views/base')
+% entitas.generate_detail_view()
+
+{% block style %}
+    {{! entitas.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! entitas.generated_script }}
+{% endblock %}
+
 {% block content %}
-    Are you sure want to delete {{ entitas.quick_preview() }}?
-    {{! entitas.detail_view() }}
+    <h4>Are you sure want to remove {{ entitas.quick_preview() }}?</h4>
+    {{! entitas.generated_html }}
 {% endblock %}

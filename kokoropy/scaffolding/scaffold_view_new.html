@@ -1,7 +1,18 @@
 % rebase('g_application_name/views/base')
+% g_table_name.generate_input_view()
+
+{% block style %}
+    {{! g_table_name.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! g_table_name.generated_script }}
+{% endblock %}
+
 {% block content %}
+    <h4>New g_table_name</h4>
     <form action="{{ url_list['create'] }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
-        {{! g_table_name.input_view() }}
+        {{! g_table_name.generated_html }}
         <!-- Form Control -->
         <div class="form-group">
             <div class="col-md-offset-3 col-lg-offset-3 col-xs-12 col-sm-12 col-md-9 col-lg-9">
