@@ -395,16 +395,16 @@ class Model(Base):
         dictionary = self.to_dict(**kwargs)
         return json.dumps(dictionary)
     
-    def build_column(self, column_name, **kwargs):
+    def build_custom_label(self, column_name, **kwargs):
         '''
-        Custom column if defined, override this if needed, but promise me 3 things:
+        Custom label if defined, override this if needed, but promise me 3 things:
         * add any additional css into self.generated_style
         * add any additional script into self.generated_script
         * return your HTML as string
         '''
         return None
     
-    def build_input(self, column_name, **kwargs):
+    def build_custom_input(self, column_name, **kwargs):
         '''
         Custom input if defined, override this if needed, but promise me 3 things:
         * add any additional css into self.generated_style
@@ -412,6 +412,132 @@ class Model(Base):
         * return your HTML as string
         '''
         return None
+    
+    def build_custom_representation(self, column_name, **kwargs):
+        '''
+        Custom representation if defined, override this if needed, but promise me 3 things:
+        * add any additional css into self.generated_style
+        * add any additional script into self.generated_script
+        * return your HTML as string
+        '''
+        pass
+    
+    def build_label(self, column_name, **kwargs):
+        custom_label = self.build_custom_label(column_name, **kwargs)
+        if custom_label is not None:
+            return custom_label
+        else:
+            return column_name.replace('_', ' ').title()
+    
+    def build_input(self, column_name, **kwargs):
+        custom_input = self.build_custom_input(column_name, **kwargs)
+        if custom_input is not None:
+            return custom_input
+        else:
+            if hasattr(self, column_name):
+                value = getattr(self, column_name)
+            else:
+                value = ''
+            html = ''
+            relation_properties = self.__mapper__.relationships._data
+            if column_name in relation_properties:
+                relation = relation_properties[column_name]
+                ref_class = getattr(self.__class__, column_name).property.mapper.class_
+                if relation.uselist:
+                    # one to many
+                    input_element = 'One to Many'
+                else:
+                    # many to one
+                    option_obj = ref_class.get()
+                    option_count = ref_class.count()
+                    input_element = ''
+                    if option_count == 0:
+                        input_element += 'No option available'
+                    elif option_count <= 3:
+                        xs_width = sm_width = str(12/option_count)
+                        md_width = lg_width = str(9/option_count)
+                        for obj in option_obj:
+                            if value == obj:
+                                checked = 'checked'
+                            else:
+                                checked = ''
+                            input_element += '<div class="col-xs-' + xs_width + ' col-sm-' + sm_width + ' col-md-' + md_width + ' col-lg-' + lg_width+ '">'
+                            input_element += '<label><input type="radio" ' + checked + ' name ="' + column_name + '" value="' + obj.id + '"/> ' + obj.quick_preview() + '</label>'
+                            input_element += '</div>'
+                    else:
+                        input_element += '<select class="form-control" id="field_' + column_name + '" name ="' + column_name + '">'
+                        input_element += '<option value="">None</option>'
+                        for obj in option_obj:
+                            if value == obj:
+                                selected = 'selected'
+                            else:
+                                selected = ''
+                            input_element += '<option ' + selected + ' value="' + obj.id + '">' + obj.quick_preview() + '</option>'
+                        input_element += '</select>'
+            else:
+                if value is None:
+                    value = ''
+                else:
+                    value = str(value)
+                label = self.build_label(column_name, **kwargs)
+                input_element = '<input type="text" class="form-control" id="field_' + column_name + '" name="' + column_name + '" placeholder="' + label + '" value="' + value + '">'
+            html += input_element
+            return html
+    
+    def build_labeled_input(self, column_name, **kwargs):
+        label = self.build_label(column_name, **kwargs)
+        html  = '<div class="form-group">'
+        html += '<label for="field_' + column_name + '" class="col-xs-12 col-sm-12 col-md-3 col-lg-3 control-label">' + label + '</label>'
+        html += '<div class="col-xs-12 col-sm-12 col-md-9 col-lg-9">'
+        html += self.build_input(column_name, **kwargs)
+        html += '</div>'
+        html += '</div>'
+        return html
+    
+    def build_representation(self, column_name, **kwargs):
+        custom_representation = self.build_custom_representation(column_name, **kwargs)
+        if custom_representation is not None:
+            return custom_representation
+        else:
+            if hasattr(self, column_name):
+                value = getattr(self, column_name)
+            else:
+                value = ''
+            # pre-process
+            if isinstance(value, list) and len(value)>0:
+                children = getattr(self,column_name)
+                # generate new value
+                value = '<ul>'
+                for child in children:
+                    value += '<li>' + child.quick_preview() + '</li>'
+                value += '<ul>'
+            # lookup value
+            if isinstance(value, Model):
+                    obj = getattr(self, column_name)
+                    value = obj.quick_preview()
+            # None or empty children
+            if value is None or (isinstance(value,list) and len(value)==0):
+                value = 'Not available'
+            return value
+    
+    def build_labeled_representation(self, column_name, **kwargs):
+        label = self.build_label(column_name, **kwargs)
+        html  = '<div class="form-group">'
+        html += '<label class="col-xs-12 col-sm-12 col-md-3 col-lg-3 control-label">' + label + '</label>'
+        html += '<div class="col-xs-12 col-sm-12 col-md-9 col-lg-9">'
+        html += self.build_representation(column_name, **kwargs)
+        html += '</div>'
+        html += '</div>'
+        return html
+    
+    def generate_tabular_label(self, **kwargs):
+        pass
+    
+    def generate_tabular_representation(self, **kwargs):
+        pass
+    
+    def generate_tabular_input(self, column_name, **kwargs):
+        pass
     
     def reset_generated(self):
         self._generated_html = ''
@@ -474,60 +600,8 @@ class Model(Base):
             input_column = self._update_form_column
         # build html
         html = ''
-        relation_properties = self.__mapper__.relationships._data
-        for key in input_column:
-            label = key.replace('_', ' ').title()
-            html += '<div class="form-group">'
-            html += '<label for="field_' + key + '" class="col-xs-12 col-sm-12 col-md-3 col-lg-3 control-label">' + label + '</label>'
-            html += '<div class="col-xs-12 col-sm-12 col-md-9 col-lg-9">'
-            custom_input = self.build_input(key)
-            if custom_input is not None:
-                input_element = custom_input
-            else:
-                value = getattr(self, key)
-                if key in relation_properties:
-                    relation = relation_properties[key]
-                    ref_class = getattr(self.__class__, key).property.mapper.class_
-                    if relation.uselist:
-                        # one to many
-                        input_element = 'One to Many'
-                    else:
-                        # many to one
-                        option_obj = ref_class.get()
-                        option_count = ref_class.count()
-                        input_element = ''
-                        if option_count == 0:
-                            input_element += 'No option available'
-                        elif option_count <= 3:
-                            xs_width = sm_width = str(12/option_count)
-                            md_width = lg_width = str(9/option_count)
-                            for obj in option_obj:
-                                if value == obj:
-                                    checked = 'checked'
-                                else:
-                                    checked = ''
-                                input_element += '<div class="col-xs-' + xs_width + ' col-sm-' + sm_width + ' col-md-' + md_width + ' col-lg-' + lg_width+ '">'
-                                input_element += '<label><input type="radio" ' + checked + ' name ="' + key + '" value="' + obj.id + '"/> ' + obj.quick_preview() + '</label>'
-                                input_element += '</div>'
-                        else:
-                            input_element += '<select class="form-control" id="field_' + key + '" name ="' + key + '">'
-                            input_element += '<option value="">None</option>'
-                            for obj in option_obj:
-                                if value == obj:
-                                    selected = 'selected'
-                                else:
-                                    selected = ''
-                                input_element += '<option ' + selected + ' value="' + obj.id + '">' + obj.quick_preview() + '</option>'
-                            input_element += '</select>'
-                else:
-                    if value is None:
-                        value = ''
-                    else:
-                        value = str(value)
-                    input_element = '<input type="text" class="form-control" id="field_' + key + '" name="' + key + '" placeholder="' + label + '" value="' + value + '">'
-            html += input_element
-            html += '</div>'
-            html += '</div>'
+        for column_name in input_column:
+            html += self.build_labeled_input(column_name)
         self.generated_html = html
         
     
@@ -539,49 +613,10 @@ class Model(Base):
         self.reset_generated()
         if include_resource:
             self.include_resource()
-        dictionary = self.to_dict(include_relation = True)
         # build html
         html = '<div class="row container">'
-        for key in self._shown_column:
-            # row
-            html += '<div class="row container col-xs-12 col-sm-12 col-md-12 col-lg-12">'
-            label = key.replace('_', ' ').title()
-            
-            custom_value = self.build_column(key)
-            if custom_value is not None:
-                value = custom_value
-            else:
-                if key in dictionary:
-                    value = dictionary[key]
-                else:
-                    value = None
-            # pre-process
-            if isinstance(value, list) and len(value)>0:
-                children = getattr(self,key)
-                # generate new value
-                value = '<ul>'
-                for child in children:
-                    value += '<li>' + child.quick_preview() + '</li>'
-                value += '<ul>'
-            label_class = 'col-xs-12 col-sm-12 col-md-3 col-lg-3'
-            content_class = 'col-xs-12 col-sm-12 col-md-9 col-lg-9'
-            # lookup value
-            if isinstance(value, dict):
-                    obj = getattr(self, key)
-                    value = obj.quick_preview()
-            # None or empty children
-            if value is None or (isinstance(value,list) and len(value)==0):
-                value = 'Not available'
-            # label
-            html += '<div class="' + label_class + '">'
-            html += '<label>' + str(label) + '</label>'
-            html += '</div>'
-            # value
-            html += '<div class="' + content_class + '">'
-            html += str(value)
-            html += '</div>'
-            # end of row
-            html += '</div>'
+        for column_name in self._shown_column:
+            html += self.build_custom_representation(column_name)
         html += '</div>'        
         self.generated_html = html
 
