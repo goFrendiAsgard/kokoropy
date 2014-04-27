@@ -8,18 +8,18 @@ session = scoped_session(sessionmaker(bind=engine))
 
 class Entitas(Model):
     __session__ = session
-    nama = Column(String(50))
-    alamat = Column(String(50))
+    nama = Column(String(35))
+    alamat = Column(String(40))
     fk_father = Column(Integer, ForeignKey("parent._real_id"))
     father = relationship("Parent", foreign_keys="Entitas.fk_father")
     fk_mother = Column(Integer, ForeignKey("parent._real_id"))
     mother = relationship("Parent", foreign_keys="Entitas.fk_mother")
-    children = relationship("Child", foreign_keys="Child.fk_entitas")
+    children = relationship("Offspring", foreign_keys="Offspring.fk_entitas")
 
 class Parent(Model):
     __session__ = session
 
-class Child(Model):
+class Offspring(Model):
     __session__ = session
     fk_entitas = Column(Integer, ForeignKey("entitas._real_id"))
 

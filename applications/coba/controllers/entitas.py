@@ -1,5 +1,5 @@
 from kokoropy import Autoroute_Controller, load_view, base_url
-from ..models.entitas import Child, Parent, Entitas
+from ..models.entitas import Offspring, Parent, Entitas
 
 url_list = {
         'index'   : base_url('coba/entitas/index'),

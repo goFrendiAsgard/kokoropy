@@ -518,11 +518,12 @@ class Model(Base):
             # None or empty children
             if value is None or (isinstance(value,list) and len(value)==0):
                 value = 'Not available'
+            value = str(value)
             return value
     
     def build_labeled_representation(self, column_name, **kwargs):
         label = self.build_label(column_name, **kwargs)
-        html  = '<div class="form-group">'
+        html  = '<div class="form-group row container col-xs-12 col-sm-12 col-md-12 col-lg-12">'
         html += '<label class="col-xs-12 col-sm-12 col-md-3 col-lg-3 control-label">' + label + '</label>'
         html += '<div class="col-xs-12 col-sm-12 col-md-9 col-lg-9">'
         html += self.build_representation(column_name, **kwargs)
@@ -616,7 +617,7 @@ class Model(Base):
         # build html
         html = '<div class="row container">'
         for column_name in self._shown_column:
-            html += self.build_custom_representation(column_name)
+            html += self.build_labeled_representation(column_name)
         html += '</div>'        
         self.generated_html = html
 

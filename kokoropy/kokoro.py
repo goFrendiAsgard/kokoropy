@@ -902,8 +902,14 @@ def scaffold_model(application_name, table_name, *columns):
             colname = column[0]
             if len(column)>1:
                 coltype = column[1]
+                coltype_element = coltype.split('-')
+                if len(coltype_element)>1:
+                    coltype = coltype_element[0] + '(' + ', '.join(coltype_element[1:]) + ')'
+                # in case of string is not defined
+                if coltype == 'String':
+                    coltype = 'String(50)'
             else:
-                coltype = 'String'
+                coltype = 'String(50)'
             add_to_structure(structure, table_name, colname, 'Column('+coltype+')')
     # replace content
     content = content.replace('# g_structure', _structure_to_script(structure))
