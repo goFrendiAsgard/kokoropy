@@ -423,11 +423,11 @@ def import_routes(route_location):
     for url_property in url_properties:
         methods = url_properties[url_property]
         if hasattr(module_obj, url_property):
-            for url_pair in module_obj.urls: 
+            for url_pair in getattr(module_obj, url_property):
                 # address               
                 route_address = url_pair[0]
-                slashed_url = add_trailing_slash(route_address)
-                unslashed_url = remove_trailing_slash(route_address)
+                slashed_url = add_begining_slash(add_trailing_slash(route_address))
+                unslashed_url = add_begining_slash(remove_trailing_slash(route_address))
                 # callback
                 if len(url_pair)==1:
                     route_callback = 'Undefined callback'
@@ -439,13 +439,13 @@ def import_routes(route_location):
                         return content
                     route_callback = wrapper
                 # default values
-                name, apply, skip, configs = None, None, None, {}
+                name, apply_, skip, configs = None, None, None, {}
                 # name
                 if len(url_pair)>2:
                     name = url_pair[2]
                     # apply
                     if len(url_pair)>3:
-                        apply = url_pair[3]
+                        apply_ = url_pair[3]
                         # skip
                         if len(url_pair)>4:
                             skip = url_pair[4]
@@ -453,8 +453,8 @@ def import_routes(route_location):
                             if len(url_pair)>5:
                                 configs = url_pair[5]
                 # call the routes
-                route(slashed_url, methods, route_callback, name, apply, skip, **configs)
-                route(unslashed_url, methods, route_callback, name, apply, skip, **configs)
+                route(slashed_url, methods, route_callback, name, apply_, skip, **configs)
+                route(unslashed_url, methods, route_callback, name, apply_, skip, **configs)
     # hooks
     if hasattr(module_obj, 'hooks'):
         for hook_pair in module_obj.hooks:
@@ -575,7 +575,7 @@ def kokoro_init(**kwargs):
     for application in application_list:
         if os.path.isfile(os.path.join(APPLICATION_PATH, application, "routes.py")):
             print(Fore.YELLOW + "* Register Routes : " + Fore.BLUE + application + Fore.RESET)
-            import_routes(APPLICATION_PACKAGE + ".routes")
+            import_routes(APPLICATION_PACKAGE + "." + application + ".routes")
     ###################################################################################################
     # Load Autoroute inside controller modules
     ###################################################################################################

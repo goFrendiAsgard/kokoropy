@@ -9,12 +9,12 @@
         
     urls = (
             ('/', index), 
-            ('hello/<name>', hello_world)
+            ('hello/<name>', hello_world),
             ('manage', a_function)
         )
     
 # Aside from urls tuples, you can also use gets, posts, puts, and deletes tuple to achieve RESTful url
-    posts = (('save', some_function))
+    posts = (('save', some_function),)
     
 # To define hooks and errors, you can do this:
     hooks(
