@@ -878,7 +878,7 @@ def scaffold_model(application_name, table_name, *columns):
             other_table_name = column[1]
             relationship = column[2]
             ucase_other_table_name = other_table_name.title()
-            if relationship == 'onetomany' or relationship == 'one_to_many':
+            if relationship == 'onetomany' or relationship == 'one_to_many' or relationship == 'one-to-many':
                 # other table
                 add_to_structure(structure, other_table_name)
                 # foreign key
@@ -888,7 +888,7 @@ def scaffold_model(application_name, table_name, *columns):
                 # relationship
                 coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_other_table_name + '.' + fk_col_name + '")'
                 add_to_structure(structure, table_name, colname, coltype)
-            elif relationship == 'manytoone' or relationship == 'many_to_one':
+            elif relationship == 'manytoone' or relationship == 'manytone' or relationship == 'many_to_one' or relationship == 'many-to-one':
                 # other table
                 add_to_structure(structure, other_table_name)
                 # foreign key
@@ -897,6 +897,27 @@ def scaffold_model(application_name, table_name, *columns):
                 fk_col_name = add_to_structure(structure, table_name, fk_col_name, coltype)
                 # relationship
                 coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_table_name + '.' + fk_col_name + '")'
+                add_to_structure(structure, table_name, colname, coltype)
+            elif relationship == 'manytomany' or relationship == 'many_to_many' or relationship == 'many-to-many':
+                # other table
+                add_to_structure(structure, other_table_name)
+                # association table
+                association_table_name = 'association_' + table_name + '_' + other_table_name
+                ucase_association_table_name = association_table_name.title()
+                add_to_structure(structure, association_table_name)
+                # foreign key 1 (to this table)
+                coltype = 'Column(Integer, ForeignKey("' + table_name + '._real_id"))'
+                fk_col_name_1 = 'fk_' + table_name
+                fk_col_name_1 = add_to_structure(structure, association_table_name, fk_col_name_1, coltype)
+                # foreign key 2 (to other table)
+                coltype = 'Column(Integer, ForeignKey("' + other_table_name + '._real_id"))'
+                fk_col_name_2 = 'fk_' + other_table_name
+                fk_col_name_2 = add_to_structure(structure, association_table_name, fk_col_name_2, coltype)
+                # relationship (from association to other table)
+                coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_2 + '")'
+                add_to_structure(structure, association_table_name, other_table_name, coltype)
+                # relationship (from table to association table)
+                coltype = 'relationship("' + ucase_association_table_name + '", foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_1 + '")'
                 add_to_structure(structure, table_name, colname, coltype)
         else:
             colname = column[0]
@@ -927,10 +948,10 @@ def scaffold_crud(application_name, table_name, *columns):
     structure = scaffold_model(application_name, table_name, *columns)
     ucase_table_name = table_name.title()
     ucase_table_name_list = []
-    for table_name in structure:
-        if table_name == '__list__':
+    for t in structure:
+        if t == '__list__':
             continue
-        ucase_table_name_list.append(table_name.title())
+        ucase_table_name_list.append(t.title())
     ucase_table_name_list = ", ".join(ucase_table_name_list)
     
     # controller

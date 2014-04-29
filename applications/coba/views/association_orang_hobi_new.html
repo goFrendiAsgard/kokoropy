@@ -1,0 +1,24 @@
+% rebase('coba/views/base')
+% association_orang_hobi.generate_input_view()
+
+{% block style %}
+    {{! association_orang_hobi.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! association_orang_hobi.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>New association_orang_hobi</h4>
+    <form action="{{ url_list['create'] }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
+        {{! association_orang_hobi.generated_html }}
+        <!-- Form Control -->
+        <div class="form-group">
+            <div class="col-md-offset-3 col-lg-offset-3 col-xs-12 col-sm-12 col-md-9 col-lg-9">
+                <button type="submit" class="btn btn-default">
+                    <i class="glyphicon glyphicon-floppy-disk"></i> Save</button>
+            </div>
+        </div>
+    </form>
+{% endblock %}

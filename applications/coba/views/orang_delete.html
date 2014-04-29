@@ -1,0 +1,16 @@
+% rebase('coba/views/base')
+% orang.generate_detail_view()
+
+{% block style %}
+    {{! orang.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! orang.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Are you sure want to delete {{ orang.quick_preview() }}?</h4>
+    {{! orang.generated_html }}
+    <div class="alert alert-danger">This action is not recoverable</div>
+{% endblock %}

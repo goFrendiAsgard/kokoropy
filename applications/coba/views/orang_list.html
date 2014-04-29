@@ -1,0 +1,38 @@
+% rebase('coba/views/base')
+{% block content %}
+    <h2>orang list</h2>
+    <div class="pull-right">
+        <a class="btn btn-default" href="{{ url_list["new"] }}">
+            <i class="glyphicon glyphicon-plus"></i> New orang
+        </a>
+    </div>
+    <table class="table table-striped">
+        <thead>
+            <th>Data</th>
+            <th>Action</th>
+        </thead>
+        <tbody>
+            % for orang in orang_list:
+                <tr>
+                    <!-- data -->
+                    <td>
+                        <a href="{{ url_list["show"] }}/{{ orang.id }}">
+                            {{ orang.quick_preview() }}</a>
+                    </td>
+                    <!-- action -->
+                    <td>
+                        <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ orang.id }}">
+                            <i class="glyphicon glyphicon-pencil"></i> Edit
+                        </a>
+                        <a class="btn btn-default" href="{{ url_list["trash"] }}/{{ orang.id }}">
+                            <i class="glyphicon glyphicon-trash"></i> Trash
+                        </a>
+                        <a class="btn btn-danger" href="{{ url_list["delete"] }}/{{ orang.id }}">
+                            <i class="glyphicon glyphicon-remove-sign"></i> Delete
+                        </a>
+                    </td>
+                </tr>
+            % end
+        </tbody>
+    </table>
+{% endblock %}

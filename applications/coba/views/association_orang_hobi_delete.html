@@ -1,0 +1,16 @@
+% rebase('coba/views/base')
+% association_orang_hobi.generate_detail_view()
+
+{% block style %}
+    {{! association_orang_hobi.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! association_orang_hobi.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Are you sure want to delete {{ association_orang_hobi.quick_preview() }}?</h4>
+    {{! association_orang_hobi.generated_html }}
+    <div class="alert alert-danger">This action is not recoverable</div>
+{% endblock %}

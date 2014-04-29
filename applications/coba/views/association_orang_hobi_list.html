@@ -1,0 +1,38 @@
+% rebase('coba/views/base')
+{% block content %}
+    <h2>association_orang_hobi list</h2>
+    <div class="pull-right">
+        <a class="btn btn-default" href="{{ url_list["new"] }}">
+            <i class="glyphicon glyphicon-plus"></i> New association_orang_hobi
+        </a>
+    </div>
+    <table class="table table-striped">
+        <thead>
+            <th>Data</th>
+            <th>Action</th>
+        </thead>
+        <tbody>
+            % for association_orang_hobi in association_orang_hobi_list:
+                <tr>
+                    <!-- data -->
+                    <td>
+                        <a href="{{ url_list["show"] }}/{{ association_orang_hobi.id }}">
+                            {{ association_orang_hobi.quick_preview() }}</a>
+                    </td>
+                    <!-- action -->
+                    <td>
+                        <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ association_orang_hobi.id }}">
+                            <i class="glyphicon glyphicon-pencil"></i> Edit
+                        </a>
+                        <a class="btn btn-default" href="{{ url_list["trash"] }}/{{ association_orang_hobi.id }}">
+                            <i class="glyphicon glyphicon-trash"></i> Trash
+                        </a>
+                        <a class="btn btn-danger" href="{{ url_list["delete"] }}/{{ association_orang_hobi.id }}">
+                            <i class="glyphicon glyphicon-remove-sign"></i> Delete
+                        </a>
+                    </td>
+                </tr>
+            % end
+        </tbody>
+    </table>
+{% endblock %}

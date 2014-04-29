@@ -672,7 +672,13 @@ def auto_migrate(engine):
                 try:
                     op.add_column(model_table_name, Column(model_column.name, model_column.type, **model_column_kwargs))
                 except:
-                    print('    Fail to make column %s.%s, please add it manually' % (model_table_name, model_column.name))
+                    try:
+                        # sometime foreign_keys and constraints just doesn't work
+                        model_column_kwargs.pop('foreign_keys')
+                        model_column_kwargs.pop('constraints')
+                        op.add_column(model_table_name, Column(model_column.name, model_column.type, **model_column_kwargs))
+                    except:
+                        print('    Fail to make column %s.%s, please add it manually' % (model_table_name, model_column.name))
             else:
                 # get db_column information
                 db_column = None
