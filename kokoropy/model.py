@@ -30,6 +30,10 @@ class Model(Base):
     __formcolumn__ = None
     __insertformcolumn__ = None
     __updateformcolumn__ = None
+    __unshowncolumn__ = None
+    __nonformcolumn__ = None
+    __noninsertformcolumn__ = None
+    __nonupdateformcolumn__ = None
         
     @declared_attr
     def __tablename__(cls):
@@ -39,35 +43,58 @@ class Model(Base):
     def _shown_column(self):
         if self.__showncolumn__ is None:
             self.__showncolumn__ = []
-            for column in self.__table__.columns:
-                column = column.name
-                if column in ['_real_id', '_created_at', '_updated_at', '_trashed'] or column.split('_')[0] == 'fk':
+            for column_name in self._get_column_names():
+                if column_name in ['_real_id', '_created_at', '_updated_at', '_trashed'] or column_name.split('_')[0] == 'fk':
                     continue
-                self.__showncolumn__.append(column)
-            for relation_name in self._get_relation_name():
+                self.__showncolumn__.append(column_name)
+            for relation_name in self._get_relation_names():
                 self.__showncolumn__.append(relation_name)
+        # remove unshown_column
+        if self.__unshowncolumn__ is not None:
+            for unshown_column in self.__unshowncolumn__:
+                if unshown_column in self.__showncolumn__:
+                    self.__showncolumn__.remove(unshown_column)
+            self.__unshowncolumn__ = None
         return self.__showncolumn__
     
     @property
     def _form_column(self):
         if self.__formcolumn__ is None:
-            return self._shown_column
+            form_column = self._shown_column
         else:
-            return self.__formcolumn__
+            form_column = self.__formcolumn__
+        # remove excluded column
+        if self.__nonformcolumn__ is not None:
+            for excluded_column in self.__nonformcolumn__:
+                form_column.remove(excluded_column)
+            self.__nonformcolumn__ = None
+        return form_column
     
     @property
     def _insert_form_column(self):
         if self.__insertformcolumn__ is None:
-            return self._form_column
+            form_column = self._form_column
         else:
-            return self.__insertformcolumn__
+            form_column = self.__insertformcolumn__
+        # remove excluded column
+        if self.__noninsertformcolumn__ is not None:
+            for excluded_column in self.__noninsertformcolumn__:
+                form_column.remove(excluded_column)
+            self.__noninsertformcolumn__ = None
+        return form_column
     
     @property
     def _update_form_column(self):
-        if self.__insertformcolumn__ is None:
-            return self._form_column
+        if self.__updateformcolumn__ is None:
+            form_column = self._form_column
         else:
-            return self.__insertformcolumn__
+            form_column = self.__updateformcolumn__
+        # remove excluded column
+        if self.__nonupdateformcolumn__ is not None:
+            for excluded_column in self.__nonupdateformcolumn__:
+                form_column.remove(excluded_column)
+            self.__nonupdateformcolumn__ = None
+        return form_column
     
     @property
     def engine(self):
@@ -178,7 +205,6 @@ class Model(Base):
         limit = kwargs.pop('limit', None)
         offset = kwargs.pop('offset', None)
         include_trashed = kwargs.pop('include_trashed', False)
-        include_relation = kwargs.pop('include_relation', False)
         # get / make session if not exists
         if hasattr(cls,'__session__ '):
             session = cls.__session__
@@ -239,19 +265,38 @@ class Model(Base):
     def after_delete(self):
         self.success = True
     
-    def _get_relation_name(self):
+    def _get_relation_names(self):
         return self.__mapper__.relationships._data
     
-    def _get_relation(self, relation_name):
+    def _get_relation_value(self, relation_name):
         return getattr(self, relation_name)
     
-    def _save_relation(self):
-        for relation_name in self._get_relation_name():
-            relation = self._get_relation(relation_name)
-            if isinstance(relation, Model):
-                relation.save()
-            elif isinstance(relation, list):
-                for child in relation:
+    def _get_column_names(self):
+        if not hasattr(self, '__column_names'):
+            self.__column_names = []
+            for column in self.__table__.columns:
+                self.__column_names.append(column.name)
+        return self.__column_names
+    
+    def _get_column_metadata(self, column_name):
+        if not hasattr(self, '__column'):
+            self.__column = {}
+            for column in self.__table__.columns:
+                self.__column[column.name] = column
+        return self.__column[column_name]
+    
+    def _get_column_type(self, column_name):
+        return self._get_column_metadata(column_name).type
+    
+    def _save_relation_value(self):
+        for relation_name in self._get_relation_names():
+            relation_value = self._get_relation_value(relation_name)
+            if isinstance(relation_value, Model):
+                # one to many
+                relation_value.save()
+            elif isinstance(relation_value, list):
+                # many to one
+                for child in relation_value:
                     if isinstance(child, Model):
                         child.save()
     
@@ -288,7 +333,7 @@ class Model(Base):
             self.after_update()
         self.after_save()
         # also trigger save of relation
-        self._save_relation()
+        self._save_relation_value()
     
     def trash(self):
         self.before_trash()
@@ -297,8 +342,8 @@ class Model(Base):
         self._commit()
         self.after_trash()
         # also trash children
-        for relation_name in self._get_relation_name():
-            relation = self._get_relation(relation_name)
+        for relation_name in self._get_relation_names():
+            relation = self._get_relation_value(relation_name)
             if isinstance(relation, list):
                 for child in relation:
                     if isinstance(child, Model):
@@ -312,10 +357,10 @@ class Model(Base):
         self._commit()
         self.after_untrash()
         # also untrash children
-        for relation_name in self._get_relation_name():
-            relation = self._get_relation(relation_name)
-            if isinstance(relation, list):
-                for child in relation:
+        for relation_name in self._get_relation_names():
+            relation_value = self._get_relation_value(relation_name)
+            if isinstance(relation_value, list):
+                for child in relation_value:
                     if isinstance(child, Model):
                         child.untrash()
                         child.save()
@@ -327,10 +372,10 @@ class Model(Base):
         self._commit()
         self.after_delete()
         # also delete children
-        for relation_name in self._get_relation_name():
-            relation = self._get_relation(relation_name)
-            if isinstance(relation, list):
-                for child in relation:
+        for relation_name in self._get_relation_names():
+            relation_value = self._get_relation_value(relation_name)
+            if isinstance(relation_value, list):
+                for child in relation_value:
                     if isinstance(child, Model):
                         child.trash()
                         child.delete()
@@ -363,17 +408,18 @@ class Model(Base):
         include_relation = kwargs.pop('include_relation', False)
         isoformat = kwargs.pop('isoformat', False)
         dictionary = {}
-        for column in self.__table__.columns:
-            val = getattr(self, column.name)
+        # get column value
+        for column_name in self._get_column_names():
+            val = getattr(self, column_name)
             if isoformat and hasattr(val, 'isoformat'):
                 val = val.isoformat()
-            dictionary[column.name] = val
+            dictionary[column_name] = val
         # also include_relation
         if include_relation:
             kwargs = {'isoformat': isoformat}
             # also add relation to dictionary
-            for relation_name in self._get_relation_name():
-                relation = self._get_relation(relation_name)
+            for relation_name in self._get_relation_names():
+                relation = self._get_relation_value(relation_name)
                 if isinstance(relation, Model):
                     dictionary[relation_name] = relation.to_dict(**kwargs)
                 elif isinstance(relation, list):
@@ -480,7 +526,13 @@ class Model(Base):
                 else:
                     value = str(value)
                 label = self.build_label(column_name, **kwargs)
-                input_element = '<input type="text" class="form-control" id="field_' + column_name + '" name="' + column_name + '" placeholder="' + label + '" value="' + value + '">'
+                # check type
+                column_type = self._get_column_type(column_name)
+                # build additional_class
+                additional_class = ''
+                if isinstance(column_type, Date):
+                    additional_class = 'date-input'
+                input_element = '<input type="text" class="form-control '+additional_class+'" id="field_' + column_name + '" name="' + column_name + '" placeholder="' + label + '" value="' + value + '">'
             html += input_element
             return html
     
@@ -555,7 +607,19 @@ class Model(Base):
             '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/bootstrap.js" type="text/javascript"></script>' +\
             '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/holder.js" type="text/javascript"></script>' +\
             '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/jquery-ui-1.10.3.custom.min.js" type="text/javascript"></script>' +\
-            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/google-code-prettify/prettify.js" type="text/javascript"></script>'
+            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/google-code-prettify/prettify.js" type="text/javascript"></script>' +\
+            '<script type="text/javascript">' +\
+                '$( ".date-input" ).datepicker({' +\
+                    'defaultDate: "+1w",' +\
+                    'changeMonth: true,' +\
+                    'changeYear: true,' +\
+                    'numberOfMonths: 1,' +\
+                '})' +\
+                '$(".file-input").customFileInput({' +\
+                    'button_position : "right"' +\
+                '});' +\
+                '$(".integer-input").spinner();' +\
+            '</script>'
         self._generated_css += '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/css/bootstrap.min.css">' +\
             '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/css/custom-theme/jquery-ui-1.10.3.custom.css">' +\
             '<!--<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/css/custom-theme/jquery-ui-1.10.3.theme.css">-->' +\

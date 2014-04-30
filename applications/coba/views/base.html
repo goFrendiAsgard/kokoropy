@@ -60,6 +60,14 @@
         <script src="{{ BASE_URL }}assets/jquery-ui-bootstrap/assets/js/vendor/holder.js" type="text/javascript"></script>
         <script src="{{ BASE_URL }}assets/jquery-ui-bootstrap/assets/js/vendor/jquery-ui-1.10.3.custom.min.js" type="text/javascript"></script>
         <script src="{{ BASE_URL }}assets/jquery-ui-bootstrap/assets/js/google-code-prettify/prettify.js" type="text/javascript"></script>
+        <script type="text/javascript">
+            $( ".date-input" ).datepicker({
+                defaultDate: "+1w",
+                changeMonth: true,
+                changeYear: true,
+                numberOfMonths: 1,
+            });
+        </script>
         {% block script %}{% endblock %}
     </body>
 </html>

@@ -859,7 +859,16 @@ def _structure_to_script(structure):
     for table_name in structure['__list__']:
         ucase_table_name = table_name.title()
         script += 'class ' + ucase_table_name + '(Model):\n'
+        script += '    # some default properties\n'
         script += '    __session__ = session\n'
+        script += '    __tablename__ = "'+table_name+'"\n'
+        script += '    # commonly overriden properties\n'
+        script += '    __unshowncolumn__ = []\n'
+        script += '    __noninsertformcolumn__ = ["id"]\n'
+        script += '    __nonupdateformcolumn__ = ["id"]\n'
+        script += '    __prefixid__ = "%Y-"\n'
+        script += '    __digitid__ = 3\n'
+        script += '    # fields declaration\n'
         for column_name in structure[table_name]['__list__']:
             content = structure[table_name][column_name]
             script += '    ' + column_name + ' = ' + content + '\n'
@@ -946,33 +955,34 @@ def scaffold_model(application_name, table_name, *columns):
 
 def scaffold_crud(application_name, table_name, *columns):
     structure = scaffold_model(application_name, table_name, *columns)
-    ucase_table_name = table_name.title()
     ucase_table_name_list = []
     for t in structure:
         if t == '__list__':
             continue
         ucase_table_name_list.append(t.title())
     ucase_table_name_list = ", ".join(ucase_table_name_list)
-    
-    # controller
-    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_controller.py'))    
-    content = content.replace('G_Table_Name_List', ucase_table_name_list)
-    content = content.replace('G_Table_Name', ucase_table_name)
-    content = content.replace('g_table_name', table_name)
-    content = content.replace('g_application_name', application_name)
-    filename = table_name+'.py'
-    filename = application_path(os.path.join(application_name, 'controllers', filename))
-    # write file
-    file_put_contents(filename, content)
-    
-    # views
-    view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
-    for view in view_list:
-        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_' + view + '.html'))    
+    # for each table name
+    for table_name in structure:
+        ucase_table_name = table_name.title()
+        # controller
+        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_controller.py'))    
+        content = content.replace('G_Table_Name_List', ucase_table_name_list)
         content = content.replace('G_Table_Name', ucase_table_name)
         content = content.replace('g_table_name', table_name)
         content = content.replace('g_application_name', application_name)
-        filename = table_name + '_' + view + '.html'
-        filename = application_path(os.path.join(application_name, 'views', filename))
+        filename = table_name+'.py'
+        filename = application_path(os.path.join(application_name, 'controllers', filename))
         # write file
         file_put_contents(filename, content)
+        
+        # views
+        view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
+        for view in view_list:
+            content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_' + view + '.html'))    
+            content = content.replace('G_Table_Name', ucase_table_name)
+            content = content.replace('g_table_name', table_name)
+            content = content.replace('g_application_name', application_name)
+            filename = table_name + '_' + view + '.html'
+            filename = application_path(os.path.join(application_name, 'views', filename))
+            # write file
+            file_put_contents(filename, content)
