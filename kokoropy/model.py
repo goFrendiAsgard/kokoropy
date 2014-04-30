@@ -523,16 +523,27 @@ class Model(Base):
             else:
                 if value is None:
                     value = ''
-                else:
-                    value = str(value)
                 label = self.build_label(column_name, **kwargs)
                 # check type
                 column_type = self._get_column_type(column_name)
-                # build additional_class
-                additional_class = ''
-                if isinstance(column_type, Date):
-                    additional_class = 'date-input'
-                input_element = '<input type="text" class="form-control '+additional_class+'" id="field_' + column_name + '" name="' + column_name + '" placeholder="' + label + '" value="' + value + '">'
+                if isinstance(column_type, Boolean):
+                    if value:
+                        checked = "checked"
+                    else:
+                        checked = ""
+                    input_element = '<input type="hidden" name="' + column_name + '" value="0" />'
+                    input_element += '<input type="checkbox" ' + checked + ' id="field_' + column_name + '" name="' + column_name + '" value="1" />'
+                else:
+                    value = str(value)
+                    # build additional_class
+                    additional_class = ''
+                    if isinstance(column_type, Date):
+                        additional_class = 'date-input'
+                    elif isinstance(column_type, Integer):
+                        additional_class = 'integer-input'
+                        if value == '':
+                            value = '0'
+                    input_element = '<input type="text" class="form-control '+additional_class+'" id="field_' + column_name + '" name="' + column_name + '" placeholder="' + label + '" value="' + value + '">'
             html += input_element
             return html
     
@@ -608,6 +619,8 @@ class Model(Base):
             '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/holder.js" type="text/javascript"></script>' +\
             '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/jquery-ui-1.10.3.custom.min.js" type="text/javascript"></script>' +\
             '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/google-code-prettify/prettify.js" type="text/javascript"></script>' +\
+            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/third-party/jQuery-UI-FileInput/js/enhance.min.js" type="text/javascript"></script>' +\
+            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/third-party/jQuery-UI-FileInput/js/fileinput.jquery.js" type="text/javascript"></script>' +\
             '<script type="text/javascript">' +\
                 '$( ".date-input" ).datepicker({' +\
                     'defaultDate: "+1w",' +\
@@ -631,6 +644,7 @@ class Model(Base):
             '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/css/custom-theme/jquery.ui.1.10.3.ie.css">' +\
             '<![endif]-->' +\
             '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/google-code-prettify/prettify.css">' +\
+            '<link href="' + base_url + 'assets/jquery-ui-bootstrap/third-party/jQuery-UI-FileInput/css/enhanced.css" rel="Stylesheet">' +\
             '<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->' +\
             '<!--[if lt IE 9]>' +\
             '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/html5shiv.js" type="text/javascript"></script>' +\

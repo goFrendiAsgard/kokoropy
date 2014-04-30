@@ -1,18 +1,18 @@
-% rebase('coba/views/base')
-% orang.generate_input_view()
+% rebase('country/views/base')
+% political_view.generate_input_view()
 
 {% block style %}
-    {{! orang.generated_style }}
+    {{! political_view.generated_style }}
 {% endblock %}
 
 {% block script %}
-    {{! orang.generated_script }}
+    {{! political_view.generated_script }}
 {% endblock %}
 
 {% block content %}
-    <h4>New orang</h4>
-    <form action="{{ url_list['create'] }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
-        {{! orang.generated_html }}
+    <h4>Editing {{ political_view.quick_preview() }}</h4>
+    <form action="{{ url_list['update'] }}/{{ political_view.id }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
+        {{! political_view.generated_html }}
         <!-- Form Control -->
         <div class="form-group">
             <div class="col-md-offset-3 col-lg-offset-3 col-xs-12 col-sm-12 col-md-9 col-lg-9">

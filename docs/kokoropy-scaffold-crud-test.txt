@@ -1,0 +1,1 @@
+python rossian.py scaffold-crud country country name:String-50 independence_date:Date rate:Integer developed:Boolean friends:country:manytomany enemies:country:manytomany commodities:commodity:manytomany cities:city:onetomany political_view:political_view:manytoone

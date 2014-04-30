@@ -859,15 +859,7 @@ def _structure_to_script(structure):
     for table_name in structure['__list__']:
         ucase_table_name = table_name.title()
         script += 'class ' + ucase_table_name + '(Model):\n'
-        script += '    # some default properties\n'
         script += '    __session__ = session\n'
-        script += '    __tablename__ = "'+table_name+'"\n'
-        script += '    # commonly overriden properties\n'
-        script += '    __unshowncolumn__ = []\n'
-        script += '    __noninsertformcolumn__ = ["id"]\n'
-        script += '    __nonupdateformcolumn__ = ["id"]\n'
-        script += '    __prefixid__ = "%Y-"\n'
-        script += '    __digitid__ = 3\n'
         script += '    # fields declaration\n'
         for column_name in structure[table_name]['__list__']:
             content = structure[table_name][column_name]
@@ -911,16 +903,16 @@ def scaffold_model(application_name, table_name, *columns):
                 # other table
                 add_to_structure(structure, other_table_name)
                 # association table
-                association_table_name = 'association_' + table_name + '_' + other_table_name
+                association_table_name = 'rel_' + table_name + '_' + colname
                 ucase_association_table_name = association_table_name.title()
                 add_to_structure(structure, association_table_name)
                 # foreign key 1 (to this table)
                 coltype = 'Column(Integer, ForeignKey("' + table_name + '._real_id"))'
-                fk_col_name_1 = 'fk_' + table_name
+                fk_col_name_1 = 'fk_left_' + table_name
                 fk_col_name_1 = add_to_structure(structure, association_table_name, fk_col_name_1, coltype)
                 # foreign key 2 (to other table)
                 coltype = 'Column(Integer, ForeignKey("' + other_table_name + '._real_id"))'
-                fk_col_name_2 = 'fk_' + other_table_name
+                fk_col_name_2 = 'fk_right_' + other_table_name
                 fk_col_name_2 = add_to_structure(structure, association_table_name, fk_col_name_2, coltype)
                 # relationship (from association to other table)
                 coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_2 + '")'
@@ -961,11 +953,16 @@ def scaffold_crud(application_name, table_name, *columns):
             continue
         ucase_table_name_list.append(t.title())
     ucase_table_name_list = ", ".join(ucase_table_name_list)
-    # for each table name
+    model_module = table_name
+    # for each table, make controller and views
     for table_name in structure:
+        # don't make controller and views for association table
+        if table_name == '__list__' or table_name.split('_')[0] == 'rel':
+            continue
         ucase_table_name = table_name.title()
         # controller
         content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_controller.py'))    
+        content = content.replace('g_model_module', model_module)
         content = content.replace('G_Table_Name_List', ucase_table_name_list)
         content = content.replace('G_Table_Name', ucase_table_name)
         content = content.replace('g_table_name', table_name)

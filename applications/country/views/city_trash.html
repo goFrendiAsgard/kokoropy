@@ -1,0 +1,15 @@
+% rebase('country/views/base')
+% city.generate_detail_view()
+
+{% block style %}
+    {{! city.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! city.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Are you sure want to remove {{ city.quick_preview() }}?</h4>
+    {{! city.generated_html }}
+{% endblock %}

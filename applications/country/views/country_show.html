@@ -1,0 +1,15 @@
+% rebase('country/views/base')
+% country.generate_detail_view()
+
+{% block style %}
+    {{! country.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! country.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Showing {{ country.quick_preview() }}</h4>
+   {{! country.generated_html }}
+{% endblock %}

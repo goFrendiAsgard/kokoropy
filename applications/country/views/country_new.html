@@ -1,18 +1,18 @@
-% rebase('coba/views/base')
-% orang.generate_input_view()
+% rebase('country/views/base')
+% country.generate_input_view()
 
 {% block style %}
-    {{! orang.generated_style }}
+    {{! country.generated_style }}
 {% endblock %}
 
 {% block script %}
-    {{! orang.generated_script }}
+    {{! country.generated_script }}
 {% endblock %}
 
 {% block content %}
-    <h4>Editing {{ orang.quick_preview() }}</h4>
-    <form action="{{ url_list['update'] }}/{{ orang.id }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
-        {{! orang.generated_html }}
+    <h4>New country</h4>
+    <form action="{{ url_list['create'] }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
+        {{! country.generated_html }}
         <!-- Form Control -->
         <div class="form-group">
             <div class="col-md-offset-3 col-lg-offset-3 col-xs-12 col-sm-12 col-md-9 col-lg-9">

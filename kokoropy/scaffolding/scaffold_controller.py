@@ -1,5 +1,5 @@
 from kokoropy import Autoroute_Controller, load_view, base_url
-from ..models.g_table_name import G_Table_Name_List
+from ..models.g_model_module import G_Table_Name_List
 
 url_list = {
         'index'   : base_url('g_application_name/g_table_name/index'),

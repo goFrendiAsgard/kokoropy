@@ -1,10 +1,19 @@
-from sqlalchemy import create_engine, Column, ForeignKey, func, Integer, String, DateTime, Boolean
+from sqlalchemy import create_engine, Column, ForeignKey, func, Integer, String, Date, DateTime, Boolean
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
 from kokoropy.model import Model, auto_migrate
 from ..configs.db import connection_string
 
 engine = create_engine(connection_string, echo=False)
 session = scoped_session(sessionmaker(bind=engine))
+
+'''
+    Model has several commonly overriden methods:
+    * __unshowncolumn__          : list, hidden columns on "show detail" (e.g: ["id"])
+    * __noninsertformcolumn__    : list, hidden columns on "insert form" (e.g: ["id"])
+    * __nonupdateformcolumn__    : list, hidden columns on "edit form" (e.g: ["id"])
+    * __prefixid__               : string, prefix id (e.g: "%Y-")
+    * __digitid__                : integer, digit count after prefix id (e.g: 4)
+'''
 
 # g_structure
 '''
