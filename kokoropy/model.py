@@ -229,6 +229,20 @@ class Model(Base):
         if len(result)>0:
             return result[0]
     
+    def assign(self, variable):
+        for column_name in self._get_column_names():
+            column_type = self._get_column_type(column_name)
+            if column_name in variable and variable[column_name] != '':
+                value = variable[column_name]
+                if isinstance(column_type, Date):
+                    value = Date(value)
+                if isinstance(column_type, Boolean):
+                    if value == 0:
+                        value = False
+                    else:
+                        value = True
+                setattr(self, column_name, value)
+    
     def before_save(self):
         self.success = True
     

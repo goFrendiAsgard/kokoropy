@@ -1,4 +1,4 @@
-from kokoropy import Autoroute_Controller, load_view, base_url
+from kokoropy import Autoroute_Controller, load_view, base_url, request
 from ..models.g_model_module import G_Table_Name_List
 
 url_list = {
@@ -42,6 +42,7 @@ class G_Table_Name_Controller(Autoroute_Controller):
         ''' Insert Action '''
         g_table_name = G_Table_Name()
         # put your code here
+        g_table_name.assign(request.POST)
         g_table_name.save()
         success = g_table_name.success
         error_message = g_table_name.error_message
@@ -58,6 +59,7 @@ class G_Table_Name_Controller(Autoroute_Controller):
         ''' Update Action '''
         g_table_name = G_Table_Name.find(id)
         # put your code here
+        g_table_name.assign(request.POST)
         g_table_name.save()
         success = g_table_name.success
         error_message = g_table_name.error_message

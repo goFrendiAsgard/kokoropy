@@ -46,6 +46,7 @@ class Rel_Country_Enemies(Model):
 class Commodity(Model):
     __session__ = session
     # fields declaration
+    name = Column(String(50))
 
 class Rel_Country_Commodities(Model):
     __session__ = session

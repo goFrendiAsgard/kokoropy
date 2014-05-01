@@ -1,4 +1,4 @@
-from kokoropy import Autoroute_Controller, load_view, base_url
+from kokoropy import Autoroute_Controller, load_view, base_url, request
 from ..models.country import City, Political_View, Commodity, Country, Rel_Country_Friends, Rel_Country_Commodities, Rel_Country_Enemies
 
 url_list = {
@@ -42,6 +42,7 @@ class Political_View_Controller(Autoroute_Controller):
         ''' Insert Action '''
         political_view = Political_View()
         # put your code here
+        political_view.assign(request.POST)
         political_view.save()
         success = political_view.success
         error_message = political_view.error_message
@@ -58,6 +59,7 @@ class Political_View_Controller(Autoroute_Controller):
         ''' Update Action '''
         political_view = Political_View.find(id)
         # put your code here
+        political_view.assign(request.POST)
         political_view.save()
         success = political_view.success
         error_message = political_view.error_message
