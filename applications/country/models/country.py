@@ -45,8 +45,11 @@ class Rel_Country_Enemies(Model):
 
 class Commodity(Model):
     __session__ = session
+    __prefixid__ = 'C-%Y-'
     # fields declaration
     name = Column(String(50))
+    def quick_preview(self):
+        return self.id + '-' + self.name
 
 class Rel_Country_Commodities(Model):
     __session__ = session
