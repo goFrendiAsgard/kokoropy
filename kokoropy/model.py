@@ -282,7 +282,7 @@ class Model(Base):
     def _get_relation_names(self):
         return self.__mapper__.relationships._data
     
-    def _get_relation_metadata(self, relation_name):
+    def _get_relation_value(self, relation_name):
         return getattr(self, relation_name)
     
     def _get_column_names(self):
@@ -304,13 +304,13 @@ class Model(Base):
     
     def _save_relation_value(self):
         for relation_name in self._get_relation_names():
-            relation_metadata = self._get_relation_metadata(relation_name)
-            if isinstance(relation_metadata, Model):
+            relation_value = self._get_relation_value(relation_name)
+            if isinstance(relation_value, Model):
                 # one to many
-                relation_metadata.save()
-            elif isinstance(relation_metadata, list):
+                relation_value.save()
+            elif isinstance(relation_value, list):
                 # many to one
-                for child in relation_metadata:
+                for child in relation_value:
                     if isinstance(child, Model):
                         child.save()
     
@@ -357,9 +357,9 @@ class Model(Base):
         self.after_trash()
         # also trash children
         for relation_name in self._get_relation_names():
-            relation_metadata = self._get_relation_metadata(relation_name)
-            if isinstance(relation_metadata, list):
-                for child in relation_metadata:
+            relation_value = self._get_relation_value(relation_name)
+            if isinstance(relation_value, list):
+                for child in relation_value:
                     if isinstance(child, Model):
                         child.trash()
                         child.save()
@@ -372,9 +372,9 @@ class Model(Base):
         self.after_untrash()
         # also untrash children
         for relation_name in self._get_relation_names():
-            relation_metadata = self._get_relation_metadata(relation_name)
-            if isinstance(relation_metadata, list):
-                for child in relation_metadata:
+            relation_value = self._get_relation_value(relation_name)
+            if isinstance(relation_value, list):
+                for child in relation_value:
                     if isinstance(child, Model):
                         child.untrash()
                         child.save()
@@ -387,9 +387,9 @@ class Model(Base):
         self.after_delete()
         # also delete children
         for relation_name in self._get_relation_names():
-            relation_metadata = self._get_relation_metadata(relation_name)
-            if isinstance(relation_metadata, list):
-                for child in relation_metadata:
+            relation_value = self._get_relation_value(relation_name)
+            if isinstance(relation_value, list):
+                for child in relation_value:
                     if isinstance(child, Model):
                         child.trash()
                         child.delete()
@@ -433,7 +433,7 @@ class Model(Base):
             kwargs = {'isoformat': isoformat}
             # also add relation to dictionary
             for relation_name in self._get_relation_names():
-                relation = self._get_relation_metadata(relation_name)
+                relation = self._get_relation_value(relation_name)
                 if isinstance(relation, Model):
                     dictionary[relation_name] = relation.to_dict(**kwargs)
                 elif isinstance(relation, list):
