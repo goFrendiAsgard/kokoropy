@@ -53,7 +53,7 @@ class Commodity(Model):
     # fields declaration
     name = Column(String(50))
     def quick_preview(self):
-        return self.id + '-' + self.name
+        return self.name
 
 class Rel_Country_Commodities(Model):
     __session__ = session

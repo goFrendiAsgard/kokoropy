@@ -552,6 +552,43 @@ class Model(Base):
                 if relation_metadata.uselist:
                     # one to many
                     input_element = 'One to Many'
+                    ref_obj = self._get_relation_class(column_name)()
+                    ref_obj.generate_tabular_label()
+                    input_element  = '<div class="pull-right">'
+                    input_element += '<a id="_' + column_name + '_add" class="btn btn-default" href="#">'
+                    input_element += '<i class="glyphicon glyphicon-plus"></i> New ' + column_name
+                    input_element += '</a>'
+                    input_element += '</div>'
+                    input_element += '<table class="table">'
+                    input_element += '<thead>'
+                    input_element += '<tr>'
+                    input_element += ref_obj.generated_html
+                    input_element += '<th>Delete</th>'
+                    input_element += '</tr>'
+                    input_element += '</thead>'
+                    # what should be added when add row clicked
+                    ref_obj.generate_tabular_input(parent_column_name = column_name)
+                    new_row  = '<tr>'
+                    new_row += ref_obj.generated_html
+                    new_row += '<td><label><input type="checkbox" name="_' + column_name + '_delete[]"></label></td>'
+                    new_row += '</tr>'
+                    script  = '<script type="text/javascript>'
+                    script += '$("#_' + column_name + '_add").click(function(){'
+                    script += '    $("#_' + column_name + '_tbody").append(\'' + new_row + '\');'
+                    script += '    event.PreventDefault();'
+                    script += '});'
+                    script += '</script>'
+                    self.generated_script += script
+                    # body
+                    input_element += '<tbody id="_' + column_name + '_tbody">'
+                    for child in getattr(self, column_name):
+                        child.generate_tabular_input(parent_column_name = column_name)
+                        input_element += '<tr>'
+                        input_element += child.generated_html
+                        input_element += '<td><label><input type="checkbox" name="_' + column_name + '_delete[]"></label></td>'
+                        input_element += '</tr>'
+                    input_element += '</tbody>'
+                    input_element += '</table>'
                 else:
                     # many to one
                     ref_class = self._get_relation_class(column_name)
@@ -568,7 +605,8 @@ class Model(Base):
                             input_attribute['value'] = obj.id
                             if value == obj:
                                 input_attribute['checked'] = 'checked'
-                            
+                            else:
+                                input_attribute.pop('checked', None)
                             input_element += '<div class="col-xs-' + xs_width + ' col-sm-' + sm_width + ' col-md-' + md_width + ' col-lg-' + lg_width+ '">'
                             input_element += '<label><input ' + self._encode_input_attribute(input_attribute) + ' /> ' + obj.quick_preview() + '</label>'
                             input_element += '</div>'
@@ -594,6 +632,8 @@ class Model(Base):
                     input_attribute['value'] = '1'
                     if value:
                         input_attribute['checked'] = 'checked'
+                    else:
+                        input_attribute.pop('checked', None)
                     input_element = '<input type="hidden" name="' + input_attribute['name'] + '" value="0" />'
                     input_element += '<input ' + self._encode_input_attribute(input_attribute) + ' />'
                 else:
@@ -639,20 +679,24 @@ class Model(Base):
                     if isinstance(value, list) and len(value)>0:
                         children = getattr(self,column_name)
                         # generate new value
+                        '''
                         value = '<ul>'
                         for child in children:
                             value += '<li>' + child.quick_preview() + '</li>'
                         value += '<ul>'
+                        '''
                         
                         # table
                         ref_obj = self._get_relation_class(column_name)()
                         ref_obj.generate_tabular_label()
                         value  = '<table class="table">'
-                        value += '<thead>' + ref_obj.generated_html + '</thead>'
+                        value += '<thead><tr>' + ref_obj.generated_html + '</tr></thead>'
                         value += '<tbody>'
                         for child in children:
                             child.generate_tabular_representation()
+                            value += '<tr>'
                             value += child.generated_html
+                            value += '</tr>'
                         value += '</tbody>'
                         value += '</table>'
                 # lookup value
@@ -751,10 +795,9 @@ class Model(Base):
         if include_resource:
             self.include_resource()
         # create html
-        html  = '<tr>'
+        html  = ''
         for column_name in self._get_column_names_by_state(state):
             html += '<th>' + self.build_label(column_name) + '</th>'
-        html += '</tr>'
         self.generated_html = html
     
     def generate_tabular_representation(self, state = None, include_resource = False, **kwargs):
@@ -763,10 +806,9 @@ class Model(Base):
         if include_resource:
             self.include_resource()
         # create html
-        html  = '<tr>'
+        html  = ''
         for column_name in self._get_column_names_by_state(state):
             html += '<td>' + self.build_representation(column_name) + '</td>'
-        html += '</tr>'
         self.generated_html = html
     
     def generate_tabular_input(self, state = None, include_resource = False, **kwargs):
@@ -775,10 +817,12 @@ class Model(Base):
         if include_resource:
             self.include_resource()
         # create html
-        html  = '<tr>'
+        html  = ''
+        parent_column_name = kwargs.pop('parent_column_name', '')
         for column_name in self._get_column_names_by_state(state):
-            html += '<td>' + self.build_input(column_name) + '</td>'
-        html += '</tr>'
+            input_name = parent_column_name + '_' + column_name + '[]' if parent_column_name != '' else column_name+'[]'
+            input_attribute = {'name': input_name}
+            html += '<td>' + self.build_input(column_name, input_attribute = input_attribute) + '</td>'
         self.generated_html = html
     
     def generate_input_view(self, state = None, include_resource = False, **kwargs):
