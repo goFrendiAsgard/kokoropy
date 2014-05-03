@@ -129,7 +129,7 @@ class Model(Base):
             return self._generated_html
         else:
             return ''
-        
+    
     @generated_html.setter
     def generated_html(self, val):
         self._generated_html = val
@@ -140,7 +140,7 @@ class Model(Base):
             return self._generated_style
         else:
             return ''
-        
+    
     @generated_style.setter
     def generated_style(self, val):
         self._generated_style = val
@@ -151,11 +151,11 @@ class Model(Base):
             return self._generated_script
         else:
             return ''
-        
+    
     @generated_script.setter
     def generated_script(self, val):
         self._generated_script = val
-        
+    
     @property
     def success(self):
         if hasattr(self, '_success'):
@@ -234,14 +234,33 @@ class Model(Base):
             column_type = self._get_column_type(column_name)
             if column_name in variable and variable[column_name] != '':
                 value = variable[column_name]
-                if isinstance(column_type, Date):
-                    value = Date(value)
+                if isinstance(column_type, Date): # date
+                    y,m,d = value.split('-')
+                    y,m,d  = int(y), int(m), int(d)
+                    value = datetime.date(y,m,d)
+                if isinstance(column_type, DateTime): # datetime
+                    value = datetime.datetime(value)
                 if isinstance(column_type, Boolean):
-                    if value == 0:
+                    if value == '0':
                         value = False
                     else:
                         value = True
                 setattr(self, column_name, value)
+        for relation_name in self._get_relation_names():
+            relation_metadata = self._get_relation_metadata(relation_name)
+            if relation_metadata.uselist:
+                # one to many
+                relation_value = self._get_relation_value(relation_name)
+                for child in relation_value:
+                    if isinstance(child, Model):
+                        pass
+            else:
+                # many to one
+                value = variable[relation_name]
+                if value != '':
+                    ref_class = self._get_relation_class(relation_name)
+                    value = ref_class.find(value)
+                setattr(self, relation_name, value)
     
     def before_save(self):
         self.success = True
@@ -281,6 +300,12 @@ class Model(Base):
     
     def _get_relation_names(self):
         return self.__mapper__.relationships._data
+    
+    def _get_relation_metadata(self, relation_name):
+        return getattr(self.__mapper__.relationships, relation_name)
+    
+    def _get_relation_class(self, relation_name):
+        return getattr(self.__class__, relation_name).property.mapper.class_
     
     def _get_relation_value(self, relation_name):
         return getattr(self, relation_name)
@@ -489,7 +514,30 @@ class Model(Base):
         else:
             return column_name.replace('_', ' ').title()
     
+    def _encode_input_attribute(self, attribute):
+        html = ' '
+        if isinstance(attribute, dict):
+            for key in attribute:
+                if isinstance(attribute[key], list):
+                    attribute[key] = " ".join(attribute[key])
+                html += key + ' = "' + attribute[key] + '" '
+        html += ' '
+        return html
+    
     def build_input(self, column_name, **kwargs):
+        '''
+            * input_attribute
+        '''
+        # adjust kwargs
+        input_attribute = kwargs.pop('input_attribute', {})
+        if 'name' not in input_attribute:
+            input_attribute['name'] = column_name
+        if 'id' not in input_attribute and  input_attribute['name'][-1] != ']':
+            input_attribute['id'] = 'field_' + column_name
+        if 'class' not in input_attribute:
+            input_attribute['class'] = []
+        kwargs['input_attribute'] = input_attribute
+        # call build_custom_input
         custom_input = self.build_custom_input(column_name, **kwargs)
         if custom_input is not None:
             return custom_input
@@ -499,15 +547,14 @@ class Model(Base):
             else:
                 value = ''
             html = ''
-            relation_properties = self.__mapper__.relationships._data
-            if column_name in relation_properties:
-                relation = relation_properties[column_name]
-                ref_class = getattr(self.__class__, column_name).property.mapper.class_
-                if relation.uselist:
+            if column_name in self._get_relation_names():
+                relation_metadata = self._get_relation_metadata(column_name)
+                if relation_metadata.uselist:
                     # one to many
                     input_element = 'One to Many'
                 else:
                     # many to one
+                    ref_class = self._get_relation_class(column_name)
                     option_obj = ref_class.get()
                     option_count = ref_class.count()
                     input_element = ''
@@ -517,15 +564,17 @@ class Model(Base):
                         xs_width = sm_width = str(12/option_count)
                         md_width = lg_width = str(9/option_count)
                         for obj in option_obj:
+                            input_attribute['type'] = 'radio'
+                            input_attribute['value'] = obj.id
                             if value == obj:
-                                checked = 'checked'
-                            else:
-                                checked = ''
+                                input_attribute['checked'] = 'checked'
+                            
                             input_element += '<div class="col-xs-' + xs_width + ' col-sm-' + sm_width + ' col-md-' + md_width + ' col-lg-' + lg_width+ '">'
-                            input_element += '<label><input type="radio" ' + checked + ' name ="' + column_name + '" value="' + obj.id + '"/> ' + obj.quick_preview() + '</label>'
+                            input_element += '<label><input ' + self._encode_input_attribute(input_attribute) + ' /> ' + obj.quick_preview() + '</label>'
                             input_element += '</div>'
                     else:
-                        input_element += '<select class="form-control" id="field_' + column_name + '" name ="' + column_name + '">'
+                        input_attribute['class'].append('form-control')
+                        input_element += '<select ' + self._encode_input_attribute(input_attribute) + '>'
                         input_element += '<option value="">None</option>'
                         for obj in option_obj:
                             if value == obj:
@@ -541,23 +590,26 @@ class Model(Base):
                 # check type
                 column_type = self._get_column_type(column_name)
                 if isinstance(column_type, Boolean):
+                    input_attribute['type'] = 'checkbox'
+                    input_attribute['value'] = '1'
                     if value:
-                        checked = "checked"
-                    else:
-                        checked = ""
-                    input_element = '<input type="hidden" name="' + column_name + '" value="0" />'
-                    input_element += '<input type="checkbox" ' + checked + ' id="field_' + column_name + '" name="' + column_name + '" value="1" />'
+                        input_attribute['checked'] = 'checked'
+                    input_element = '<input type="hidden" name="' + input_attribute['name'] + '" value="0" />'
+                    input_element += '<input ' + self._encode_input_attribute(input_attribute) + ' />'
                 else:
                     value = str(value)
                     # build additional_class
-                    additional_class = ''
                     if isinstance(column_type, Date):
-                        additional_class = 'date-input'
+                        input_attribute['class'].append('date-input')
                     elif isinstance(column_type, Integer):
-                        additional_class = 'integer-input'
+                        input_attribute['class'].append('integer-input')
                         if value == '':
                             value = '0'
-                    input_element = '<input type="text" class="form-control '+additional_class+'" id="field_' + column_name + '" name="' + column_name + '" placeholder="' + label + '" value="' + value + '">'
+                    input_attribute['type'] = 'text'
+                    input_attribute['value'] = value
+                    input_attribute['placeholder'] = label
+                    input_attribute['class'].append('form-control')
+                    input_element = '<input ' + self._encode_input_attribute(input_attribute) + ' />'
             html += input_element
             return html
     
@@ -580,16 +632,31 @@ class Model(Base):
                 value = getattr(self, column_name)
             else:
                 value = ''
-            # pre-process
-            if isinstance(value, list) and len(value)>0:
-                children = getattr(self,column_name)
-                # generate new value
-                value = '<ul>'
-                for child in children:
-                    value += '<li>' + child.quick_preview() + '</li>'
-                value += '<ul>'
-            # lookup value
-            if isinstance(value, Model):
+            # if it is relation, retrieve it
+            if column_name in self._get_relation_names():
+                relation_metadata = self._get_relation_metadata(column_name)
+                if relation_metadata.uselist:
+                    if isinstance(value, list) and len(value)>0:
+                        children = getattr(self,column_name)
+                        # generate new value
+                        value = '<ul>'
+                        for child in children:
+                            value += '<li>' + child.quick_preview() + '</li>'
+                        value += '<ul>'
+                        
+                        # table
+                        ref_obj = self._get_relation_class(column_name)()
+                        ref_obj.generate_tabular_label()
+                        value  = '<table class="table">'
+                        value += '<thead>' + ref_obj.generated_html + '</thead>'
+                        value += '<tbody>'
+                        for child in children:
+                            child.generate_tabular_representation()
+                            value += child.generated_html
+                        value += '</tbody>'
+                        value += '</table>'
+                # lookup value
+                elif isinstance(value, Model):
                     obj = getattr(self, column_name)
                     value = obj.quick_preview()
             # None or empty children
@@ -607,15 +674,6 @@ class Model(Base):
         html += '</div>'
         html += '</div>'
         return html
-    
-    def generate_tabular_label(self, **kwargs):
-        pass
-    
-    def generate_tabular_representation(self, **kwargs):
-        pass
-    
-    def generate_tabular_input(self, column_name, **kwargs):
-        pass
     
     def reset_generated(self):
         self._generated_html = ''
@@ -637,10 +695,12 @@ class Model(Base):
             '<script src="' + base_url + 'assets/jquery-ui-bootstrap/third-party/jQuery-UI-FileInput/js/fileinput.jquery.js" type="text/javascript"></script>' +\
             '<script type="text/javascript">' +\
                 '$( ".date-input" ).datepicker({' +\
-                    'defaultDate: "+1w",' +\
+                    'defaultDate: null,' +\
                     'changeMonth: true,' +\
                     'changeYear: true,' +\
                     'numberOfMonths: 1,' +\
+                    'dateFormat: "yy-mm-dd",' +\
+                    'yearRange: "c-50:c+50",' +\
                 '})' +\
                 '$(".file-input").customFileInput({' +\
                     'button_position : "right"' +\
@@ -676,7 +736,52 @@ class Model(Base):
         '''
         return self.id
     
-    def generate_input_view(self, state = None, include_resource = False):
+    def _get_column_names_by_state(self, state = None):
+        if state is None:
+            column_names = self._form_column
+        if state == 'new' or state == 'create' or state == 'insert' or state == 'add':
+            column_names = self._insert_form_column
+        elif state == 'edit' or state == 'update':
+            column_names = self._update_form_column
+        return column_names
+    
+    def generate_tabular_label(self, state = None, include_resource = False, **kwargs):
+        # prepare resource
+        self.reset_generated()
+        if include_resource:
+            self.include_resource()
+        # create html
+        html  = '<tr>'
+        for column_name in self._get_column_names_by_state(state):
+            html += '<th>' + self.build_label(column_name) + '</th>'
+        html += '</tr>'
+        self.generated_html = html
+    
+    def generate_tabular_representation(self, state = None, include_resource = False, **kwargs):
+        # prepare resource
+        self.reset_generated()
+        if include_resource:
+            self.include_resource()
+        # create html
+        html  = '<tr>'
+        for column_name in self._get_column_names_by_state(state):
+            html += '<td>' + self.build_representation(column_name) + '</td>'
+        html += '</tr>'
+        self.generated_html = html
+    
+    def generate_tabular_input(self, state = None, include_resource = False, **kwargs):
+        # prepare resource
+        self.reset_generated()
+        if include_resource:
+            self.include_resource()
+        # create html
+        html  = '<tr>'
+        for column_name in self._get_column_names_by_state(state):
+            html += '<td>' + self.build_input(column_name) + '</td>'
+        html += '</tr>'
+        self.generated_html = html
+    
+    def generate_input_view(self, state = None, include_resource = False, **kwargs):
         '''
         Input view of record
         '''
@@ -698,7 +803,7 @@ class Model(Base):
         self.generated_html = html
         
     
-    def generate_detail_view(self, include_resource = False):
+    def generate_detail_view(self, include_resource = False, **kwargs):
         '''
         Detail view of record, override this with care
         '''

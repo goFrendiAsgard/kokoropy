@@ -17,8 +17,10 @@ session = scoped_session(sessionmaker(bind=engine))
 
 class Country(Model):
     __session__ = session
+    __prefixid__ = 'N-'
     # fields declaration
     name = Column(String(50))
+    capital = Column(String(50))
     independence_date = Column(Date)
     rate = Column(Integer)
     developed = Column(Boolean)
@@ -28,6 +30,8 @@ class Country(Model):
     cities = relationship("City", foreign_keys="City.fk_country")
     fk_political_view = Column(Integer, ForeignKey("political_view._real_id"))
     political_view = relationship("Political_View", foreign_keys="Country.fk_political_view")
+    def quick_preview(self):
+        return self.name
 
 class Rel_Country_Friends(Model):
     __session__ = session
@@ -61,11 +65,15 @@ class Rel_Country_Commodities(Model):
 class City(Model):
     __session__ = session
     # fields declaration
+    name = Column(String(50))
     fk_country = Column(Integer, ForeignKey("country._real_id"))
 
 class Political_View(Model):
     __session__ = session
     # fields declaration
+    name = Column(String(50))
+    def quick_preview(self):
+        return self.name
 
 
 '''
