@@ -572,10 +572,10 @@ class Model(Base):
                     new_row += ref_obj.generated_html
                     new_row += '<td><label><input type="checkbox" name="_' + column_name + '_delete[]"></label></td>'
                     new_row += '</tr>'
-                    script  = '<script type="text/javascript>'
-                    script += '$("#_' + column_name + '_add").click(function(){'
+                    script  = '<script type="text/javascript">'
+                    script += '$("#_' + column_name + '_add").click(function(event){'
                     script += '    $("#_' + column_name + '_tbody").append(\'' + new_row + '\');'
-                    script += '    event.PreventDefault();'
+                    script += '    event.preventDefault();'
                     script += '});'
                     script += '</script>'
                     self.generated_script += script
