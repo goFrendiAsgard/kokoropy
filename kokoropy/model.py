@@ -249,6 +249,27 @@ class Model(Base):
         for relation_name in self._get_relation_names():
             relation_metadata = self._get_relation_metadata(relation_name)
             if relation_metadata.uselist:
+                relation_variable_list = []
+                record_count = 0
+                # by default bottle request doesn't automatically accept 
+                # POST with [] name
+                for variable_key in variable:
+                    if hasattr(variable, 'getall') and variable_key[0:len(relation_name)] == relation_name and variable_key[-2:] == '[]':
+                        # get list value
+                        list_val = variable.getall(variable_key)
+                        if len(list_val) > record_count:
+                            record_count = len(list_val)
+                            # make list of dictionary (as much as needed)
+                            for i in xrange(record_count):
+                                relation_variable_list.append({})
+                                del(i)
+                        new_variable_key = variable_key[len(relation_name)+1:-2]
+                        print new_variable_key, list_val
+                        for i in xrange(record_count):
+                            relation_variable_list[i][new_variable_key] = list_val[i]
+                # testing
+                for i in xrange(record_count):
+                    print(relation_variable_list[i])
                 # one to many
                 relation_value = self._get_relation_value(relation_name)
                 for child in relation_value:
@@ -256,11 +277,12 @@ class Model(Base):
                         pass
             else:
                 # many to one
-                value = variable[relation_name]
-                if value != '':
-                    ref_class = self._get_relation_class(relation_name)
-                    value = ref_class.find(value)
-                setattr(self, relation_name, value)
+                if relation_name in variable and variable[relation_name] != '':
+                    value = variable[relation_name]
+                    if value != '':
+                        ref_class = self._get_relation_class(relation_name)
+                        value = ref_class.find(value)
+                    setattr(self, relation_name, value)
     
     def before_save(self):
         self.success = True
@@ -532,7 +554,7 @@ class Model(Base):
         input_attribute = kwargs.pop('input_attribute', {})
         if 'name' not in input_attribute:
             input_attribute['name'] = column_name
-        if 'id' not in input_attribute and  input_attribute['name'][-1] != ']':
+        if 'id' not in input_attribute and  input_attribute['name'][-2:] != '[]':
             input_attribute['id'] = 'field_' + column_name
         if 'class' not in input_attribute:
             input_attribute['class'] = []
@@ -566,13 +588,27 @@ class Model(Base):
                     input_element += '<th>Delete</th>'
                     input_element += '</tr>'
                     input_element += '</thead>'
+                    # TODO : apply clean "delete" scenario
                     # what should be added when add row clicked
                     ref_obj.generate_tabular_input(parent_column_name = column_name)
                     new_row  = '<tr>'
                     new_row += ref_obj.generated_html
-                    new_row += '<td><label><input type="checkbox" name="_' + column_name + '_delete[]"></label></td>'
+                    # delete column
+                    new_row += '<td>'
+                    new_row += '    <input type="hidden" name="_' + column_name + '_id[]" value="" />'
+                    new_row += '    <input class="deleted" type="hidden" name="_' + column_name + '_delete[]" value="0" />'
+                    new_row += '    <label><input type="checkbox" class="_' + column_name + '_delete"></label>'
+                    new_row += '</td>'
                     new_row += '</tr>'
                     script  = '<script type="text/javascript">'
+                    script += '$("._' + column_name + '_delete").live("click", function(event){'
+                    script += '    var input = $(this).parent().parent().children(".deleted");'
+                    script += '    if($(this).prop("checked")){'
+                    script += '        input.val("1");'
+                    script += '    }else{'
+                    script += '        input.val("0");'
+                    script += '    }'
+                    script += '});'
                     script += '$("#_' + column_name + '_add").click(function(event){'
                     script += '    $("#_' + column_name + '_tbody").append(\'' + new_row + '\');'
                     script += '    event.preventDefault();'
@@ -585,7 +621,11 @@ class Model(Base):
                         child.generate_tabular_input(parent_column_name = column_name)
                         input_element += '<tr>'
                         input_element += child.generated_html
-                        input_element += '<td><label><input type="checkbox" name="_' + column_name + '_delete[]"></label></td>'
+                        input_element += '<td>'
+                        input_element += '    <input type="hidden" name="_' + column_name + '_id[]" value="' + str(child.id) + '" />'
+                        input_element += '    <input class="deleted" type="hidden" name="_' + column_name + '_delete[]" value="0" />'
+                        input_element += '    <label><input type="checkbox" class="_' + column_name + '_delete"></label>'
+                        input_element += '</td>'
                         input_element += '</tr>'
                     input_element += '</tbody>'
                     input_element += '</table>'
