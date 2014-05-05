@@ -249,6 +249,8 @@ class Model(Base):
         for relation_name in self._get_relation_names():
             relation_metadata = self._get_relation_metadata(relation_name)
             if relation_metadata.uselist:
+                old_id_list = []
+                deleted_list = []
                 relation_variable_list = []
                 record_count = 0
                 # by default bottle request doesn't automatically accept 
@@ -267,14 +269,29 @@ class Model(Base):
                         print new_variable_key, list_val
                         for i in xrange(record_count):
                             relation_variable_list[i][new_variable_key] = list_val[i]
-                # testing
-                for i in xrange(record_count):
-                    print(relation_variable_list[i])
-                # one to many
+                if hasattr(variable, 'getall'):
+                    old_id_list = variable.getall('_' + relation_name + '_id[]')
+                    deleted_list = variable.getall('_' + relation_name + '_delete[]')
+                ref_class = self._get_relation_class(relation_name)
+                # get relation
                 relation_value = self._get_relation_value(relation_name)
-                for child in relation_value:
-                    if isinstance(child, Model):
-                        pass
+                for i in xrange(record_count):
+                    old_id = old_id_list[i]
+                    deleted = deleted_list[i] == "1"
+                    relation_variable = relation_variable_list[i]
+                    ref_obj = None
+                    for child in relation_value:
+                        if isinstance(child, Model):
+                            if child.id == old_id:
+                                ref_obj = child
+                                ref_obj.assign(relation_variable)
+                                break
+                    if ref_obj is None:
+                        ref_obj = ref_class()
+                        ref_obj.assign(relation_variable)
+                        getattr(self, relation_name).append(ref_obj)
+                    if deleted:
+                        getattr(self, relation_name).remove(ref_obj)
             else:
                 # many to one
                 if relation_name in variable and variable[relation_name] != '':
@@ -364,7 +381,11 @@ class Model(Base):
     def _commit(self):
         # success or rollback
         if self.success:
-            self.session.commit()
+            try:
+                self.session.commit()
+            except:
+                self.session.rollback()
+                self.success = False
         else:
             self.session.rollback()
             
