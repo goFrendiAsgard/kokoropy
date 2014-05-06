@@ -1,10 +1,12 @@
-from sqlalchemy import create_engine, Column, ForeignKey, func, Integer, String, Date, DateTime, Boolean
+from sqlalchemy import create_engine, MetaData, Column, ForeignKey, func, Integer, String, Date, DateTime, Boolean
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
 from kokoropy.model import Model, auto_migrate
 from ..configs.db import connection_string
 
 engine = create_engine(connection_string, echo=False)
 session = scoped_session(sessionmaker(bind=engine))
+
+Model.metadata = MetaData()
 
 '''
     Model has several commonly overriden methods:

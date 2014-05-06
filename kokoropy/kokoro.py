@@ -954,6 +954,26 @@ def scaffold_crud(application_name, table_name, *columns):
         ucase_table_name_list.append(t.title())
     ucase_table_name_list = ", ".join(ucase_table_name_list)
     model_module = table_name
+    
+    controller_filename = application_path(os.path.join(application_name, 'controllers', 'index.py'))
+    if not os.path.isfile(controller_filename):
+        url_pairs = []
+        for t in structure:
+            if t == '__list__' or t.split('_')[0] == 'rel':
+                continue
+            url_pairs.append('\'%s\' : base_url(\'%s/%s/index\')' %(t.replace('_',' ').title(), application_name, t))
+        url_pairs = ',\n            '.join(url_pairs)
+        # main controller
+        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_main_controller.py'))
+        content = content.replace('# g_url_pairs', url_pairs)
+        content = content.replace('g_application_name', application_name)
+        file_put_contents(controller_filename, content)
+        # main view
+        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_main_view.html'))
+        content = content.replace('g_application_name', application_name)
+        filename = application_path(os.path.join(application_name, 'views', 'index.html'))
+        file_put_contents(filename, content)
+    
     # for each table, make controller and views
     for table_name in structure:
         # don't make controller and views for association table
@@ -961,7 +981,7 @@ def scaffold_crud(application_name, table_name, *columns):
             continue
         ucase_table_name = table_name.title()
         # controller
-        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_controller.py'))    
+        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_controller.py'))
         content = content.replace('g_model_module', model_module)
         content = content.replace('G_Table_Name_List', ucase_table_name_list)
         content = content.replace('G_Table_Name', ucase_table_name)
@@ -971,7 +991,6 @@ def scaffold_crud(application_name, table_name, *columns):
         filename = application_path(os.path.join(application_name, 'controllers', filename))
         # write file
         file_put_contents(filename, content)
-        
         # views
         view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
         for view in view_list:
