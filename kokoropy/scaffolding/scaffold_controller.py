@@ -24,7 +24,7 @@ class G_Table_Name_Controller(Autoroute_Controller):
     def action_list(self):
         ''' Show table '''
         # get page index
-        current_page = request.GET['page'] if 'page' in request.GET else 1
+        current_page = int(request.GET['page']) if 'page' in request.GET else 1
         # determine limit and offset
         limit = 50
         offset = (current_page-1) * limit
