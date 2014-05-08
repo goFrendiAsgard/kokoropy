@@ -30,6 +30,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.sql.expression import desc
 
+# colorama
 from colorama import init, Fore, Back
 init()
 ############################### SQL ALCHEMY SCRIPT ####################################
@@ -123,7 +124,7 @@ def load_view(application_name, view_name, *args, **kwargs):
                 if os.path.exists(path):
                     break
     content = file_get_contents(path)
-    # add \n to prevent content rendeFore.RED as path
+    # add \n to prevent content rendered as path
     if not '\n' in content:
         content = content + '\n'
     # create block pattern
@@ -153,7 +154,7 @@ def load_view(application_name, view_name, *args, **kwargs):
     #     % setdefault('__block_X', __base_block_X)
     #     % __block_X()
     content = re.sub(block_pattern, 
-                     r'% def __base_block_\3():\n\5\n% end\n% setdefault("__block_\3", __base_block_\3)\n%__block_\3()\n',
+                     r'\n% def __base_block_\3():\n\5\n% end\n% setdefault("__block_\3", __base_block_\3)\n%__block_\3()\n',
                      content)
     # render again
     args_list[0] = content

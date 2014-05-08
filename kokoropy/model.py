@@ -7,6 +7,7 @@ from alembic.migration import MigrationContext
 from alembic.operations import Operations
 import datetime, time, json
 from kokoropy import Fore, Back, base_url
+import asset
 
 # create Base
 Base = declarative_base()
@@ -598,7 +599,7 @@ class Model(Base):
                     ref_obj = self._get_relation_class(column_name)()
                     ref_obj.generate_tabular_label()
                     input_element  = '<div class="pull-right">'
-                    input_element += '<a id="_' + column_name + '_add" class="btn btn-default" href="#">'
+                    input_element += '<a id="_' + column_name + '_add" class="btn btn-default _new_row" href="#">'
                     input_element += '<i class="glyphicon glyphicon-plus"></i> New ' + column_name
                     input_element += '</a>'
                     input_element += '</div>'
@@ -701,9 +702,9 @@ class Model(Base):
                     value = str(value)
                     # build additional_class
                     if isinstance(column_type, Date):
-                        input_attribute['class'].append('date-input')
+                        input_attribute['class'].append('_date-input')
                     elif isinstance(column_type, Integer):
-                        input_attribute['class'].append('integer-input')
+                        input_attribute['class'].append('_integer-input')
                         if value == '':
                             value = '0'
                     input_attribute['type'] = 'text'
@@ -787,54 +788,9 @@ class Model(Base):
     
     def include_resource(self):
         base_url = base_url()
-        self._generated_script += '<!--[if lt IE 9]>' + \
-            '<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>' + \
-            '<![endif]-->' + \
-            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/jquery-1.9.1.min.js" type="text/javascript"></script>' +\
-            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/jquery-migrate-1.2.1.min.js" type="text/javascript"></script>' +\
-            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/bootstrap.js" type="text/javascript"></script>' +\
-            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/holder.js" type="text/javascript"></script>' +\
-            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/jquery-ui-1.10.3.custom.min.js" type="text/javascript"></script>' +\
-            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/google-code-prettify/prettify.js" type="text/javascript"></script>' +\
-            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/third-party/jQuery-UI-FileInput/js/enhance.min.js" type="text/javascript"></script>' +\
-            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/third-party/jQuery-UI-FileInput/js/fileinput.jquery.js" type="text/javascript"></script>' +\
-            '<script type="text/javascript">' +\
-                '$( ".date-input" ).datepicker({' +\
-                    'defaultDate: null,' +\
-                    'changeMonth: true,' +\
-                    'changeYear: true,' +\
-                    'numberOfMonths: 1,' +\
-                    'dateFormat: "yy-mm-dd",' +\
-                    'yearRange: "c-50:c+50",' +\
-                '})' +\
-                '$(".file-input").customFileInput({' +\
-                    'button_position : "right"' +\
-                '});' +\
-                '$(".integer-input").spinner();' +\
-            '</script>'
-        self._generated_css += '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/css/bootstrap.min.css">' +\
-            '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/css/custom-theme/jquery-ui-1.10.3.custom.css">' +\
-            '<!--<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/css/custom-theme/jquery-ui-1.10.3.theme.css">-->' +\
-            '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/css/font-awesome.min.css">' +\
-            '<!--[if IE 7]>' +\
-            '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/css/font-awesome-ie7.min.css">' +\
-            '<![endif]-->' +\
-            '<!--[if lt IE 9]>' +\
-            '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/css/custom-theme/jquery.ui.1.10.3.ie.css">' +\
-            '<![endif]-->' +\
-            '<link rel="stylesheet" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/google-code-prettify/prettify.css">' +\
-            '<link href="' + base_url + 'assets/jquery-ui-bootstrap/third-party/jQuery-UI-FileInput/css/enhanced.css" rel="Stylesheet">' +\
-            '<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->' +\
-            '<!--[if lt IE 9]>' +\
-            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/html5shiv.js" type="text/javascript"></script>' +\
-            '<script src="' + base_url + 'assets/jquery-ui-bootstrap/assets/js/vendor/respond.min.js" type="text/javascript"></script>' +\
-            '<![endif]-->' +\
-            '<!-- Le fav and touch icons -->' +\
-            '<link rel="apple-touch-icon-precomposed" sizes="144x144" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/ico/apple-touch-icon-144-precomposed.png">' +\
-            '<link rel="apple-touch-icon-precomposed" sizes="114x114" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/ico/apple-touch-icon-114-precomposed.png">' +\
-            '<link rel="apple-touch-icon-precomposed" sizes="72x72" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/ico/apple-touch-icon-72-precomposed.png">' +\
-            '<link rel="apple-touch-icon-precomposed" href="' + base_url + 'assets/jquery-ui-bootstrap/assets/ico/apple-touch-icon-57-precomposed.png">'
-    
+        self._generated_script += asset.default_script()
+        self._generated_css += asset.default_style()
+
     def quick_preview(self):
         '''
         Quick preview of record, override this
