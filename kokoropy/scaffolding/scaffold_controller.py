@@ -1,5 +1,6 @@
 from kokoropy import Autoroute_Controller, load_view, base_url, request
 from ..models.g_model_module import G_Table_Name_List
+import math
 
 url_list = {
         'index'   : base_url('g_application_name/g_table_name/index'),
@@ -22,9 +23,18 @@ class G_Table_Name_Controller(Autoroute_Controller):
     
     def action_list(self):
         ''' Show table '''
-        g_table_name_list = G_Table_Name.get()
+        # get page index
+        current_page = request.GET['page'] if 'page' in request.GET else 1
+        # determine limit and offset
+        limit = 50
+        offset = (current_page-1) * limit
+        # get the data
+        g_table_name_list = G_Table_Name.get(limit = limit, offset = offset)
+        # calculate page count
+        page_count = int(math.ceil(float(G_Table_Name.count())/limit))
         return load_view('g_application_name', 'g_table_name_list', 
-             g_table_name_list = g_table_name_list, url_list = url_list)
+            g_table_name_list = g_table_name_list, current_page = current_page,
+            page_count = page_count, url_list = url_list)
     
     def action_show(self, id):
         ''' Show One Record '''
