@@ -1,0 +1,15 @@
+% rebase('cms/views/base')
+% group.generate_detail_view()
+
+{% block style %}
+    {{! group.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! group.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Showing {{ group.quick_preview() }}</h4>
+   {{! group.generated_html }}
+{% endblock %}

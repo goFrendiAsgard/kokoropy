@@ -1,0 +1,16 @@
+% rebase('cms/views/base')
+% page.generate_detail_view()
+
+{% block style %}
+    {{! page.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! page.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Are you sure want to delete {{ page.quick_preview() }}?</h4>
+    {{! page.generated_html }}
+    <div class="alert alert-danger">This action is not recoverable</div>
+{% endblock %}
