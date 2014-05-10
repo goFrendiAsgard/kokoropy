@@ -1,5 +1,5 @@
 from kokoropy import Autoroute_Controller, load_view, base_url, request
-from ..models.page import Rel_Page_Groups, Group, Page
+from ..models.auth import Rel_Page_Groups, Group, Page
 import math
 
 url_list = {
