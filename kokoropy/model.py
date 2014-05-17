@@ -9,6 +9,20 @@ import datetime, time, json
 from kokoropy import Fore, Back, base_url
 import asset
 
+# initialize logger
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+'''
+try:
+    with open(filepath,'rb') as f:
+        con.storbinary('STOR '+ filepath, f)
+    logger.info('File successfully uploaded to '+ FTPADDR)
+except Exception, e:
+    logger.error('Failed to upload to ftp: '+ str(e))
+'''
+
 # create Base
 Base = declarative_base()
         
@@ -67,7 +81,8 @@ class Model(Base):
         # remove excluded column
         if self.__nonformcolumn__ is not None:
             for excluded_column in self.__nonformcolumn__:
-                form_column.remove(excluded_column)
+                if excluded_column in form_column:
+                    form_column.remove(excluded_column)
             self.__nonformcolumn__ = None
         return form_column
     
@@ -80,7 +95,8 @@ class Model(Base):
         # remove excluded column
         if self.__noninsertformcolumn__ is not None:
             for excluded_column in self.__noninsertformcolumn__:
-                form_column.remove(excluded_column)
+                if excluded_column in form_column:
+                    form_column.remove(excluded_column)
             self.__noninsertformcolumn__ = None
         return form_column
     
@@ -93,7 +109,8 @@ class Model(Base):
         # remove excluded column
         if self.__nonupdateformcolumn__ is not None:
             for excluded_column in self.__nonupdateformcolumn__:
-                form_column.remove(excluded_column)
+                if excluded_column in form_column:
+                    form_column.remove(excluded_column)
             self.__nonupdateformcolumn__ = None
         return form_column
     
@@ -384,9 +401,10 @@ class Model(Base):
         if self.success:
             try:
                 self.session.commit()
-            except:
+            except Exception, e:
                 self.session.rollback()
                 self.success = False
+                logger.error('Database commit failed, ' + str(e))
         else:
             self.session.rollback()
             
@@ -913,8 +931,9 @@ def auto_migrate(engine):
                     Column('_updated_at', DateTime, default=func.now(), onupdate=func.now()),
                     Column('id', String(35), unique = True)
                 )
-            except:
-                print('    Fail to make table: %s, please add it manually' % (model_table_name))
+            except Exception, e:
+                logger.error('    Fail to make table: %s, please add it manually' % (model_table_name))
+                logger.error('    Error message : %s' % (str(e)))
         else:
             db_table = db_meta.tables[model_table_name]
         for model_column in model_table.columns:
@@ -935,8 +954,9 @@ def auto_migrate(engine):
                         model_column_kwargs.pop('foreign_keys')
                         model_column_kwargs.pop('constraints')
                         op.add_column(model_table_name, Column(model_column.name, model_column.type, **model_column_kwargs))
-                    except:
-                        print('    Fail to make column %s.%s, please add it manually' % (model_table_name, model_column.name))
+                    except Exception, e:
+                        logger.error('    Fail to make column %s.%s, please add it manually' % (model_table_name, model_column.name))
+                        logger.error('    Error message : %s' % (str(e)))
             else:
                 # get db_column information
                 db_column = None
@@ -962,6 +982,7 @@ def auto_migrate(engine):
                                         existing_type=None, 
                                         existing_server_default=False, 
                                         existing_nullable=None)
-                    except:
-                        print('    Fail to alter column %s.%s, please alter it manually.\n      Old type: %s, new type: %s' % (model_table_name, model_column.name, str(db_column.type), str(model_column.type)))
+                    except Exception, e:
+                        logger.error('    Fail to alter column %s.%s, please alter it manually.\n      Old type: %s, new type: %s' % (model_table_name, model_column.name, str(db_column.type), str(model_column.type)))
+                        logger.error('    Error message, ' + str(e))
     print(Fore.RESET)
