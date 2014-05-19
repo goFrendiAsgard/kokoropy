@@ -1,5 +1,5 @@
 from kokoropy import Autoroute_Controller, load_view, base_url, request
-from ..models.auth import Third_Party, Group, Rel_User_Groups, User, Rel_User_Third_Party_Ids
+from ..models.auth import Third_Party, Group, Rel_User_Groups, User, Third_Party_Id
 import math
 
 url_list = {

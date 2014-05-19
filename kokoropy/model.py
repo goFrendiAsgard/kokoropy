@@ -14,15 +14,6 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-'''
-try:
-    with open(filepath,'rb') as f:
-        con.storbinary('STOR '+ filepath, f)
-    logger.info('File successfully uploaded to '+ FTPADDR)
-except Exception, e:
-    logger.error('Failed to upload to ftp: '+ str(e))
-'''
-
 # create Base
 Base = declarative_base()
         
@@ -45,10 +36,16 @@ class Model(Base):
     __formcolumn__ = None
     __insertformcolumn__ = None
     __updateformcolumn__ = None
-    __unshowncolumn__ = None
-    __nonformcolumn__ = None
-    __noninsertformcolumn__ = None
-    __nonupdateformcolumn__ = None
+    __virtual_showncolumn__ = None
+    __virtual_formcolumn__ = None
+    __virtual_insertformcolumn__ = None
+    __virtual_updateformcolumn__ = None
+    __excluded_showncolumn__ = None
+    __excluded_formcolumn__ = None
+    __excluded_insertformcolumn__ = None
+    __excluded_updateformcolumn__ = None
+    __tabular_showncolumn__ = None
+    __tabular_formcolumn__ = None
         
     @declared_attr
     def __tablename__(cls):
@@ -65,11 +62,15 @@ class Model(Base):
             for relation_name in self._get_relation_names():
                 self.__showncolumn__.append(relation_name)
         # remove unshown_column
-        if self.__unshowncolumn__ is not None:
-            for unshown_column in self.__unshowncolumn__:
+        if self.__excluded_showncolumn__ is not None:
+            for unshown_column in self.__excluded_showncolumn__:
                 if unshown_column in self.__showncolumn__:
                     self.__showncolumn__.remove(unshown_column)
-            self.__unshowncolumn__ = None
+            self.__excluded_showncolumn__ = None
+        # add virtual column
+        if self.__virtual_showncolumn__ is not None:
+            for virtual_column in self.__virtual_showncolumn__:
+                self.__showncolumn__.append(virtual_column)
         return self.__showncolumn__
     
     @property
@@ -79,11 +80,15 @@ class Model(Base):
         else:
             form_column = self.__formcolumn__
         # remove excluded column
-        if self.__nonformcolumn__ is not None:
-            for excluded_column in self.__nonformcolumn__:
+        if self.__excluded_formcolumn__ is not None:
+            for excluded_column in self.__excluded_formcolumn__:
                 if excluded_column in form_column:
                     form_column.remove(excluded_column)
-            self.__nonformcolumn__ = None
+            self.__excluded_formcolumn__ = None
+        # add virtual column
+        if self.__virtual_formcolumn__ is not None:
+            for virtual_column in self.__virtual_formcolumn__:
+                self.__showncolumn__.append(virtual_column)
         return form_column
     
     @property
@@ -93,11 +98,15 @@ class Model(Base):
         else:
             form_column = self.__insertformcolumn__
         # remove excluded column
-        if self.__noninsertformcolumn__ is not None:
-            for excluded_column in self.__noninsertformcolumn__:
+        if self.__excluded_insertformcolumn__ is not None:
+            for excluded_column in self.__excluded_insertformcolumn__:
                 if excluded_column in form_column:
                     form_column.remove(excluded_column)
-            self.__noninsertformcolumn__ = None
+            self.__excluded_insertformcolumn__ = None
+        # add virtual column
+        if self.__virtual_insertformcolumn__ is not None:
+            for virtual_column in self.__virtual_insertformcolumn__:
+                self.__showncolumn__.append(virtual_column)
         return form_column
     
     @property
@@ -107,11 +116,15 @@ class Model(Base):
         else:
             form_column = self.__updateformcolumn__
         # remove excluded column
-        if self.__nonupdateformcolumn__ is not None:
-            for excluded_column in self.__nonupdateformcolumn__:
+        if self.__excluded_updateformcolumn__ is not None:
+            for excluded_column in self.__excluded_updateformcolumn__:
                 if excluded_column in form_column:
                     form_column.remove(excluded_column)
-            self.__nonupdateformcolumn__ = None
+            self.__excluded_updateformcolumn__ = None
+        # add virtual column
+        if self.__virtual_showncolumn__ is not None:
+            for virtual_column in self.__virtual_updateformcolumn__:
+                self.__showncolumn__.append(virtual_column)
         return form_column
     
     @property
@@ -249,75 +262,78 @@ class Model(Base):
     
     def assign(self, variable):
         for column_name in self._get_column_names():
-            column_type = self._get_column_type(column_name)
-            if column_name in variable and variable[column_name] != '':
-                value = variable[column_name]
-                if isinstance(column_type, Date): # date
-                    y,m,d = value.split('-')
-                    y,m,d  = int(y), int(m), int(d)
-                    value = datetime.date(y,m,d)
-                if isinstance(column_type, DateTime): # datetime
-                    value = datetime.datetime(value)
-                if isinstance(column_type, Boolean):
-                    if value == '0':
-                        value = False
-                    else:
-                        value = True
-                setattr(self, column_name, value)
+            if self.assign_custom(column_name, variable) is None:
+                column_type = self._get_column_type(column_name)
+                if column_name in variable and variable[column_name] != '':
+                    value = variable[column_name]
+                    if isinstance(column_type, Date): # date
+                        y,m,d = value.split('-')
+                        y,m,d  = int(y), int(m), int(d)
+                        value = datetime.date(y,m,d)
+                    if isinstance(column_type, DateTime): # datetime
+                        value = datetime.datetime(value)
+                    if isinstance(column_type, Boolean):
+                        if value == '0':
+                            value = False
+                        else:
+                            value = True
+                    setattr(self, column_name, value)
         for relation_name in self._get_relation_names():
-            relation_metadata = self._get_relation_metadata(relation_name)
-            if relation_metadata.uselist:
-                old_id_list = []
-                deleted_list = []
-                relation_variable_list = []
-                record_count = 0
-                # by default bottle request doesn't automatically accept 
-                # POST with [] name
-                for variable_key in variable:
-                    if hasattr(variable, 'getall') and variable_key[0:len(relation_name)] == relation_name and variable_key[-2:] == '[]':
-                        # get list value
-                        list_val = variable.getall(variable_key)
-                        if len(list_val) > record_count:
-                            record_count = len(list_val)
-                            # make list of dictionary (as much as needed)
+            if self.assign_custom(relation_name, variable) is None:
+                relation_metadata = self._get_relation_metadata(relation_name)
+                if relation_metadata.uselist:
+                    # one to many
+                    old_id_list = []
+                    deleted_list = []
+                    relation_variable_list = []
+                    record_count = 0
+                    # by default bottle request doesn't automatically accept 
+                    # POST with [] name
+                    for variable_key in variable:
+                        if hasattr(variable, 'getall') and variable_key[0:len(relation_name)] == relation_name and variable_key[-2:] == '[]':
+                            # get list value
+                            list_val = variable.getall(variable_key)
+                            if len(list_val) > record_count:
+                                record_count = len(list_val)
+                                # make list of dictionary (as much as needed)
+                                for i in xrange(record_count):
+                                    relation_variable_list.append({})
+                                    del(i)
+                            new_variable_key = variable_key[len(relation_name)+1:-2]
+                            print new_variable_key, list_val
                             for i in xrange(record_count):
-                                relation_variable_list.append({})
-                                del(i)
-                        new_variable_key = variable_key[len(relation_name)+1:-2]
-                        print new_variable_key, list_val
-                        for i in xrange(record_count):
-                            relation_variable_list[i][new_variable_key] = list_val[i]
-                if hasattr(variable, 'getall'):
-                    old_id_list = variable.getall('_' + relation_name + '_id[]')
-                    deleted_list = variable.getall('_' + relation_name + '_delete[]')
-                ref_class = self._get_relation_class(relation_name)
-                # get relation
-                relation_value = self._get_relation_value(relation_name)
-                for i in xrange(record_count):
-                    old_id = old_id_list[i]
-                    deleted = deleted_list[i] == "1"
-                    relation_variable = relation_variable_list[i]
-                    ref_obj = None
-                    for child in relation_value:
-                        if isinstance(child, Model):
-                            if child.id == old_id:
-                                ref_obj = child
-                                ref_obj.assign(relation_variable)
-                                break
-                    if ref_obj is None:
-                        ref_obj = ref_class()
-                        ref_obj.assign(relation_variable)
-                        getattr(self, relation_name).append(ref_obj)
-                    if deleted:
-                        getattr(self, relation_name).remove(ref_obj)
-            else:
-                # many to one
-                if relation_name in variable and variable[relation_name] != '':
-                    value = variable[relation_name]
-                    if value != '':
-                        ref_class = self._get_relation_class(relation_name)
-                        value = ref_class.find(value)
-                    setattr(self, relation_name, value)
+                                relation_variable_list[i][new_variable_key] = list_val[i]
+                    if hasattr(variable, 'getall'):
+                        old_id_list = variable.getall('_' + relation_name + '_id[]')
+                        deleted_list = variable.getall('_' + relation_name + '_delete[]')
+                    ref_class = self._get_relation_class(relation_name)
+                    # get relation
+                    relation_value = self._get_relation_value(relation_name)
+                    for i in xrange(record_count):
+                        old_id = old_id_list[i]
+                        deleted = deleted_list[i] == "1"
+                        relation_variable = relation_variable_list[i]
+                        ref_obj = None
+                        for child in relation_value:
+                            if isinstance(child, Model):
+                                if child.id == old_id:
+                                    ref_obj = child
+                                    ref_obj.assign(relation_variable)
+                                    break
+                        if ref_obj is None:
+                            ref_obj = ref_class()
+                            ref_obj.assign(relation_variable)
+                            getattr(self, relation_name).append(ref_obj)
+                        if deleted:
+                            getattr(self, relation_name).remove(ref_obj)
+                else:
+                    # many to one
+                    if relation_name in variable and variable[relation_name] != '':
+                        value = variable[relation_name]
+                        if value != '':
+                            ref_class = self._get_relation_class(relation_name)
+                            value = ref_class.find(value)
+                        setattr(self, relation_name, value)
     
     def before_save(self):
         self.success = True
@@ -542,6 +558,14 @@ class Model(Base):
         dictionary = self.to_dict(**kwargs)
         return json.dumps(dictionary)
     
+    def assign_custom(self, column_name, variable):
+        '''
+        Assign variable['blah'] into self.column_name.
+        Write your custom logic here, e.g:
+        * self.encrypted_password = encrypt(variable['password'])
+        '''
+        return None
+    
     def build_custom_label(self, column_name, **kwargs):
         '''
         Custom label if defined, override this if needed, but promise me 3 things:
@@ -599,6 +623,7 @@ class Model(Base):
         if 'class' not in input_attribute:
             input_attribute['class'] = []
         kwargs['input_attribute'] = input_attribute
+        tabular = kwargs.pop('tabular', False)
         # call build_custom_input
         custom_input = self.build_custom_input(column_name, **kwargs)
         if custom_input is not None:
@@ -615,10 +640,10 @@ class Model(Base):
                     # one to many
                     input_element = 'One to Many'
                     ref_obj = self._get_relation_class(column_name)()
-                    ref_obj.generate_tabular_label()
+                    ref_obj.generate_tabular_label(state = 'form')
                     input_element  = '<div class="pull-right">'
                     input_element += '<a id="_' + column_name + '_add" class="btn btn-default _new_row" href="#">'
-                    input_element += '<i class="glyphicon glyphicon-plus"></i> New ' + column_name
+                    input_element += '<i class="glyphicon glyphicon-plus"></i> New ' + self.build_label(column_name)
                     input_element += '</a>'
                     input_element += '</div>'
                     input_element += '<table class="table">'
@@ -630,7 +655,7 @@ class Model(Base):
                     input_element += '</thead>'
                     # TODO : apply clean "delete" scenario
                     # what should be added when add row clicked
-                    ref_obj.generate_tabular_input(parent_column_name = column_name)
+                    ref_obj.generate_tabular_input(state = 'form', parent_column_name = column_name)
                     new_row  = '<tr>'
                     new_row += ref_obj.generated_html
                     # delete column
@@ -658,7 +683,7 @@ class Model(Base):
                     # body
                     input_element += '<tbody id="_' + column_name + '_tbody">'
                     for child in getattr(self, column_name):
-                        child.generate_tabular_input(parent_column_name = column_name)
+                        child.generate_tabular_input(state = 'form', parent_column_name = column_name)
                         input_element += '<tr>'
                         input_element += child.generated_html
                         input_element += '<td>'
@@ -677,7 +702,7 @@ class Model(Base):
                     input_element = ''
                     if option_count == 0:
                         input_element += 'No option available'
-                    elif option_count <= 3:
+                    elif option_count <= 3 and not tabular:
                         xs_width = sm_width = str(12/option_count)
                         md_width = lg_width = str(9/option_count)
                         for obj in option_obj:
@@ -815,13 +840,20 @@ class Model(Base):
         '''
         return self.id
     
-    def _get_column_names_by_state(self, state = None):
-        if state is None:
-            column_names = self._form_column
-        if state == 'new' or state == 'create' or state == 'insert' or state == 'add':
-            column_names = self._insert_form_column
-        elif state == 'edit' or state == 'update':
-            column_names = self._update_form_column
+    def _get_tabular_column_names_by_state(self, state = None):
+        '''
+        state: "view" or "form"
+        '''
+        if state is None or state == 'list' or state == 'view':
+            if self.__tabular_showncolumn__ is not None:
+                column_names = self.__tabular_showncolumn__
+            else:
+                column_names = self._shown_column
+        elif state == 'form' or state == 'new' or state == 'create' or state == 'insert' or state == 'add' or state == 'edit' or state == 'update':
+            if self.__tabular_formcolumn__ is not None:
+                column_names = self.__tabular_formcolumn__
+            else:
+                column_names = self._form_column
         return column_names
     
     def generate_tabular_label(self, state = None, include_resource = False, **kwargs):
@@ -831,7 +863,9 @@ class Model(Base):
             self.include_resource()
         # create html
         html  = ''
-        for column_name in self._get_column_names_by_state(state):
+        for column_name in self._get_tabular_column_names_by_state(state):
+            if column_name in self._get_relation_names() and self._get_relation_class(column_name) == self.__class__:
+                continue
             html += '<th>' + self.build_label(column_name) + '</th>'
         self.generated_html = html
     
@@ -842,7 +876,9 @@ class Model(Base):
             self.include_resource()
         # create html
         html  = ''
-        for column_name in self._get_column_names_by_state(state):
+        for column_name in self._get_tabular_column_names_by_state(state):
+            if column_name in self._get_relation_names() and self._get_relation_class(column_name) == self.__class__:
+                continue
             html += '<td>' + self.build_representation(column_name) + '</td>'
         self.generated_html = html
     
@@ -854,10 +890,12 @@ class Model(Base):
         # create html
         html  = ''
         parent_column_name = kwargs.pop('parent_column_name', '')
-        for column_name in self._get_column_names_by_state(state):
+        for column_name in self._get_tabular_column_names_by_state(state):
+            if column_name in self._get_relation_names() and self._get_relation_class(column_name) == self.__class__:
+                continue
             input_name = parent_column_name + '_' + column_name + '[]' if parent_column_name != '' else column_name+'[]'
             input_attribute = {'name': input_name}
-            html += '<td>' + self.build_input(column_name, input_attribute = input_attribute) + '</td>'
+            html += '<td>' + self.build_input(column_name, input_attribute = input_attribute, tabular = True) + '</td>'
         self.generated_html = html
     
     def generate_input_view(self, state = None, include_resource = False, **kwargs):
