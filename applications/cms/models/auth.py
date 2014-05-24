@@ -1,10 +1,14 @@
 from sqlalchemy import create_engine, MetaData, Column, ForeignKey, func, Integer, String,\
     Date, DateTime, Boolean, Text
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
+from sqlalchemy.ext.associationproxy import association_proxy
 from kokoropy.model import Model, auto_migrate
 from kokoropy import request
 from ..configs.db import connection_string
+from sqlalchemy import or_, and_
 import hashlib
+import getpass
+import re
 
 engine = create_engine(connection_string, echo=False)
 session = scoped_session(sessionmaker(bind=engine))
@@ -23,17 +27,24 @@ Model.metadata = MetaData()
 def encrypt_password(password):
     return hashlib.md5(hashlib.md5(password).hexdigest()).hexdigest()
 
-def login(identity, password):
-    user_list = User.get((User.username == identity or User.email == identity) and User.encrypted_password == encrypt_password(password))
+def do_login(identity, password):
+    user_list = User.get(and_(or_(User.username == identity, User.email == identity), User.encrypted_password == encrypt_password(password)))
     if len(user_list) > 0:
-        request.SESSION['__user_id'] = user_list[0].id
+        user = user_list[0]
+        request.SESSION['__user_id'] = user.id
         return True
     else:
         return False
 
-def logout():
+def do_logout():
     if '__user_id' in request.SESSION:
         request.SESSION.remove('__user_id')
+
+def get_current_user():
+    if '__user_id' in request.SESSION:
+        user_id = request.SESSION['__user_id']
+        user = User.find(user_id)
+        return user
 
 class User(Model):
     __session__ = session
@@ -45,7 +56,9 @@ class User(Model):
     email = Column(String(255), unique=True)
     encrypted_password = Column(String(255))
     third_party_ids = relationship("Third_Party_Id", foreign_keys="Third_Party_Id.fk_left_user")
-    groups = relationship("Rel_User_Groups", foreign_keys="Rel_User_Groups.fk_left_user")
+    #groups = relationship("Rel_User_Groups", foreign_keys="Rel_User_Groups.fk_left_user")
+    usergroups = relationship("Rel_User_Groups", foreign_keys="Rel_User_Groups.fk_left_user")
+    groups = association_proxy("usergroups", "group", creator=lambda _i: Rel_User_Groups(group=_i))
     
     def quick_preview(self):
         return self.username
@@ -58,11 +71,10 @@ class User(Model):
     def password(self, value):
         self.encrypted_password = encrypt_password(value)
     
-    def build_custom_label(self, column_name, **kwargs):
-        if column_name == 'third_party_ids':
-            return 'Third Party Id'
-        else:
-            return None
+    def assign(self, variable):
+        Model.assign(self, variable)
+        if 'password' in variable and variable['password'] is not None and variable['password'] != '':
+            self.password = variable['password']
     
     def build_custom_input(self, column_name, **kwargs):
         if column_name == 'password':
@@ -114,6 +126,14 @@ class Page(Model):
     
     def quick_preview(self):
         return self.name
+    
+    def after_save(self):
+        if self.page_order is None:
+            query = self.session.query(func.max(Page.page_order).label("max_page_order")).filter(Page.fk_parent_id == self.fk_parent_id).one()
+            max_page_order = query.max_page_order
+            if max_page_order is None:
+                max_page_order = 0
+            self.page_order = max_page_order
 
 class Third_Party_Id(Model):
     __session__ = session
@@ -161,23 +181,30 @@ def insert_default():
         print('No user registered to this system. Please add a new one !!!')
         username = raw_input('New user name : ')
         realname = raw_input('Real name : ')
-        email = raw_input('Email : ')
-        password = raw_input('Password : ')
-        confirm_password = raw_input('Password (again) : ')
-        while password != confirm_password:
-            print('Password doesn\'t match, please insert again')
-            password = raw_input('Password : ')
-            confirm_password = raw_input('Password (again ) :')
+        email = ''
+        password = ''
+        confirm_password = ''
+        while True:
+            email = raw_input('Email : ')
+            if re.match(r'[^@]+@[^@]+\.[^@]+', email):
+                break
+            else:
+                print('Invalid email address, please insert again')
+        while True:
+            password = getpass.getpass('Password : ')
+            confirm_password = getpass.getpass('Password (again) :')
+            if password == confirm_password:
+                break
+            else:
+                print('Password doesn\'t match, please insert again')
         super_user = User()
         super_user.username = username
         super_user.realname = realname
         super_user.email = email
         super_user.password = password
-        rel_user_group = Rel_User_Groups()
-        rel_user_group.group = super_admin
-        super_user.groups.append(rel_user_group)
+        #rel_user_group = Rel_User_Groups()
+        #rel_user_group.group = super_admin
+        #super_user.groups.append(rel_user_group)
+        super_user.groups.append(super_admin)
         super_user.save()
-        #print 'jumlah user ', User.count()
-        #print super_user.groups[0].name
-        #print ('is it?', super_admin in super_user.groups)
 insert_default()

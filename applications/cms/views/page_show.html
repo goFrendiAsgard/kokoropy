@@ -12,4 +12,12 @@
 {% block content %}
     <h4>Showing {{ page.quick_preview() }}</h4>
    {{! page.generated_html }}
+   <div>
+        <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ page.id }}">
+            <i class="glyphicon glyphicon-pencil"></i> Edit page
+        </a>
+        <a href="{{ url_list['list'] }}" class="btn btn-default">
+            <i class="glyphicon glyphicon-th"></i> Back to List
+        </a>
+    </div>
 {% endblock %}

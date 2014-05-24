@@ -46,6 +46,7 @@ class Model(Base):
     __excluded_updateformcolumn__ = None
     __tabular_showncolumn__ = None
     __tabular_formcolumn__ = None
+    __assign_column__ = None
         
     @declared_attr
     def __tablename__(cls):
@@ -126,6 +127,14 @@ class Model(Base):
             for virtual_column in self.__virtual_updateformcolumn__:
                 self.__showncolumn__.append(virtual_column)
         return form_column
+    
+    @property
+    def _assign_column(self):
+        if self.__assign_column__ is None:
+            assign_column = self.__assign_column__
+        else:
+            assign_column = self._form_column
+        return assign_column
     
     @property
     def engine(self):
@@ -262,7 +271,7 @@ class Model(Base):
     
     def assign(self, variable):
         for column_name in self._get_column_names():
-            if self.assign_custom(column_name, variable) is None:
+            if column_name in self._assign_column:
                 column_type = self._get_column_type(column_name)
                 if column_name in variable and variable[column_name] != '':
                     value = variable[column_name]
@@ -279,7 +288,7 @@ class Model(Base):
                             value = True
                     setattr(self, column_name, value)
         for relation_name in self._get_relation_names():
-            if self.assign_custom(relation_name, variable) is None:
+            if relation_name in self._assign_column:
                 relation_metadata = self._get_relation_metadata(relation_name)
                 if relation_metadata.uselist:
                     # one to many
@@ -557,14 +566,6 @@ class Model(Base):
         kwargs['isoformat'] = True
         dictionary = self.to_dict(**kwargs)
         return json.dumps(dictionary)
-    
-    def assign_custom(self, column_name, variable):
-        '''
-        Assign variable['blah'] into self.column_name.
-        Write your custom logic here, e.g:
-        * self.encrypted_password = encrypt(variable['password'])
-        '''
-        return None
     
     def build_custom_label(self, column_name, **kwargs):
         '''

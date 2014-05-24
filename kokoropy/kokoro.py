@@ -62,7 +62,7 @@ else:
     from urllib2 import urlopen
 
 # intellisense hack
-request.SESSION = []
+request.SESSION = {}
 
 ###################################################################################################
 # KokoroWSGIRefServer (Do something with this in the future)
