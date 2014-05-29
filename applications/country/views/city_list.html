@@ -1,0 +1,46 @@
+% rebase('country/views/base')
+{% block content %}
+    <h2>city list</h2>
+    <div class="pull-right">
+        <a class="btn btn-default" href="{{ url_list["new"] }}">
+            <i class="glyphicon glyphicon-plus"></i> New city
+        </a>
+    </div>
+    <table class="table table-striped">
+        <thead>
+            <th>Data</th>
+            <th>Action</th>
+        </thead>
+        <tbody>
+            % for city in city_list:
+                <tr>
+                    <!-- data -->
+                    <td>
+                        <a href="{{ url_list["show"] }}/{{ city.id }}">
+                            {{ city.quick_preview() }}</a>
+                    </td>
+                    <!-- action -->
+                    <td>
+                        <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ city.id }}">
+                            <i class="glyphicon glyphicon-pencil"></i> Edit
+                        </a>
+                        <a class="btn btn-default" href="{{ url_list["trash"] }}/{{ city.id }}">
+                            <i class="glyphicon glyphicon-trash"></i> Trash
+                        </a>
+                        <a class="btn btn-danger" href="{{ url_list["delete"] }}/{{ city.id }}">
+                            <i class="glyphicon glyphicon-remove-sign"></i> Delete
+                        </a>
+                    </td>
+                </tr>
+            % end
+        </tbody>
+    </table>
+    <ul class="pagination">
+    % for i in range(page_count):
+        % page = str(i+1)
+        <li class="{{ 'active' if str(current_page) == page else ''}}">
+            <a href="{{ url_list['list'] + '?page=' + page }}">{{ page }}</a>
+        </li>
+    % end
+    </ul>
+{% endblock %}

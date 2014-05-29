@@ -52,7 +52,7 @@ class User_Controller(Autoroute_Controller):
         ''' Insert Action '''
         user = User()
         # put your code here
-        user.assign(request.POST)
+        user.assign_from_dict(request.POST)
         user.save()
         success = user.success
         error_message = user.error_message
@@ -69,7 +69,7 @@ class User_Controller(Autoroute_Controller):
         ''' Update Action '''
         user = User.find(id)
         # put your code here
-        user.assign(request.POST)
+        user.assign_from_dict(request.POST)
         user.save()
         success = user.success
         error_message = user.error_message

@@ -21,134 +21,272 @@ class Model(Base):
     '''
     Model
     '''
+    # defaults
     _real_id = Column(Integer, primary_key=True)
     _trashed = Column(Boolean, default=False)
     _created_at = Column(DateTime, default=func.now())
     _updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     id = Column(String(35), unique=True)
-    
+    # state
+    __state__ = None # show, insert, update, delete
+    __memoized_properties__ = {}
+    # configurations
     __abstract__ = True
-    __connectionstring__ = ''
+    __connection_string__ = ''
     __echo__ = True
-    __prefixid__ = '%Y%m%d-'
-    __digitid__ = 3
-    __showncolumn__ = None
-    __formcolumn__ = None
-    __insertformcolumn__ = None
-    __updateformcolumn__ = None
-    __virtual_showncolumn__ = None
-    __virtual_formcolumn__ = None
-    __virtual_insertformcolumn__ = None
-    __virtual_updateformcolumn__ = None
-    __excluded_showncolumn__ = None
-    __excluded_formcolumn__ = None
-    __excluded_insertformcolumn__ = None
-    __excluded_updateformcolumn__ = None
-    __tabular_showncolumn__ = None
-    __tabular_formcolumn__ = None
-    __assign_column__ = None
+    __prefix_of_id__ = '%Y%m%d-'
+    __digit_num_of_id__ = 3
+    # columns to be shown
+    __shown_column__ = []
+    __form_column__ = []
+    __insert_column__ = []
+    __update_column__ = []
+    __virtual_shown_column__ = []
+    __virtual_form_column__ = []
+    __virtual_insert_column__ = []
+    __virtual_update_column__ = []
+    __excluded_shown_column__ = []
+    __excluded_form_column__ = []
+    __excluded_insert_column__ = []
+    __excluded_update_column__ = []
+    # columns to be shown on tabular
+    __tabular_shown_column__ = []
+    __tabular_form_column__ = []
+    __tabular_insert_column__ = []
+    __tabular_update_column__ = []
+    __tabular_virtual_shown_column__ = []
+    __tabular_virtual_form_column__ = []
+    __tabular_virtual_insert_column__ = []
+    __tabular_virtual_update_column__ = []
+    __tabular_excluded_shown_column__ = []
+    __tabular_excluded_form_column__ = []
+    __tabular_excluded_insert_column__ = []
+    __tabular_excluded_update_column__ = []
+    # columns to be shown on one to many
+    __detail_shown_column__ = {}
+    __detail_form_column__ = {}
+    __detail_insert_column__ = {}
+    __detail_update_column__ = {}
+    __detail_virtual_shown_column__ = {}
+    __detail_virtual_form_column__ = {}
+    __detail_virtual_insert_column__ = {}
+    __detail_virtual_update_column__ = {}
+    __detail_excluded_shown_column__ = {}
+    __detail_excluded_form_column__ = {}
+    __detail_excluded_insert_column__ = {}
+    __detail_excluded_update_column__ = {}
+    # automatic assigned columns
+    __automatic_assigned_column__ = []
+    __automatic_assigned_insert_column__ = []
+    __automatic_assigned_update_column__ = []
         
     @declared_attr
     def __tablename__(cls):
         return cls.__name__.lower()
     
     @property
-    def _shown_column(self):
-        if self.__showncolumn__ is None:
-            self.__showncolumn__ = []
-            for column_name in self._get_column_names():
-                if column_name in ['_real_id', '_created_at', '_updated_at', '_trashed'] or column_name.split('_')[0] == 'fk':
+    def state(self):
+        if self.__state__ is None:
+            if self._real_id is None:
+                self.__state__ = 'insert'
+            else:
+                self.__state__ = 'update'
+        return self.__state__
+    
+    def _set_state(self, state):
+        self.__state__ = state
+    
+    def set_state_show(self):
+        self._set_state('show')
+    
+    def set_state_insert(self):
+        self._set_state('insert')
+    
+    def set_state_update(self):
+        self._set_state('update')
+    
+    def set_state_delete(self):
+        self._set_state('delete')
+    
+    @property
+    def _column_list(self):
+        column_list = []
+        excluded_column_list = []
+        virtual_column_list = []
+        state = self.state
+        # set priorities
+        column_list_priorities = []
+        excluded_column_list_priorities = []
+        virtual_column_list_priorities = []
+        if state == 'insert':
+            column_list_priorities = [self.__insert_column__, self.__form_column__, self.__shown_column__]
+            excluded_column_list_priorities = [self.__excluded_insert_column__, self.__excluded_form_column__]
+            virtual_column_list_priorities = [self.__virtual_insert_column__, self.__virtual_form_column__]
+        elif state == 'update':
+            column_list_priorities = [self.__update_column__, self.__form_column__, self.__shown_column__]
+            excluded_column_list_priorities = [self.__excluded_update_column__, self.__excluded_form_column__]
+            virtual_column_list_priorities = [self.__virtual_update_column__, self.__virtual_form_column__]
+        else:
+            column_list_priorities = [self.__shown_column__]
+            excluded_column_list_priorities = [self.__excluded_column__]
+            virtual_column_list_priorities = [self.__virtual_column__]
+        # assign default value to column_list
+        for config_list in column_list_priorities:
+            if len(config_list) > 0:
+                column_list = config_list
+                break
+        if len(column_list) == 0:
+            column_list = self._get_actual_column_names() + self._get_relation_names()
+            new_column_list = []
+            for column_name in column_list:
+                if column_name in ['_real_id', '_created_at', '_updated_at', '_trashed']:
                     continue
-                self.__showncolumn__.append(column_name)
-            for relation_name in self._get_relation_names():
-                self.__showncolumn__.append(relation_name)
-        # remove unshown_column
-        if self.__excluded_showncolumn__ is not None:
-            for unshown_column in self.__excluded_showncolumn__:
-                if unshown_column in self.__showncolumn__:
-                    self.__showncolumn__.remove(unshown_column)
-            self.__excluded_showncolumn__ = None
-        # add virtual column
-        if self.__virtual_showncolumn__ is not None:
-            for virtual_column in self.__virtual_showncolumn__:
-                self.__showncolumn__.append(virtual_column)
-        return self.__showncolumn__
+                if column_name[:3] == 'fk_':
+                    continue
+                new_column_list.append(column_name)
+            column_list = new_column_list
+        # add virtual_columns
+        for config_list in virtual_column_list_priorities:
+            if len(config_list) > 0:
+                virtual_column_list = config_list
+                break
+        column_list += virtual_column_list
+        # remove excluded_columns
+        for config_list in excluded_column_list_priorities:
+            if len(config_list) > 0:
+                excluded_column_list = config_list
+                break
+        for column_name in excluded_column_list:
+            column_list.remove(column_name)
+        return column_list
     
     @property
-    def _form_column(self):
-        if self.__formcolumn__ is None:
-            form_column = self._shown_column
+    def _tabular_column_list(self):
+        column_list = []
+        excluded_column_list = []
+        virtual_column_list = []
+        state = self.state
+        # set priorities
+        column_list_priorities = []
+        excluded_column_list_priorities = []
+        virtual_column_list_priorities = []
+        if state == 'insert':
+            column_list_priorities = [self.__tabular_insert_column__, self.__tabular_form_column__, self.__tabular_shown_column__]
+            excluded_column_list_priorities = [self.__tabular_excluded_insert_column__, self.__tabular_excluded_form_column__]
+            virtual_column_list_priorities = [self.__tabular_virtual_insert_column__, self.__tabular_virtual_form_column__]
+        elif state == 'update':
+            column_list_priorities = [self.__tabular_update_column__, self.__tabular_form_column__, self.__tabular_shown_column__]
+            excluded_column_list_priorities = [self.__tabular_excluded_update_column__, self.__tabular_excluded_form_column__]
+            virtual_column_list_priorities = [self.__tabular_virtual_update_column__, self.__tabular_virtual_form_column__]
         else:
-            form_column = self.__formcolumn__
-        # remove excluded column
-        if self.__excluded_formcolumn__ is not None:
-            for excluded_column in self.__excluded_formcolumn__:
-                if excluded_column in form_column:
-                    form_column.remove(excluded_column)
-            self.__excluded_formcolumn__ = None
-        # add virtual column
-        if self.__virtual_formcolumn__ is not None:
-            for virtual_column in self.__virtual_formcolumn__:
-                self.__showncolumn__.append(virtual_column)
-        return form_column
+            column_list_priorities = [self.__tabular_shown_column__]
+            excluded_column_list_priorities = [self.__tabular_excluded_column__]
+            virtual_column_list_priorities = [self.__tabular_virtual_column__]
+        # assign default value to column_list
+        for config_list in column_list_priorities:
+            if len(config_list) > 0:
+                column_list = config_list
+                break
+        if len(column_list) == 0:
+            column_list = self._column_list
+        # add virtual_columns
+        for config_list in virtual_column_list_priorities:
+            if len(config_list) > 0:
+                virtual_column_list = config_list
+                break
+        column_list += virtual_column_list
+        # remove excluded_columns
+        for config_list in excluded_column_list_priorities:
+            if len(config_list) > 0:
+                excluded_column_list = config_list
+                break
+        for column_name in excluded_column_list:
+            print column_name
+            column_list.remove(column_name)
+        return column_list
+    
+    def _get_detail_column_list(self, column_name):
+        column_list = []
+        excluded_column_list = []
+        virtual_column_list = []
+        state = self.state
+        # set priorities
+        column_list_priorities = []
+        excluded_column_list_priorities = []
+        virtual_column_list_priorities = []
+        if state == 'insert':
+            column_list_priorities = [self.__detail_insert_column__, self.__detail_form_column__, self.__detail_shown_column__]
+            excluded_column_list_priorities = [self.__detail_excluded_insert_column__, self.__detail_excluded_form_column__]
+            virtual_column_list_priorities = [self.__detail_virtual_insert_column__, self.__detail_virtual_form_column__]
+        elif state == 'update':
+            column_list_priorities = [self.__detail__update_column__, self.__detail__form_column__, self.__detail_shown_column__]
+            excluded_column_list_priorities = [self.__detail_excluded_update_column__, self.__detail_excluded_form_column__]
+            virtual_column_list_priorities = [self.__detail_virtual_update_column__, self.__detail_virtual_form_column__]
+        else:
+            column_list_priorities = [self.__detail_shown_column__]
+            excluded_column_list_priorities = [self.__detail_excluded_column__]
+            virtual_column_list_priorities = [self.__detail_virtual_column__]
+        # assign default value to column_list
+        for config_list in column_list_priorities:
+            if column_name in config_list and len(config_list[column_name]) > 0:
+                column_list = config_list[column_name]
+                break
+        if len(column_list) == 0:
+            obj = self._get_relation_class(column_name)()
+            obj._set_state(state)
+            column_list = obj._tabular_column_list
+        # add virtual_columns
+        for config_list in virtual_column_list_priorities:
+            if column_name in config_list and len(config_list[column_name]) > 0:
+                virtual_column_list = config_list[column_name]
+                break
+        column_list += virtual_column_list
+        # remove excluded_columns
+        for config_list in excluded_column_list_priorities:
+            if column_name in config_list and len(config_list[column_name]) > 0:
+                excluded_column_list = config_list[column_name]
+                break
+        for item in excluded_column_list:
+            column_list.remove(item)
+        return column_list
     
     @property
-    def _insert_form_column(self):
-        if self.__insertformcolumn__ is None:
-            form_column = self._form_column
-        else:
-            form_column = self.__insertformcolumn__
-        # remove excluded column
-        if self.__excluded_insertformcolumn__ is not None:
-            for excluded_column in self.__excluded_insertformcolumn__:
-                if excluded_column in form_column:
-                    form_column.remove(excluded_column)
-            self.__excluded_insertformcolumn__ = None
-        # add virtual column
-        if self.__virtual_insertformcolumn__ is not None:
-            for virtual_column in self.__virtual_insertformcolumn__:
-                self.__showncolumn__.append(virtual_column)
-        return form_column
+    def _assign_column_list(self):
+        state = self.__state__
+        column_list = []
+        # insert or update
+        if state == 'insert' and len(self.__automatic_assigned_insert_column__) > 0:
+            column_list = self.__automatic_assigned_insert_column__
+        elif state == 'update' and len(self.__automatic_assigned_update_column__) > 0:
+            column_list = self.__automatic_assigned_update_column__
+        # show
+        if len(self.__automatic_assigned_column__) > 0:
+            column_list = self.__automatic_assigned_column__
+        if len(column_list) == 0:
+            column_list = self._get_actual_column_names() + self._get_relation_names()
+        return column_list
     
     @property
-    def _update_form_column(self):
-        if self.__updateformcolumn__ is None:
-            form_column = self._form_column
+    def _automatic_assigned_column(self):
+        if self.__automatic_assigned_column__ is not None:
+            automatic_assigned_column = self.__automatic_assigned_column__
         else:
-            form_column = self.__updateformcolumn__
-        # remove excluded column
-        if self.__excluded_updateformcolumn__ is not None:
-            for excluded_column in self.__excluded_updateformcolumn__:
-                if excluded_column in form_column:
-                    form_column.remove(excluded_column)
-            self.__excluded_updateformcolumn__ = None
-        # add virtual column
-        if self.__virtual_showncolumn__ is not None:
-            for virtual_column in self.__virtual_updateformcolumn__:
-                self.__showncolumn__.append(virtual_column)
-        return form_column
-    
-    @property
-    def _assign_column(self):
-        if self.__assign_column__ is None:
-            assign_column = self.__assign_column__
-        else:
-            assign_column = self._form_column
-        return assign_column
+            automatic_assigned_column = self._form_column
+        return automatic_assigned_column
     
     @property
     def engine(self):
         if hasattr(self, '__session__'):
             self.__engine__ = self.session.bind
         elif not hasattr(self, '__engine__'):
-            self.__engine__ = create_engine(self.__connectionstring__, echo=self.__echo__)
+            self.__engine__ = create_engine(self.__connection_string__, echo=self.__echo__)
         return self.__engine__
     
     @property
     def session(self):
         if not hasattr(self, '__session__'):
             if not hasattr(self, '__engine__'):
-                self.__engine__ = create_engine(self.__connectionstring__, echo=self.__echo__)
+                self.__engine__ = create_engine(self.__connection_string__, echo=self.__echo__)
             self.__session__ = scoped_session(sessionmaker(bind=self.__engine__))
         return self.__session__
     
@@ -269,10 +407,10 @@ class Model(Base):
         if len(result)>0:
             return result[0]
     
-    def assign(self, variable):
-        for column_name in self._get_column_names():
-            if column_name in self._assign_column:
-                column_type = self._get_column_type(column_name)
+    def assign_from_dict(self, variable):
+        for column_name in self._automatic_assigned_column:
+            if column_name in self._get_actual_column_names():
+                column_type = self._get_actual_column_type(column_name)
                 if column_name in variable and variable[column_name] != '':
                     value = variable[column_name]
                     if isinstance(column_type, Date): # date
@@ -287,9 +425,8 @@ class Model(Base):
                         else:
                             value = True
                     setattr(self, column_name, value)
-        for relation_name in self._get_relation_names():
-            if relation_name in self._assign_column:
-                relation_metadata = self._get_relation_metadata(relation_name)
+            elif column_name in self._get_relation_names:
+                relation_metadata = self._get_relation_metadata(column_name)
                 if relation_metadata.uselist:
                     # one to many
                     old_id_list = []
@@ -299,7 +436,7 @@ class Model(Base):
                     # by default bottle request doesn't automatically accept 
                     # POST with [] name
                     for variable_key in variable:
-                        if hasattr(variable, 'getall') and variable_key[0:len(relation_name)] == relation_name and variable_key[-2:] == '[]':
+                        if hasattr(variable, 'getall') and variable_key[0:len(column_name)] == column_name and variable_key[-2:] == '[]':
                             # get list value
                             list_val = variable.getall(variable_key)
                             if len(list_val) > record_count:
@@ -308,16 +445,16 @@ class Model(Base):
                                 for i in xrange(record_count):
                                     relation_variable_list.append({})
                                     del(i)
-                            new_variable_key = variable_key[len(relation_name)+1:-2]
+                            new_variable_key = variable_key[len(column_name)+1:-2]
                             print new_variable_key, list_val
                             for i in xrange(record_count):
                                 relation_variable_list[i][new_variable_key] = list_val[i]
                     if hasattr(variable, 'getall'):
-                        old_id_list = variable.getall('_' + relation_name + '_id[]')
-                        deleted_list = variable.getall('_' + relation_name + '_delete[]')
-                    ref_class = self._get_relation_class(relation_name)
+                        old_id_list = variable.getall('_' + column_name + '_id[]')
+                        deleted_list = variable.getall('_' + column_name + '_delete[]')
+                    ref_class = self._get_relation_class(column_name)
                     # get relation
-                    relation_value = self._get_relation_value(relation_name)
+                    relation_value = self._get_relation_value(column_name)
                     for i in xrange(record_count):
                         old_id = old_id_list[i]
                         deleted = deleted_list[i] == "1"
@@ -327,22 +464,22 @@ class Model(Base):
                             if isinstance(child, Model):
                                 if child.id == old_id:
                                     ref_obj = child
-                                    ref_obj.assign(relation_variable)
+                                    ref_obj.assign_from_dict(relation_variable)
                                     break
                         if ref_obj is None:
                             ref_obj = ref_class()
-                            ref_obj.assign(relation_variable)
-                            getattr(self, relation_name).append(ref_obj)
+                            ref_obj.assign_from_dict(relation_variable)
+                            getattr(self, column_name).append(ref_obj)
                         if deleted:
-                            getattr(self, relation_name).remove(ref_obj)
+                            getattr(self, column_name).remove(ref_obj)
                 else:
                     # many to one
-                    if relation_name in variable and variable[relation_name] != '':
-                        value = variable[relation_name]
+                    if column_name in variable and variable[column_name] != '':
+                        value = variable[column_name]
                         if value != '':
-                            ref_class = self._get_relation_class(relation_name)
+                            ref_class = self._get_relation_class(column_name)
                             value = ref_class.find(value)
-                        setattr(self, relation_name, value)
+                        setattr(self, column_name, value)
     
     def before_save(self):
         self.success = True
@@ -381,7 +518,10 @@ class Model(Base):
         self.success = True
     
     def _get_relation_names(self):
-        return self.__mapper__.relationships._data
+        relation_names = []
+        for relation_name in self.__mapper__.relationships._data:
+            relation_names.append(relation_name)
+        return relation_names
     
     def _get_relation_metadata(self, relation_name):
         return getattr(self.__mapper__.relationships, relation_name)
@@ -392,34 +532,36 @@ class Model(Base):
     def _get_relation_value(self, relation_name):
         return getattr(self, relation_name)
     
-    def _get_column_names(self):
+    def _get_actual_column_names(self):
         if not hasattr(self, '__column_names'):
             self.__column_names = []
             for column in self.__table__.columns:
                 self.__column_names.append(column.name)
         return self.__column_names
     
-    def _get_column_metadata(self, column_name):
+    def _get_actual_column_metadata(self, column_name):
         if not hasattr(self, '__column'):
             self.__column = {}
             for column in self.__table__.columns:
                 self.__column[column.name] = column
         return self.__column[column_name]
     
-    def _get_column_type(self, column_name):
-        return self._get_column_metadata(column_name).type
+    def _get_actual_column_type(self, column_name):
+        return self._get_actual_column_metadata(column_name).type
     
-    def _save_relation_value(self):
+    def _save_detail(self, already_saved_object):
         for relation_name in self._get_relation_names():
             relation_value = self._get_relation_value(relation_name)
             if isinstance(relation_value, Model):
                 # one to many
-                relation_value.save()
+                if relation_value not in already_saved_object:
+                    relation_value.save(already_saved_object)
             elif isinstance(relation_value, list):
                 # many to one
                 for child in relation_value:
                     if isinstance(child, Model):
-                        child.save()
+                        if child not in already_saved_object:
+                            child.save(already_saved_object)
     
     def _commit(self):
         # success or rollback
@@ -433,7 +575,8 @@ class Model(Base):
         else:
             self.session.rollback()
             
-    def save(self):
+    def save(self, already_saved_object = []):
+        # is it insert or update?
         inserting = False
         if self._real_id is None:
             inserting = True
@@ -458,8 +601,10 @@ class Model(Base):
         else:
             self.after_update()
         self.after_save()
+        # don't save the same object twice, it will make endless recursive
+        already_saved_object.append(self)
         # also trigger save of relation
-        self._save_relation_value()
+        self._save_detail(already_saved_object)
     
     def trash(self):
         self.before_trash()
@@ -507,7 +652,7 @@ class Model(Base):
                         child.delete()
     
     def generate_prefix_id(self):
-        return datetime.datetime.fromtimestamp(time.time()).strftime(self.__prefixid__)
+        return datetime.datetime.fromtimestamp(time.time()).strftime(self.__prefix_of_id__)
     
     def generate_id(self):
         if self.id is None:
@@ -522,7 +667,7 @@ class Model(Base):
                 # get number part of maxid
                 number = int(maxid[len(prefix):])
             # create newid
-            newid = prefix + str(number+1).zfill(self.__digitid__)
+            newid = prefix + str(number+1).zfill(self.__digit_num_of_id__)
             self.id = newid
     
     def to_dict(self, **kwargs):
@@ -535,7 +680,7 @@ class Model(Base):
         isoformat = kwargs.pop('isoformat', False)
         dictionary = {}
         # get column value
-        for column_name in self._get_column_names():
+        for column_name in self._get_actual_column_names():
             val = getattr(self, column_name)
             if isoformat and hasattr(val, 'isoformat'):
                 val = val.isoformat()
@@ -594,6 +739,15 @@ class Model(Base):
         '''
         pass
     
+    def build_custom_tabular_footer(self, column_name, **kwargs):
+        '''
+        Custom tabular last row if defined, override this if needed, but promise me 3 things:
+        * add any additional css into self.generated_style
+        * add any additional script into self.generated_script
+        * return your HTML as string
+        '''
+        pass
+    
     def build_label(self, column_name, **kwargs):
         custom_label = self.build_custom_label(column_name, **kwargs)
         if custom_label is not None:
@@ -639,9 +793,8 @@ class Model(Base):
                 relation_metadata = self._get_relation_metadata(column_name)
                 if relation_metadata.uselist:
                     # one to many
-                    input_element = 'One to Many'
                     ref_obj = self._get_relation_class(column_name)()
-                    ref_obj.generate_tabular_label(state = 'form')
+                    ref_obj.generate_tabular_label(state = 'form', shown_column = self._get_detail_column_list(column_name))
                     input_element  = '<div class="pull-right">'
                     input_element += '<a id="_' + column_name + '_add" class="btn btn-default _new_row" href="#">'
                     input_element += '<i class="glyphicon glyphicon-plus"></i> New ' + self.build_label(column_name)
@@ -654,9 +807,8 @@ class Model(Base):
                     input_element += '<th>Delete</th>'
                     input_element += '</tr>'
                     input_element += '</thead>'
-                    # TODO : apply clean "delete" scenario
                     # what should be added when add row clicked
-                    ref_obj.generate_tabular_input(state = 'form', parent_column_name = column_name)
+                    ref_obj.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name))
                     new_row  = '<tr>'
                     new_row += ref_obj.generated_html
                     # delete column
@@ -684,7 +836,7 @@ class Model(Base):
                     # body
                     input_element += '<tbody id="_' + column_name + '_tbody">'
                     for child in getattr(self, column_name):
-                        child.generate_tabular_input(state = 'form', parent_column_name = column_name)
+                        child.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name))
                         input_element += '<tr>'
                         input_element += child.generated_html
                         input_element += '<td>'
@@ -732,7 +884,7 @@ class Model(Base):
                     value = ''
                 label = self.build_label(column_name, **kwargs)
                 # check type
-                column_type = self._get_column_type(column_name)
+                column_type = self._get_actual_column_type(column_name)
                 if isinstance(column_type, Boolean):
                     input_attribute['type'] = 'checkbox'
                     input_attribute['value'] = '1'
@@ -794,16 +946,21 @@ class Model(Base):
                         
                         # table
                         ref_obj = self._get_relation_class(column_name)()
-                        ref_obj.generate_tabular_label()
+                        ref_obj.generate_tabular_label(state = 'view', shown_column = self._get_detail_column_list(column_name))
                         value  = '<table class="table">'
                         value += '<thead><tr>' + ref_obj.generated_html + '</tr></thead>'
                         value += '<tbody>'
                         for child in children:
-                            child.generate_tabular_representation()
+                            child.generate_tabular_representation(state = 'view', shown_column = self._get_detail_column_list(column_name))
                             value += '<tr>'
                             value += child.generated_html
                             value += '</tr>'
                         value += '</tbody>'
+                        footer = self.build_custom_tabular_footer(column_name, state = 'view')
+                        if footer is not None:
+                            value += '<tfoot>'
+                            value += footer
+                            value += '</tfoot>'
                         value += '</table>'
                 # lookup value
                 elif isinstance(value, Model):
@@ -830,7 +987,7 @@ class Model(Base):
         self._generated_script = ''
         self._generated_css = ''
     
-    def include_resource(self):
+    def _include_default_resource(self):
         base_url = base_url()
         self._generated_script += asset.default_script()
         self._generated_css += asset.default_style()
@@ -845,53 +1002,65 @@ class Model(Base):
         '''
         state: "view" or "form"
         '''
-        if state is None or state == 'list' or state == 'view':
-            if self.__tabular_showncolumn__ is not None:
-                column_names = self.__tabular_showncolumn__
+        if state is None or state == 'view':
+            if self.__tabular_shown_column__ is not None:
+                column_names = self.__tabular_shown_column__
             else:
                 column_names = self._shown_column
-        elif state == 'form' or state == 'new' or state == 'create' or state == 'insert' or state == 'add' or state == 'edit' or state == 'update':
-            if self.__tabular_formcolumn__ is not None:
-                column_names = self.__tabular_formcolumn__
+        elif state == 'form':
+            if self.__tabular_form_column__ is not None:
+                column_names = self.__tabular_form_column__
             else:
                 column_names = self._form_column
         return column_names
     
-    def generate_tabular_label(self, state = None, include_resource = False, **kwargs):
+    def generate_tabular_label(self, **kwargs):
+        include_resource = kwargs.pop('_include_default_resource', False)
+        shown_column = kwargs.pop('shown_column', [])
         # prepare resource
         self.reset_generated()
         if include_resource:
-            self.include_resource()
+            self._include_default_resource()
         # create html
         html  = ''
-        for column_name in self._get_tabular_column_names_by_state(state):
+        if len(shown_column) == 0:
+            shown_column = self._column_list
+        for column_name in shown_column:
             if column_name in self._get_relation_names() and self._get_relation_class(column_name) == self.__class__:
                 continue
             html += '<th>' + self.build_label(column_name) + '</th>'
         self.generated_html = html
     
-    def generate_tabular_representation(self, state = None, include_resource = False, **kwargs):
+    def generate_tabular_representation(self, **kwargs):
+        include_resource = kwargs.pop('_include_default_resource', False)
+        shown_column = kwargs.pop('shown_column', [])
         # prepare resource
         self.reset_generated()
         if include_resource:
-            self.include_resource()
+            self._include_default_resource()
         # create html
         html  = ''
-        for column_name in self._get_tabular_column_names_by_state(state):
+        if len(shown_column) == 0:
+            shown_column = self._column_list
+        for column_name in shown_column:
             if column_name in self._get_relation_names() and self._get_relation_class(column_name) == self.__class__:
                 continue
             html += '<td>' + self.build_representation(column_name) + '</td>'
         self.generated_html = html
     
-    def generate_tabular_input(self, state = None, include_resource = False, **kwargs):
+    def generate_tabular_input(self, **kwargs):
+        include_resource = kwargs.pop('_include_default_resource', False)
+        shown_column = kwargs.pop('shown_column', [])
         # prepare resource
         self.reset_generated()
         if include_resource:
-            self.include_resource()
+            self._include_default_resource()
         # create html
         html  = ''
         parent_column_name = kwargs.pop('parent_column_name', '')
-        for column_name in self._get_tabular_column_names_by_state(state):
+        if len(shown_column) == 0:
+            shown_column = self._column_list
+        for column_name in shown_column:
             if column_name in self._get_relation_names() and self._get_relation_class(column_name) == self.__class__:
                 continue
             input_name = parent_column_name + '_' + column_name + '[]' if parent_column_name != '' else column_name+'[]'
@@ -899,24 +1068,17 @@ class Model(Base):
             html += '<td>' + self.build_input(column_name, input_attribute = input_attribute, tabular = True) + '</td>'
         self.generated_html = html
     
-    def generate_input_view(self, state = None, include_resource = False, **kwargs):
+    def generate_input_components(self, state = None, include_resource = False, **kwargs):
         '''
         Input view of record
         '''
         # prepare resource
         self.reset_generated()
         if include_resource:
-            self.include_resource()
-        # determine which input column is used
-        if state is None:
-            input_column = self._form_column
-        if state == 'new' or state == 'create' or state == 'insert' or state == 'add':
-            input_column = self._insert_form_column
-        elif state == 'edit' or state == 'update':
-            input_column = self._update_form_column
+            self._include_default_resource()
         # build html
         html = ''
-        for column_name in input_column:
+        for column_name in self._column_list:
             html += self.build_labeled_input(column_name)
         self.generated_html = html
         
@@ -928,12 +1090,12 @@ class Model(Base):
         # prepare resource
         self.reset_generated()
         if include_resource:
-            self.include_resource()
+            self._include_default_resource()
         # build html
         html = '<div class="row container">'
-        for column_name in self._shown_column:
+        for column_name in self._column_list:
             html += self.build_labeled_representation(column_name)
-        html += '</div>'        
+        html += '</div>'
         self.generated_html = html
 
 def auto_migrate(engine):
@@ -943,8 +1105,6 @@ def auto_migrate(engine):
     model_meta = Model.metadata
     db_meta = MetaData()
     db_meta.reflect(bind=engine)
-    # create db session & alembic operation
-    db_session = scoped_session(sessionmaker(bind=engine))
     conn = engine.connect()
     ctx = MigrationContext.configure(conn)
     op = Operations(ctx)
@@ -958,7 +1118,6 @@ def auto_migrate(engine):
         # get model_table from model_meta
         model_table = model_meta.tables[model_table_name]
         db_table = None
-        db_column_list = None
         # make model_table with alembic if necessary
         if model_table_name not in db_meta.tables:
             try:

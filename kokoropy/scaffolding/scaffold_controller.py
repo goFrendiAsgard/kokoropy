@@ -39,20 +39,23 @@ class G_Table_Name_Controller(Autoroute_Controller):
     def action_show(self, id):
         ''' Show One Record '''
         g_table_name = G_Table_Name.find(id)
+        g_table_name.set_state_show()
         return load_view('g_application_name', 'g_table_name_show', g_table_name = g_table_name,
             url_list = url_list)
     
     def action_new(self):
         ''' Insert Form '''
         g_table_name = G_Table_Name()
+        g_table_name.set_state_insert()
         return load_view('g_application_name', 'g_table_name_new', g_table_name = g_table_name, 
             url_list = url_list)
     
     def action_create(self):
         ''' Insert Action '''
         g_table_name = G_Table_Name()
+        g_table_name.set_state_insert()
         # put your code here
-        g_table_name.assign(request.POST)
+        g_table_name.assign_from_dict(request.POST)
         g_table_name.save()
         success = g_table_name.success
         error_message = g_table_name.error_message
@@ -62,14 +65,16 @@ class G_Table_Name_Controller(Autoroute_Controller):
     def action_edit(self, id):
         ''' Update Form '''
         g_table_name = G_Table_Name.find(id)
+        g_table_name.set_state_update()
         return load_view('g_application_name', 'g_table_name_edit', g_table_name = g_table_name,
             url_list = url_list)
     
     def action_update(self,id):
         ''' Update Action '''
         g_table_name = G_Table_Name.find(id)
+        g_table_name.set_state_update()
         # put your code here
-        g_table_name.assign(request.POST)
+        g_table_name.assign_from_dict(request.POST)
         g_table_name.save()
         success = g_table_name.success
         error_message = g_table_name.error_message

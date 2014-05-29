@@ -52,7 +52,7 @@ class Page_Controller(Autoroute_Controller):
         ''' Insert Action '''
         page = Page()
         # put your code here
-        page.assign(request.POST)
+        page.assign_from_dict(request.POST)
         page.save()
         success = page.success
         error_message = page.error_message
@@ -69,7 +69,7 @@ class Page_Controller(Autoroute_Controller):
         ''' Update Action '''
         page = Page.find(id)
         # put your code here
-        page.assign(request.POST)
+        page.assign_from_dict(request.POST)
         page.save()
         success = page.success
         error_message = page.error_message

@@ -52,7 +52,7 @@ class Third_Party_Controller(Autoroute_Controller):
         ''' Insert Action '''
         third_party = Third_Party()
         # put your code here
-        third_party.assign(request.POST)
+        third_party.assign_from_dict(request.POST)
         third_party.save()
         success = third_party.success
         error_message = third_party.error_message
@@ -69,7 +69,7 @@ class Third_Party_Controller(Autoroute_Controller):
         ''' Update Action '''
         third_party = Third_Party.find(id)
         # put your code here
-        third_party.assign(request.POST)
+        third_party.assign_from_dict(request.POST)
         third_party.save()
         success = third_party.success
         error_message = third_party.error_message

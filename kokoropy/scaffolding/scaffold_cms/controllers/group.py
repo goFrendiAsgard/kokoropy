@@ -52,7 +52,7 @@ class Group_Controller(Autoroute_Controller):
         ''' Insert Action '''
         group = Group()
         # put your code here
-        group.assign(request.POST)
+        group.assign_from_dict(request.POST)
         group.save()
         success = group.success
         error_message = group.error_message
@@ -69,7 +69,7 @@ class Group_Controller(Autoroute_Controller):
         ''' Update Action '''
         group = Group.find(id)
         # put your code here
-        group.assign(request.POST)
+        group.assign_from_dict(request.POST)
         group.save()
         success = group.success
         error_message = group.error_message

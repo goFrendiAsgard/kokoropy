@@ -1,11 +1,10 @@
-from sqlalchemy import create_engine, MetaData, Column, ForeignKey, func, Integer, String,\
+from sqlalchemy import or_, and_, create_engine, MetaData, Column, ForeignKey, func, Integer, String,\
     Date, DateTime, Boolean, Text
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
 from sqlalchemy.ext.associationproxy import association_proxy
 from kokoropy.model import Model, auto_migrate
 from kokoropy import request
 from ..configs.db import connection_string
-from sqlalchemy import or_, and_
 import hashlib
 import getpass
 import re
@@ -48,15 +47,14 @@ def get_current_user():
 
 class User(Model):
     __session__ = session
-    __excluded_showncolumn__ = ['id', 'encrypted_password']
-    __formcolumn__ = ['username', 'realname', 'email', 'password', 'groups']
+    __excluded_shown_column__ = ['id', 'encrypted_password']
+    __form_column__ = ['username', 'realname', 'email', 'password', 'groups']
     # fields declaration
     username = Column(String(255), unique=True)
     realname = Column(String(255))
     email = Column(String(255), unique=True)
     encrypted_password = Column(String(255))
     third_party_ids = relationship("Third_Party_Id", foreign_keys="Third_Party_Id.fk_left_user")
-    #groups = relationship("Rel_User_Groups", foreign_keys="Rel_User_Groups.fk_left_user")
     usergroups = relationship("Rel_User_Groups", foreign_keys="Rel_User_Groups.fk_left_user")
     groups = association_proxy("usergroups", "group", creator=lambda _i: Rel_User_Groups(group=_i))
     
@@ -71,8 +69,8 @@ class User(Model):
     def password(self, value):
         self.encrypted_password = encrypt_password(value)
     
-    def assign(self, variable):
-        Model.assign(self, variable)
+    def assign_from_dict(self, variable):
+        Model.assign_from_dict(self, variable)
         if 'password' in variable and variable['password'] is not None and variable['password'] != '':
             self.password = variable['password']
     
@@ -95,8 +93,8 @@ class Third_Party(Model):
 
 class Group(Model):
     __session__ = session
-    __excluded_showncolumn__ = ['id']
-    __excluded_formcolumn__ = ['id']
+    __excluded_shown_column__ = ['id']
+    __excluded_form_column__ = ['id']
     # fields declaration
     name = Column(String(255))
     
@@ -105,10 +103,10 @@ class Group(Model):
 
 class Page(Model):
     __session__ = session
-    __excluded_showncolumn__ = ['id', 'page_order']
-    __excluded_formcolumn__ = ['id', 'page_order', 'children']
-    __tabular_formcolumn__ = ['name', 'title', 'url', 'authorization', 'groups']
-    __tabular_showncolumn__ = ['name', 'title', 'url', 'authorization', 'groups']
+    __excluded_shown_column__ = ['id', 'page_order']
+    __excluded_form_column__ = ['id', 'page_order', 'children']
+    __tabular_form_column__ = ['name', 'title', 'url', 'authorization', 'groups']
+    __tabular_shown_column__ = ['name', 'title', 'url', 'authorization', 'groups']
     # fields declaration
     name = Column(String(50))
     url = Column(String(50))
@@ -137,7 +135,7 @@ class Page(Model):
 
 class Third_Party_Id(Model):
     __session__ = session
-    __excluded_showncolumn__ = ['id']
+    __excluded_shown_column__ = ['id']
     # fields declaration
     fk_left_user = Column(Integer, ForeignKey("user._real_id"))
     fk_right_third_party = Column(Integer, ForeignKey("third_party._real_id"))
@@ -146,15 +144,16 @@ class Third_Party_Id(Model):
 
 class Rel_User_Groups(Model):
     __session__ = session
-    __excluded_showncolumn__ = ['id']
+    __excluded_shown_column__ = ['id']
     # fields declaration
     fk_left_user = Column(Integer, ForeignKey("user._real_id"))
     fk_right_group = Column(Integer, ForeignKey("group._real_id"))
     group = relationship("Group", foreign_keys="Rel_User_Groups.fk_right_group")
+    user = relationship("User", foreign_keys="Rel_User_Groups.fk_left_user")
 
 class Rel_Page_Groups(Model):
     __session__ = session
-    __excluded_showncolumn__ = ['id']
+    __excluded_shown_column__ = ['id']
     # fields declaration
     fk_left_page = Column(Integer, ForeignKey("page._real_id"))
     fk_right_group = Column(Integer, ForeignKey("group._real_id"))

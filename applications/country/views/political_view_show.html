@@ -1,0 +1,23 @@
+% rebase('country/views/base')
+% political_view.generate_detail_view()
+
+{% block style %}
+    {{! political_view.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! political_view.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Showing {{ political_view.quick_preview() }}</h4>
+   {{! political_view.generated_html }}
+   <div>
+        <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ political_view.id }}">
+            <i class="glyphicon glyphicon-pencil"></i> Edit political_view
+        </a>
+        <a href="{{ url_list['list'] }}" class="btn btn-default">
+            <i class="glyphicon glyphicon-th"></i> Back to List
+        </a>
+    </div>
+{% endblock %}
