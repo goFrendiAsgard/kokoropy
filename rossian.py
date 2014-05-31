@@ -16,7 +16,7 @@ BASE_URL            = '/kokoropy'               # base url, start with '/'
 ###########################################################################
 import subprocess, signal, time, datetime, os, sys, getopt, kokoropy
 
-from kokoropy import Fore, Back
+from kokoropy import Fore, Back, scaffold
 
 VERSION   = '0.0.1'
 PWD       = os.path.dirname(os.path.abspath(__file__))
@@ -135,7 +135,7 @@ def run_server_forever():
 def scaffold_application():
     if len(sys.argv)>2:
         application_name = sys.argv[2]
-        kokoropy.scaffold_application(application_name)
+        scaffold.scaffold_application(application_name)
     else:
         help()
 
@@ -151,7 +151,7 @@ def scaffold_migration():
             columns = sys.argv[5:]
         else:
             columns = []
-        kokoropy.scaffold_migration(application_name, migration_name, table_name, *columns)
+        scaffold.scaffold_migration(application_name, migration_name, table_name, *columns)
     else:
         help()
 
@@ -166,7 +166,7 @@ def scaffold_model():
             columns = sys.argv[4:]
         else:
             columns = []
-        kokoropy.scaffold_model(application_name, table_name, *columns)
+        scaffold.scaffold_model(application_name, table_name, *columns)
     else:
         help()
 
@@ -181,7 +181,7 @@ def scaffold_crud():
             columns = sys.argv[4:]
         else:
             columns = []
-        kokoropy.scaffold_crud(application_name, table_name, *columns)
+        scaffold.scaffold_crud(application_name, table_name, *columns)
     else:
         help()
         

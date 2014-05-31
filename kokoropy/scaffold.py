@@ -1,0 +1,280 @@
+from kokoro import *
+
+def make_timestamp():
+    return datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')
+
+def scaffold_application(application_name):
+    source = os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_application')
+    destination = application_path(application_name)
+    copytree(source, destination)
+
+def scaffold_migration(application_name, migration_name, table_name='your_table', *columns):
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_migration.py'))
+    timestamp = make_timestamp()
+    # make timestamp
+    content = content.replace('g_timestamp', timestamp)
+    # make add column and drop column scripts
+    add_column_scripts = []
+    drop_column_scripts = []
+    for column in columns:
+        column = column.split(':')
+        if len(column)>1:
+            coltype= column[1]
+            coltype_element = coltype.split('-')
+            if len(coltype_element)>1:
+                coltype = coltype_element[0] + '(' + ', '.join(coltype_element[1:]) + ')'
+            # in case of string is not defined
+            if coltype == 'String':
+                coltype = 'String(50)'
+            column = column[0]
+        else:
+            coltype = 'String(50)'
+            column = column[0]
+        add_column_scripts.append('op.add_column(\'%s\', Column(\'%s\', %s))' % (table_name, column, coltype))
+        drop_column_scripts.append('op.drop_column(\'%s\', \'%s\')' % (table_name, column))
+    add_column_scripts = '\n    '.join(add_column_scripts)
+    drop_column_scripts = '\n    '.join(drop_column_scripts)
+    content = content.replace('# g_add_column', add_column_scripts)
+    content = content.replace('# g_drop_column', drop_column_scripts)
+    # make application if not exists
+    if not os.path.exists(application_path(application_name)):
+        scaffold_application(application_name)
+    # determine file name
+    filename = timestamp+'_'+migration_name+'.py'
+    filename = application_path(os.path.join(application_name, 'migrations', filename))
+    # write file
+    file_put_contents(filename, content)
+
+def add_column_to_structure(structure, table_name, column_name = None, content = None):
+    '''
+    return new column_name
+    '''
+    if '__list__' not in structure:
+        structure['__list__'] = []
+    if table_name not in structure:
+        structure[table_name] = {'__list__' : []}
+        structure['__list__'].append(table_name)
+    if column_name is not None:
+        if column_name in structure[table_name]:
+            i = 1
+            while column_name + '_' + str(i) in table_name:
+                i += 1
+            column_name = column_name + '_' + str(i)
+        if content is None:
+            content = 'Column(String)'
+        structure[table_name][column_name] = content
+        structure[table_name]['__list__'].append(column_name)
+    return column_name
+
+def add_detail_excluded_shown_column_to_structure(structure, table_name, column_name, detail_column_name):
+    if '__detail_excluded_shown_column__' not in structure[table_name]:
+        structure[table_name]['__detail_excluded_shown_column__'] = {}
+    if column_name not in structure[table_name]['__detail_excluded_shown_column__']:
+        structure[table_name]['__detail_excluded_shown_column__'][column_name] = []
+    structure[table_name]['__detail_excluded_shown_column__'][column_name].append(detail_column_name)
+
+def _structure_to_script(structure):
+    '''
+    example of data structure:
+        structure = [
+            'nerd' = {
+                'name' : 'Column(String)',
+                'address' : 'Column(String)'
+            },
+            'os' = {
+                'name' : 'Column(String)',
+                'version' : 'Column(String)'
+            }
+        ]
+    '''
+    script = ''
+    for table_name in structure['__list__']:
+        ucase_table_name = table_name.title()
+        script += 'class ' + ucase_table_name + '(Model):\n'
+        script += '    __session__ = session\n'
+        # excluded column
+        if '__detail_excluded_shown_column__' in structure[table_name]:
+            for key in ('__detail_excluded_shown_column__', '__detail_excluded_form_column__'):
+                script += '    ' + key + ' = {\n            '
+                pair_list = []
+                for column_name in structure[table_name]['__detail_excluded_shown_column__']:
+                    detail_column_list = structure[table_name]['__detail_excluded_shown_column__'][column_name]
+                    new_detail_column_list = []
+                    for detail_column in detail_column_list:
+                        detail_column = '"' + detail_column + '"'
+                        new_detail_column_list.append(detail_column)
+                    detail_column_list = new_detail_column_list
+                    detail_columns = ', '.join(detail_column_list)
+                    pair_list.append('"' + column_name + '" : [' + detail_columns + ']')
+                script += ',\n            '.join(pair_list)
+                script += '\n        }\n'
+        script += '    # fields declaration\n'
+        for column_name in structure[table_name]['__list__']:
+            content = structure[table_name][column_name]
+            script += '    ' + column_name + ' = ' + content + '\n'
+        script += '\n'
+    return script
+
+def scaffold_model(application_name, table_name, *columns):
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_model.py'))
+    # define structure
+    ucase_table_name = table_name.title()
+    structure = {'__list__' : []}
+    for column in columns:
+        column = column.split(':')
+        if len(column)>2:
+            colname = column[0]
+            other_table_name = column[1]
+            relationship = column[2]
+            ucase_other_table_name = other_table_name.title()
+            if relationship == 'onetomany' or relationship == 'one_to_many' or relationship == 'one-to-many':
+                # other table
+                add_column_to_structure(structure, other_table_name)
+                # foreign key
+                coltype = 'Column(Integer, ForeignKey("' + table_name + '._real_id"))'
+                fk_col_name = 'fk_' + table_name
+                fk_col_name = add_column_to_structure(structure, other_table_name, fk_col_name, coltype)
+                # relationship
+                coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_other_table_name + '.' + fk_col_name + '")'
+                add_column_to_structure(structure, table_name, colname, coltype)
+            elif relationship == 'manytoone' or relationship == 'manytone' or relationship == 'many_to_one' or relationship == 'many-to-one':
+                # other table
+                add_column_to_structure(structure, other_table_name)
+                # foreign key
+                coltype = 'Column(Integer, ForeignKey("' + other_table_name + '._real_id"))'
+                fk_col_name = 'fk_' + colname
+                fk_col_name = add_column_to_structure(structure, table_name, fk_col_name, coltype)
+                # relationship
+                coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_table_name + '.' + fk_col_name + '")'
+                add_column_to_structure(structure, table_name, colname, coltype)
+            elif relationship == 'manytomany' or relationship == 'many_to_many' or relationship == 'many-to-many':
+                # other table
+                add_column_to_structure(structure, other_table_name)
+                # association table
+                association_table_name = 'rel_' + table_name + '_' + colname
+                ucase_association_table_name = association_table_name.title()
+                add_column_to_structure(structure, association_table_name)
+                # determine foreign key & relationship names
+                if table_name == other_table_name:
+                    fk_col_name_left = 'fk_left_' + table_name
+                    fk_col_name_right = 'fk_right_' + other_table_name
+                    rel_col_name_left = 'left_' + table_name
+                    rel_col_name_right = 'right_' + other_table_name
+                else:
+                    fk_col_name_left = 'fk_' + table_name
+                    fk_col_name_right = 'fk_' + other_table_name
+                    rel_col_name_left = table_name
+                    rel_col_name_right = other_table_name
+                rel_col_name = table_name + '_' + colname
+                # foreign key 1 (to this table)
+                coltype = 'Column(Integer, ForeignKey("' + table_name + '._real_id"))'
+                fk_col_name_left = add_column_to_structure(structure, association_table_name, 
+                    fk_col_name_left, coltype)
+                # foreign key 2 (to other table)
+                coltype = 'Column(Integer, ForeignKey("' + other_table_name + '._real_id"))'
+                fk_col_name_right = add_column_to_structure(structure, association_table_name, 
+                    fk_col_name_right, coltype)
+                # relationship (from association table to table)
+                coltype = 'relationship("' + ucase_table_name + '",' +\
+                    ' foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_left + '")'
+                rel_col_name_left = add_column_to_structure(structure, association_table_name, 
+                    rel_col_name_left, coltype)
+                # relationship (from association table to other table)
+                coltype = 'relationship("' + ucase_other_table_name + '",' +\
+                    ' foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_right + '")'
+                rel_col_name_right = add_column_to_structure(structure, association_table_name, 
+                    rel_col_name_right, coltype)
+                # relationship (from table to association table)
+                coltype = 'relationship("' + ucase_association_table_name + '",' +\
+                    ' foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_left + '")'
+                rel_col_name = add_column_to_structure(structure, table_name, rel_col_name, coltype)
+                # proxy
+                coltype = 'association_proxy("' + rel_col_name + '", "' + fk_col_name_right + '",'+\
+                    ' creator=lambda _val: ' + ucase_association_table_name +\
+                    '(' + rel_col_name_right + ' = _val))'
+                add_column_to_structure(structure, table_name, colname, coltype)
+                # add detail excluded shown column
+                add_detail_excluded_shown_column_to_structure(structure, table_name, 
+                    rel_col_name, rel_col_name_left)
+        else:
+            colname = column[0]
+            if len(column)>1:
+                coltype = column[1]
+                coltype_element = coltype.split('-')
+                if len(coltype_element)>1:
+                    coltype = coltype_element[0] + '(' + ', '.join(coltype_element[1:]) + ')'
+                # in case of string is not defined
+                if coltype == 'String':
+                    coltype = 'String(50)'
+            else:
+                coltype = 'String(50)'
+            add_column_to_structure(structure, table_name, colname, 'Column('+coltype+')')
+    # replace content
+    content = content.replace('# g_structure', _structure_to_script(structure))
+    # make application if not exists
+    if not os.path.exists(application_path(application_name)):
+        scaffold_application(application_name)
+    # determine file name
+    filename = table_name+'.py'
+    filename = application_path(os.path.join(application_name, 'models', filename))
+    # write file
+    file_put_contents(filename, content)
+    return structure
+
+def scaffold_crud(application_name, table_name, *columns):
+    structure = scaffold_model(application_name, table_name, *columns)
+    ucase_table_name_list = []
+    for t in structure:
+        if t == '__list__':
+            continue
+        ucase_table_name_list.append(t.title())
+    ucase_table_name_list = ", ".join(ucase_table_name_list)
+    model_module = table_name
+    
+    controller_filename = application_path(os.path.join(application_name, 'controllers', 'index.py'))
+    if not os.path.isfile(controller_filename):
+        url_pairs = []
+        for t in structure:
+            if t == '__list__' or t.split('_')[0] == 'rel':
+                continue
+            url_pairs.append('\'%s\' : base_url(\'%s/%s/index\')' %(t.replace('_',' ').title(), application_name, t))
+        url_pairs = ',\n            '.join(url_pairs)
+        # main controller
+        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_main_controller.py'))
+        content = content.replace('# g_url_pairs', url_pairs)
+        content = content.replace('g_application_name', application_name)
+        file_put_contents(controller_filename, content)
+        # main view
+        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_main_view.html'))
+        content = content.replace('g_application_name', application_name)
+        filename = application_path(os.path.join(application_name, 'views', 'index.html'))
+        file_put_contents(filename, content)
+    
+    # for each table, make controller and views
+    for table_name in structure:
+        # don't make controller and views for association table
+        if table_name == '__list__' or table_name.split('_')[0] == 'rel':
+            continue
+        ucase_table_name = table_name.title()
+        # controller
+        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_controller.py'))
+        content = content.replace('g_model_module', model_module)
+        content = content.replace('G_Table_Name_List', ucase_table_name_list)
+        content = content.replace('G_Table_Name', ucase_table_name)
+        content = content.replace('g_table_name', table_name)
+        content = content.replace('g_application_name', application_name)
+        filename = table_name+'.py'
+        filename = application_path(os.path.join(application_name, 'controllers', filename))
+        # write file
+        file_put_contents(filename, content)
+        # views
+        view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
+        for view in view_list:
+            content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_' + view + '.html'))    
+            content = content.replace('G_Table_Name', ucase_table_name)
+            content = content.replace('g_table_name', table_name)
+            content = content.replace('g_application_name', application_name)
+            filename = table_name + '_' + view + '.html'
+            filename = application_path(os.path.join(application_name, 'views', filename))
+            # write file
+            file_put_contents(filename, content)
