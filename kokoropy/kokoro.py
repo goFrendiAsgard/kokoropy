@@ -283,7 +283,7 @@ def copytree(src, dst, symlinks=False, ignore=None):
                 if not os.path.exists(d) or os.stat(src).st_mtime - os.stat(dst).st_mtime > 1:
                     shutil.copy2(s, d)
 
-def makedirs(directory, mode='0777'):
+def makedirs(directory, mode=0777):
     os.makedirs(directory, mode)
 
 def file_put_contents(filename, data):

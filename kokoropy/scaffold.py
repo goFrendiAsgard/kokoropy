@@ -45,7 +45,7 @@ def scaffold_migration(application_name, migration_name, table_name='your_table'
     # write file
     file_put_contents(filename, content)
 
-def add_column_to_structure(structure, table_name, column_name = None, content = None):
+def add_column_to_structure(structure, table_name, column_name = None, content = None, no_form = False):
     '''
     return new column_name
     '''
@@ -54,6 +54,7 @@ def add_column_to_structure(structure, table_name, column_name = None, content =
     if table_name not in structure:
         structure[table_name] = {'__list__' : []}
         structure['__list__'].append(table_name)
+        structure[table_name]['__no_form__'] = no_form
     if column_name is not None:
         if column_name in structure[table_name]:
             i = 1
@@ -115,11 +116,8 @@ def _structure_to_script(structure):
         script += '\n'
     return script
 
-def scaffold_model(application_name, table_name, *columns):
-    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_model.py'))
-    # define structure
+def _scaffold_model(structure, table_name, *columns):
     ucase_table_name = table_name.title()
-    structure = {'__list__' : []}
     for column in columns:
         column = column.split(':')
         if len(column)>2:
@@ -151,9 +149,9 @@ def scaffold_model(application_name, table_name, *columns):
                 # other table
                 add_column_to_structure(structure, other_table_name)
                 # association table
-                association_table_name = 'rel_' + table_name + '_' + colname
+                association_table_name = table_name + '_' + colname
                 ucase_association_table_name = association_table_name.title()
-                add_column_to_structure(structure, association_table_name)
+                add_column_to_structure(structure, association_table_name, None, None, True)
                 # determine foreign key & relationship names
                 if table_name == other_table_name:
                     fk_col_name_left = 'fk_left_' + table_name
@@ -209,6 +207,35 @@ def scaffold_model(application_name, table_name, *columns):
             else:
                 coltype = 'String(50)'
             add_column_to_structure(structure, table_name, colname, 'Column('+coltype+')')
+
+def scaffold_model(application_name, table_name, *columns):
+    # define structure
+    structure = {'__list__' : []}
+    # prototype_structure
+    table_list = [table_name]
+    column_list = {table_name : []}
+    table = table_name
+    new_table = False
+    for i in xrange(len(columns)):
+        column = columns[i]
+        if new_table:
+            new_table = False
+            table = column
+            table_list.append(table)
+            column_list[table] = []
+            continue
+        if column[-1] == ',':
+            new_table = True
+            if column != ',':
+                column = column[:-1]
+            else:
+                continue
+        column_list[table].append(column)
+    # add prototype_structure to structure
+    for table in table_list:
+        table_column_list = column_list[table]
+        _scaffold_model(structure, table, *table_column_list)
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_model.py'))
     # replace content
     content = content.replace('# g_structure', _structure_to_script(structure))
     # make application if not exists
@@ -234,8 +261,8 @@ def scaffold_crud(application_name, table_name, *columns):
     controller_filename = application_path(os.path.join(application_name, 'controllers', 'index.py'))
     if not os.path.isfile(controller_filename):
         url_pairs = []
-        for t in structure:
-            if t == '__list__' or t.split('_')[0] == 'rel':
+        for t in structure['__list__']:
+            if structure[t]['__no_form__']:
                 continue
             url_pairs.append('\'%s\' : base_url(\'%s/%s/index\')' %(t.replace('_',' ').title(), application_name, t))
         url_pairs = ',\n            '.join(url_pairs)
@@ -251,9 +278,9 @@ def scaffold_crud(application_name, table_name, *columns):
         file_put_contents(filename, content)
     
     # for each table, make controller and views
-    for table_name in structure:
+    for table_name in structure['__list__']:
         # don't make controller and views for association table
-        if table_name == '__list__' or table_name.split('_')[0] == 'rel':
+        if structure[table_name]['__no_form__']:
             continue
         ucase_table_name = table_name.title()
         # controller
@@ -269,12 +296,15 @@ def scaffold_crud(application_name, table_name, *columns):
         file_put_contents(filename, content)
         # views
         view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
+        view_directory = application_path(os.path.join(application_name, 'views', table_name))
+        if not os.path.isdir(view_directory):
+            makedirs(view_directory)
         for view in view_list:
             content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_' + view + '.html'))    
             content = content.replace('G_Table_Name', ucase_table_name)
             content = content.replace('g_table_name', table_name)
             content = content.replace('g_application_name', application_name)
-            filename = table_name + '_' + view + '.html'
-            filename = application_path(os.path.join(application_name, 'views', filename))
+            filename = view + '.html'
+            filename = os.path.join(view_directory, filename)
             # write file
             file_put_contents(filename, content)
