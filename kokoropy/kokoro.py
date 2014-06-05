@@ -18,7 +18,7 @@ if os.path.dirname(__file__) not in sys.path:
 ###################################################################################################
 # Import things
 ###################################################################################################
-import bottle, beaker, threading, time, tempfile, re, beaker.middleware, types
+import bottle, threading, time, tempfile, re, beaker.middleware, types
 from bottle import default_app, debug, run, static_file,\
     response, request, TEMPLATE_PATH, route, get,\
     post, put, delete, error, hook, Bottle, redirect
@@ -31,7 +31,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.sql.expression import desc
 
 # colorama
-from colorama import init, Fore, Back
+from colorama import init, Fore, Back, Style
 init()
 ############################### SQL ALCHEMY SCRIPT ####################################
 
@@ -195,7 +195,7 @@ class _Kokoro_Router(object):
         return output
 
 def isset(variable):
-    """ PHP favoFore.RED isset. 
+    """ PHP favoured isset. 
         Usage: isset("a_variable_name")
     """
     return variable in locals() or variable in globals()
@@ -267,7 +267,7 @@ def copytree(src, dst, symlinks=False, ignore=None):
     """ Enchancement of shutil.copytree
         Will really copy directory recursively.
         If dst is not exists, it will be created.
-        If src is not exists, it will be ignoFore.RED without throwing any error
+        If src is not exists, it will be ignored without throwing any error
         Normal usage:
             copytree("source_directory", "destination_directory")
     """
@@ -785,60 +785,134 @@ def migration_downgrade(application_name):
 def is_ajax():
     return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
-def _var_dump(variable, depth = 0, not_new_line = False):
-    padding = " "*4*depth
-    keypadding = " "*4*(depth+1)
+def _key_spaces(data):
+    spaces = {}
+    max_len = 0
+    for item in data:
+        if len(item)>max_len:
+            max_len = len(item)
+    for item in data:
+        spaces[item] = ' ' * (max_len - len(item))
+    return spaces
+
+def _type_label(type_label, mode = 'plain'):
+    type_label = str(type_label)
+    # strip out '<' and '>'
+    if type_label[0] == '<':
+        type_label = type_label[1:]
+    if type_label[-1] == '>':
+        type_label = type_label[:-1]
+    # determine return base on mode
+    if mode == 'html':
+        return '<i>&lt;' + type_label + '&gt;</i>'
+    elif mode == 'console':
+        return Fore.YELLOW + Style.DIM + type_label + Style.NORMAL + Fore.RESET
+    else:
+        return '<' + type_label + '>'
+
+def _key_label(key, mode = 'plain'):
+    key = str(key)
+    # determine return base on mode
+    if mode == 'html':
+        return '<b>' + key + '</b>'
+    elif mode == 'console':
+        return Fore.YELLOW + Style.BRIGHT + key + Style.NORMAL + Fore.RESET
+    else:
+        return key
+
+def _value_label(value, mode = 'plain'):
+    if type(value) == types.StringType:
+        value = "'" + value + "'"
+    else:
+        value = str(value)
+    # determine return base on mode
+    if mode == 'html':
+        return '<b>' + value + '</b>'
+    elif mode == 'console':
+        return Fore.CYAN + Style.BRIGHT + value + Style.NORMAL + Fore.RESET
+    else:
+        return value
+
+def _var_dump(variable, depth = 0, not_new_line = False, mode = 'plain'):
+    indentation   = " " * 4
+    padding       = indentation * depth
+    key_padding   = indentation * (depth+1)
     first_padding = '' if not_new_line else padding
-    not_new_line = True
+    not_new_line  = True
     depth+= 1
+    # Dictionary
     if type(variable) == types.DictType :
         items = []
+        spaces = _key_spaces(variable)
         for key in variable :
-            item = keypadding + "'%s' : %s" % (key,_var_dump(variable[key],depth, True))
+            item = key_padding + "%s%s : %s" % (_key_label("'"+key+"'",mode), spaces[key], _var_dump(variable[key], depth, True, mode))
             items.append(item)
         items = ',\n'.join(items)
-        return '%s<Dictionary> {\n%s\n%s}' % ( first_padding, items, padding)
+        return '%s%s {\n%s\n%s}' % ( first_padding, _type_label('Dictionary', mode), items, padding)
+    # Instance of class
+    elif type(variable) == types.InstanceType:
+        items = []
+        spaces = _key_spaces(dir(variable))
+        for key in dir(variable):
+            item = key_padding + "%s%s : %s" % (_key_label(key,mode), spaces[key], _var_dump(getattr(variable,key), depth, True, mode))
+            items.append(item)
+        items = ',\n'.join(items)
+        return '%s%s (\n%s\n%s)' % ( first_padding, _type_label('Instance of ' + str(variable.__class__), mode), items, padding)
+    # List
     elif type(variable) == types.ListType :
         items = []
         for item in variable :
-            items.append(_var_dump(item, depth))
+            items.append(_var_dump(item, depth, False, mode))
         items = ',\n'.join(items)
-        return '%s<List> [\n%s\n%s]' % ( first_padding, items, padding)
+        return '%s%s [\n%s\n%s]' % ( first_padding, _type_label('List', mode), items, padding)
+    # Tuple
     elif type(variable) == types.TupleType :
         items = []
         for item in variable :
-            items.append(_var_dump(item, depth))
+            items.append(_var_dump(item, depth, False, mode))
         items = ',\n'.join(items)
-        return '%s<Tuple> (\n%s\n%s)' % ( first_padding, items, padding)
-    elif type(variable) == types.InstanceType:
-        items = []
-        for key in dir(variable):
-            item = keypadding + "%s : %s" % (key,_var_dump(getattr(variable,key),depth, True))
-            items.append(item)
-        items = ',\n'.join(items)
-        return '%s<Instance of %s> (\n%s\n%s)' % ( first_padding, variable.__class__, items, padding)
+        return '%s%s (\n%s\n%s)' % ( first_padding, _type_label('Tuple', mode), items, padding)
     elif type(variable) == types.MethodType:
-        return first_padding + '<Method>'
+        return first_padding + _type_label('Method', mode)
     elif type(variable) == types.FunctionType:
-        return first_padding + '<Function>'
-    elif type(variable) == types.StringType:
-        return first_padding + "<String> '%s'" % variable
-    elif type(variable) == types.IntType:
-        return first_padding + "<Integer> %s" % variable
-    elif type(variable) == types.LongType:
-        return first_padding + "<Long> %s" % variable
-    elif type(variable) == types.FloatType:
-        return first_padding + "<Float> %s" % variable
-    elif type(variable) == types.BooleanType:
-        return first_padding + "<Boolean> %s" % variable
+        return first_padding + _type_label('Function', mode)
+    elif type(variable) == types.BuiltinFunctionType:
+        return first_padding + _type_label('BuiltinFunction', mode)
+    elif type(variable) == types.BuiltinMethodType:
+        return first_padding + _type_label('BuiltinMethod', mode)
     elif type(variable) == types.NoneType:
-        return first_padding + "<None>"
+        return first_padding + _type_label('None', mode)
+    elif type(variable) == types.ClassType:
+        return first_padding + _type_label('Class', mode)
+    elif type(variable) == types.BufferType:
+        return first_padding + _type_label('Buffer', mode)
+    elif type(variable) == types.TypeType:
+        return first_padding + _type_label('Type', mode)
+    elif type(variable) == types.ModuleType:
+        return first_padding + _type_label('Module', mode)
+    elif type(variable) == types.ObjectType:
+        return first_padding + _type_label('Object', mode)
+    elif type(variable) == types.StringType:
+        return first_padding + _type_label('String', mode) + ' ' + _value_label(variable, mode)
+    elif type(variable) == types.IntType:
+        return first_padding + _type_label('Integer', mode) + ' ' + _value_label(variable, mode)
+    elif type(variable) == types.LongType:
+        return first_padding + _type_label('Long', mode) + ' ' + _value_label(variable, mode)
+    elif type(variable) == types.FloatType:
+        return first_padding + _type_label('Float', mode) + ' ' + _value_label(variable, mode)
+    elif type(variable) == types.BooleanType:
+        return first_padding + _type_label('Boolean', mode) + ' ' + _value_label(variable, mode)
     else:
-        return first_padding + "%s %s" % (type(variable), variable)
+        return first_padding + _type_label(type(variable), mode)
 
-def var_dump(variable, show = False):
-    result = _var_dump(variable)
-    if show:
-        print result
-    else:
-        return result
+def var_dump(variable = None, **kwargs):
+    if variable is None:
+        variable = globals()
+    print_output = kwargs.pop('print_output', False)
+    mode         = kwargs.pop('mode', 'plain')
+    result       = _var_dump(variable, 0, False, mode)
+    if mode == 'html':
+        result = '<pre>' + result + '</pre>'
+    if print_output:
+        print(result)
+    return result
