@@ -1,0 +1,26 @@
+% rebase('cms/views/base')
+
+{% block content %}
+    <h4>Update language</h4>
+    <div class="alert {{ 'alert-success' if success else 'alert-danger' }}">
+        % if error_message != '':
+            <b>Error : </b>
+            {{ error_message }}
+        % else:
+            <b>Success !!!</b>
+        % end
+        <div>
+            <a class="btn btn-default" href="{{ url_list["new"] }}">
+                <i class="glyphicon glyphicon-plus"></i> Insert another language
+            </a>
+            % if success:
+                <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ language.id }}">
+                    <i class="glyphicon glyphicon-pencil"></i> Edit language again
+                </a>
+            % end
+            <a href="{{ url_list['list'] }}" class="btn btn-default">
+                <i class="glyphicon glyphicon-th"></i> Back to List
+            </a>
+        </div>
+    </div>
+{% endblock %}

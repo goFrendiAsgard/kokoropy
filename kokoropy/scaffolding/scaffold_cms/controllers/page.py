@@ -1,5 +1,5 @@
 from kokoropy import Autoroute_Controller, load_view, base_url, request
-from ..models.auth import Rel_Page_Groups, Group, Page
+from ..models.cms import Widget, User_Third_Party_Identities, Group, Language_Detail, Language, Third_Party_Authenticator, Theme, User, Configuration, Page_Groups, Layout, User_Groups, Cms, Page, Widget_Groups
 import math
 
 url_list = {
@@ -32,54 +32,59 @@ class Page_Controller(Autoroute_Controller):
         page_list = Page.get(limit = limit, offset = offset)
         # calculate page count
         page_count = int(math.ceil(float(Page.count())/limit))
-        return load_view('cms', 'page_list', 
+        return load_view('cms', 'page/list', 
             page_list = page_list, current_page = current_page,
             page_count = page_count, url_list = url_list)
     
     def action_show(self, id):
         ''' Show One Record '''
         page = Page.find(id)
-        return load_view('cms', 'page_show', page = page,
+        page.set_state_show()
+        return load_view('cms', 'page/show', page = page,
             url_list = url_list)
     
     def action_new(self):
         ''' Insert Form '''
         page = Page()
-        return load_view('cms', 'page_new', page = page, 
+        page.set_state_insert()
+        return load_view('cms', 'page/new', page = page, 
             url_list = url_list)
     
     def action_create(self):
         ''' Insert Action '''
         page = Page()
+        page.set_state_insert()
         # put your code here
         page.assign_from_dict(request.POST)
         page.save()
         success = page.success
         error_message = page.error_message
-        return load_view('cms', 'page_create', page = page,
+        return load_view('cms', 'page/create', page = page,
             url_list = url_list, success = success, error_message = error_message)
     
     def action_edit(self, id):
         ''' Update Form '''
         page = Page.find(id)
-        return load_view('cms', 'page_edit', page = page,
+        page.set_state_update()
+        return load_view('cms', 'page/edit', page = page,
             url_list = url_list)
     
     def action_update(self,id):
         ''' Update Action '''
         page = Page.find(id)
+        page.set_state_update()
         # put your code here
         page.assign_from_dict(request.POST)
         page.save()
         success = page.success
         error_message = page.error_message
-        return load_view('cms', 'page_update', page = page,
+        return load_view('cms', 'page/update', page = page,
             url_list = url_list, success = success, error_message = error_message)
     
     def action_trash(self, id):
         ''' Trash Form '''
         page = Page.find(id)
-        return load_view('cms', 'page_trash', page = page,
+        return load_view('cms', 'page/trash', page = page,
             url_list = url_list)
     
     def action_remove(self, id):
@@ -88,13 +93,13 @@ class Page_Controller(Autoroute_Controller):
         page.trash()
         success = page.success
         error_message = page.error_message
-        return load_view('cms', 'page_remove', page = page,
+        return load_view('cms', 'page/remove', page = page,
             url_list = url_list, success = success, error_message = error_message)
     
     def action_delete(self, id):
         ''' Delete Form '''
         page = Page.find(id)
-        return load_view('cms', 'page_delete', page = page,
+        return load_view('cms', 'page/delete', page = page,
             url_list = url_list)
     
     def action_destroy(self, id):
@@ -103,5 +108,5 @@ class Page_Controller(Autoroute_Controller):
         page.delete()
         success = page.success
         error_message = page.error_message
-        return load_view('cms', 'page_create', page = page,
+        return load_view('cms', 'page/destroy', page = page,
             url_list = url_list, success = success, error_message = error_message)

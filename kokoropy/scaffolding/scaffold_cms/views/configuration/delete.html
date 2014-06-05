@@ -1,0 +1,16 @@
+% rebase('cms/views/base')
+% configuration.generate_detail_view()
+
+{% block style %}
+    {{! configuration.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! configuration.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Are you sure want to delete {{ configuration.quick_preview() }}?</h4>
+    {{! configuration.generated_html }}
+    <div class="alert alert-danger">This action is not recoverable</div>
+{% endblock %}

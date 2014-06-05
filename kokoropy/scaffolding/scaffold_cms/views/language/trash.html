@@ -1,0 +1,15 @@
+% rebase('cms/views/base')
+% language.generate_detail_view()
+
+{% block style %}
+    {{! language.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! language.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Are you sure want to remove {{ language.quick_preview() }}?</h4>
+    {{! language.generated_html }}
+{% endblock %}

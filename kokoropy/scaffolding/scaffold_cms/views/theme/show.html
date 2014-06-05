@@ -1,0 +1,23 @@
+% rebase('cms/views/base')
+% theme.generate_detail_view()
+
+{% block style %}
+    {{! theme.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! theme.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Showing {{ theme.quick_preview() }}</h4>
+   {{! theme.generated_html }}
+   <div>
+        <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ theme.id }}">
+            <i class="glyphicon glyphicon-pencil"></i> Edit theme
+        </a>
+        <a href="{{ url_list['list'] }}" class="btn btn-default">
+            <i class="glyphicon glyphicon-th"></i> Back to List
+        </a>
+    </div>
+{% endblock %}

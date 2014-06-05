@@ -1,0 +1,23 @@
+% rebase('cms/views/base')
+% layout.generate_detail_view()
+
+{% block style %}
+    {{! layout.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! layout.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Showing {{ layout.quick_preview() }}</h4>
+   {{! layout.generated_html }}
+   <div>
+        <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ layout.id }}">
+            <i class="glyphicon glyphicon-pencil"></i> Edit layout
+        </a>
+        <a href="{{ url_list['list'] }}" class="btn btn-default">
+            <i class="glyphicon glyphicon-th"></i> Back to List
+        </a>
+    </div>
+{% endblock %}
