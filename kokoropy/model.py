@@ -22,67 +22,67 @@ class Model(Base):
     Model
     '''
     # defaults
-    _real_id = Column(Integer, primary_key=True)
-    _trashed = Column(Boolean, default=False)
-    _created_at = Column(DateTime, default=func.now())
-    _updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-    id = Column(String(35), unique=True)
+    _real_id        = Column(Integer, primary_key=True)
+    _trashed        = Column(Boolean, default=False)
+    _created_at     = Column(DateTime, default=func.now())
+    _updated_at     = Column(DateTime, default=func.now(), onupdate=func.now())
+    id              = Column(String(35), unique=True)
     # state
-    __state__ = None # show, insert, update, delete
-    __memoized_properties__ = {}
+    __state__               = None # show, insert, update, delete
     # configurations
-    __abstract__ = True
-    __connection_string__ = ''
+    __abstract__            = True
+    __connection_string__   = ''
     __echo__ = True
-    __prefix_of_id__ = '%Y%m%d-'
-    __digit_num_of_id__ = 3
+    __prefix_of_id__        = '%Y%m%d-'
+    __digit_num_of_id__     = 3
     # columns to be shown
-    __shown_column__ = []
-    __form_column__ = []
-    __insert_column__ = []
-    __update_column__ = []
-    __virtual_shown_column__ = []
-    __virtual_form_column__ = []
-    __virtual_insert_column__ = []
-    __virtual_update_column__ = []
-    __excluded_shown_column__ = []
-    __excluded_form_column__ = []
-    __excluded_insert_column__ = []
-    __excluded_update_column__ = []
+    __shown_column__            = []
+    __form_column__             = []
+    __insert_column__           = []
+    __update_column__           = []
+    __virtual_shown_column__    = []
+    __virtual_form_column__     = []
+    __virtual_insert_column__   = []
+    __virtual_update_column__   = []
+    __excluded_shown_column__   = []
+    __excluded_form_column__    = []
+    __excluded_insert_column__  = []
+    __excluded_update_column__  = []
     # columns to be shown on tabular
-    __tabular_shown_column__ = []
-    __tabular_form_column__ = []
-    __tabular_insert_column__ = []
-    __tabular_update_column__ = []
-    __tabular_virtual_shown_column__ = []
-    __tabular_virtual_form_column__ = []
-    __tabular_virtual_insert_column__ = []
-    __tabular_virtual_update_column__ = []
-    __tabular_excluded_shown_column__ = []
-    __tabular_excluded_form_column__ = []
-    __tabular_excluded_insert_column__ = []
-    __tabular_excluded_update_column__ = []
+    __tabular_shown_column__            = []
+    __tabular_form_column__             = []
+    __tabular_insert_column__           = []
+    __tabular_update_column__           = []
+    __tabular_virtual_shown_column__    = []
+    __tabular_virtual_form_column__     = []
+    __tabular_virtual_insert_column__   = []
+    __tabular_virtual_update_column__   = []
+    __tabular_excluded_shown_column__   = []
+    __tabular_excluded_form_column__    = []
+    __tabular_excluded_insert_column__  = []
+    __tabular_excluded_update_column__  = []
     # columns to be shown on one to many
-    __detail_shown_column__ = {}
-    __detail_form_column__ = {}
-    __detail_insert_column__ = {}
-    __detail_update_column__ = {}
-    __detail_virtual_shown_column__ = {}
-    __detail_virtual_form_column__ = {}
-    __detail_virtual_insert_column__ = {}
-    __detail_virtual_update_column__ = {}
-    __detail_excluded_shown_column__ = {}
-    __detail_excluded_form_column__ = {}
-    __detail_excluded_insert_column__ = {}
-    __detail_excluded_update_column__ = {}
+    __detail_shown_column__             = {}
+    __detail_form_column__              = {}
+    __detail_insert_column__            = {}
+    __detail_update_column__            = {}
+    __detail_virtual_shown_column__     = {}
+    __detail_virtual_form_column__      = {}
+    __detail_virtual_insert_column__    = {}
+    __detail_virtual_update_column__    = {}
+    __detail_excluded_shown_column__    = {}
+    __detail_excluded_form_column__     = {}
+    __detail_excluded_insert_column__   = {}
+    __detail_excluded_update_column__   = {}
     # automatic assigned columns
     __automatic_assigned_column__ = []
     __automatic_assigned_insert_column__ = []
     __automatic_assigned_update_column__ = []
-        
+    
     @declared_attr
-    def __tablename__(cls):
-        return cls.__name__.lower()
+    def __tablename__(self):
+        # self is refered to class, not "this"
+        return self.__name__.lower()
     
     @property
     def state(self):
