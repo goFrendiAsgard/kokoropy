@@ -264,7 +264,7 @@ def scaffold_crud(application_name, table_name, *columns):
         for t in structure['__list__']:
             if structure[t]['__no_form__']:
                 continue
-            url_pairs.append('\'%s\' : base_url(\'%s/%s/index\')' %(t.replace('_',' ').title(), application_name, t))
+            url_pairs.append('\'%s\' : base_url(\'%s/%s\')' %(t.replace('_',' ').title(), application_name, t))
         url_pairs = ',\n            '.join(url_pairs)
         # main controller
         content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_main_controller.py'))

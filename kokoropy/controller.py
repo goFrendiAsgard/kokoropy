@@ -1,4 +1,4 @@
-from kokoropy import load_view, base_url, request
+from kokoropy import load_view, base_url, request, route, add_trailing_slash, remove_trailing_slash
 from sqlalchemy.ext.declarative import declared_attr
 import math
 
@@ -6,47 +6,13 @@ class Crud_Controller(object):
     __model__               = None
     __application_name__    = ''
     __view_directory__      = ''
-    __url_list__            = {}
-    __table_name__          = ''
     
-    def action_index(self):
-        return self.list()
-    
-    def action_list(self):
-        return self.list()
-    
-    def action_show(self, id):
-        return self.show(id)
-    
-    def action_new(self):
-        return self.new(id)
-    
-    def action_create(self):
-        return self.create(id)
-    
-    def action_edit(self, id):
-        return self.edit(id)
-    
-    def action_update(self,id):
-        return self.update(id)
-    
-    def action_trash(self, id):
-        return self.trash(id)
-    
-    def action_remove(self, id):
-        return self.remove(id)
-    
-    def action_delete(self, id):
-        return self.delete(id)
-    
-    def action_destroy(self, id):
-        return self.destroy(id)
     
     @declared_attr
     def __url_list__(self):
         url = base_url(self.__application_name__+'/' + self.__table_name__) + '/'
         url_list = {
-            'index'   : url + 'index',
+            'index'   : url ,
             'list'    : url + 'list',
             'show'    : url + 'show',
             'new'     : url + 'new',
@@ -62,10 +28,20 @@ class Crud_Controller(object):
     
     @declared_attr
     def __table_name__(self):
-        if self.__table_name__ == '' and hasattr(self.__model__, '__tablename__'):
+        if hasattr(self.__model__, '__tablename__'):
             return self.__model__.__tablename__
         else:
             return ''
+    
+    @classmethod
+    def publish_route(cls):
+        obj = cls()
+        for method in obj.__url_list__:
+            url = obj.__url_list__[method]
+            slashed_url = add_trailing_slash(url)
+            unslashed_url = remove_trailing_slash(url)
+            route(slashed_url)(getattr(obj, method))
+            route(unslashed_url)(getattr(obj, method))
     
     def _setup_parameter(self):
         self._parameter = {'url_list': self.__url_list__}
@@ -84,6 +60,9 @@ class Crud_Controller(object):
     
     def _load_view(self, view):
         return load_view(self.__application_name__, self.__table_name__ + '/' + view, **self._parameter)
+    
+    def index(self):
+        return self.list()
     
     def list(self):
         ''' Show table '''
