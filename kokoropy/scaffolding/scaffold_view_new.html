@@ -12,6 +12,7 @@
 {% block content %}
     <h4>New g_table_name</h4>
     <form action="{{ url_list['create'] }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
+        <input type="hidden" name="__token" value="{{ __token }}" />
         {{! g_table_name.generated_html }}
         <!-- Form Control -->
         <div class="form-group">

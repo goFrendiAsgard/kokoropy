@@ -1,6 +1,7 @@
-from kokoropy import load_view, base_url, request, route, add_trailing_slash, remove_trailing_slash
+from kokoropy import load_view, base_url, request, route, get, post, put, delete, publish_methods
 from sqlalchemy.ext.declarative import declared_attr
-import math
+import inspect, math, random
+from kokoropy import var_dump
 
 class Crud_Controller(object):
     __model__               = None
@@ -36,16 +37,14 @@ class Crud_Controller(object):
     @classmethod
     def publish_route(cls):
         obj = cls()
-        for method in obj.__url_list__:
-            url = obj.__url_list__[method]
-            slashed_url = add_trailing_slash(url)
-            unslashed_url = remove_trailing_slash(url)
-            route(slashed_url)(getattr(obj, method))
-            route(unslashed_url)(getattr(obj, method))
+        method_names = cls.__url_list__.keys()
+        methods = []
+        for method_name in method_names:
+            methods.append((method_name, getattr(obj, method_name)))
+        publish_methods(cls.__application_name__, cls.__table_name__, methods)
     
     def _setup_parameter(self):
         self._parameter = {'url_list': self.__url_list__}
-        
     
     def _set_parameter(self, key, value):
         if not hasattr(self, '_parameter'):
@@ -60,6 +59,20 @@ class Crud_Controller(object):
     
     def _load_view(self, view):
         return load_view(self.__application_name__, self.__table_name__ + '/' + view, **self._parameter)
+    
+    def _token_key(self):
+        return '__token_' + self.__application_name__ + '_' + self.__table_name__
+    
+    def _set_token(self):
+        value = str.zfill(str(random.randrange(0,10000)), 5)
+        request.SESSION[self._token_key()] = value
+        return value
+    
+    def _is_token_match(self, token):
+        value = request.SESSION.pop(self._token_key(), '')
+        match = value == token
+        self._set_token()
+        return match
     
     def index(self):
         return self.list()
@@ -98,18 +111,25 @@ class Crud_Controller(object):
         # load the view
         self._setup_parameter()
         self._set_parameter(self.__table_name__, data)
+        self._set_parameter('__token', self._set_token())
         return self._load_view('new')
     
     def create(self):
         ''' Insert Action '''
-        data = self.__model__()
-        data.set_state_insert()
-        # put your code here
-        data.assign_from_dict(request.POST)
-        data.save()
-        # get result
-        success = data.success
-        error_message = data.error_message
+        token = request.POST.pop('__token', '')
+        if not self._is_token_match(token):
+            success = False
+            error_message = 'Invalid Token'
+            data = None
+        else:
+            data = self.__model__()
+            data.set_state_insert()
+            # put your code here
+            data.assign_from_dict(request.POST)
+            data.save()
+            # get result
+            success = data.success
+            error_message = data.error_message
         # load the view
         self._setup_parameter()
         self._set_parameter(self.__table_name__, data)
@@ -124,17 +144,24 @@ class Crud_Controller(object):
         # load the view
         self._setup_parameter()
         self._set_parameter(self.__table_name__, data)
+        self._set_parameter('__token', self._set_token())
         return self._load_view('edit')
     
     def update(self,id):
         ''' Update Action '''
-        data = self.__model__.find(id)
-        data.set_state_update()
-        # put your code here
-        data.assign_from_dict(request.POST)
-        data.save()
-        success = data.success
-        error_message = data.error_message
+        token = request.POST.pop('__token', '')
+        if not self._is_token_match(token):
+            success = False
+            error_message = 'Invalid Token'
+            data = None
+        else:
+            data = self.__model__.find(id)
+            data.set_state_update()
+            # put your code here
+            data.assign_from_dict(request.POST)
+            data.save()
+            success = data.success
+            error_message = data.error_message
         # load the view
         self._setup_parameter()
         self._set_parameter(self.__table_name__, data)
@@ -148,14 +175,21 @@ class Crud_Controller(object):
         # load the view
         self._setup_parameter()
         self._set_parameter(self.__table_name__, data)
+        self._set_parameter('__token', self._set_token())
         return self._load_view('show')
     
     def remove(self, id):
         ''' Trash Action '''
-        data = self.__model__.find(id)
-        data.trash()
-        success = data.success
-        error_message = data.error_message
+        token = request.POST.pop('__token', '')
+        if not self._is_token_match(token):
+            success = False
+            error_message = 'Invalid Token'
+            data = None
+        else:
+            data = self.__model__.find(id)
+            data.trash()
+            success = data.success
+            error_message = data.error_message
         # load the view
         self._setup_parameter()
         self._set_parameter(self.__table_name__, data)
@@ -169,14 +203,21 @@ class Crud_Controller(object):
         # load the view
         self._setup_parameter()
         self._set_parameter(self.__table_name__, data)
+        self._set_parameter('__token', self._set_token())
         return self._load_view('delete')
     
     def destroy(self, id):
         ''' Delete Action '''
-        data = self.__model__.find(id)
-        data.delete()
-        success = data.success
-        error_message = data.error_message
+        token = request.POST.pop('__token', '')
+        if not self._is_token_match(token):
+            success = False
+            error_message = 'Invalid Token'
+            data = None
+        else:
+            data = self.__model__.find(id)
+            data.delete()
+            success = data.success
+            error_message = data.error_message
         # load the view
         self._setup_parameter()
         self._set_parameter(self.__table_name__, data)

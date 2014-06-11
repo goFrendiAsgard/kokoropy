@@ -397,11 +397,14 @@ def _publish_methods(directory, controller, prefix, methods=[], publishers=[]):
     for method in methods:
         method_name = str(method[0])
         method_object = method[1]
-        name_segments = method_name.split("_")
-        # ignore functions without prefix
-        if not name_segments[0] == prefix:
-            continue 
-        method_published_name = "_".join(name_segments[1:])
+        if prefix == '':
+            method_published_name = method_name
+        else:
+            name_segments = method_name.split("_")
+            # ignore functions without prefix
+            if name_segments[0] != prefix:
+                continue 
+            method_published_name = "_".join(name_segments[1:])
         parameters = inspect.getargspec(method_object)[0][1:]
         routes = _get_routes(directory, controller, method_published_name, parameters)
         for single_route in routes:
@@ -604,7 +607,7 @@ def kokoro_init(**kwargs):
             if not autoroute_controller_found:
                 continue
             # make an instance of Default_Controller
-            autoroute_controller = Controller()            
+            autoroute_controller = Controller()
             methods = inspect.getmembers(autoroute_controller, inspect.ismethod)
             # publish all methods with REST prefix (get, post, put and delete)
             _publish_methods(application, controller, "get",    methods, [get]              )
@@ -916,3 +919,6 @@ def var_dump(variable = None, **kwargs):
     if print_output:
         print(result)
     return result
+
+def publish_methods(directory, controller, methods=[], publishers=[route, get, post, put, delete]):
+    _publish_methods(directory, controller, '', methods, publishers)

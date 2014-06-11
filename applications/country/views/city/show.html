@@ -1,0 +1,23 @@
+% rebase('country/views/base')
+% city.generate_detail_view()
+
+{% block style %}
+    {{! city.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! city.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Showing {{ city.quick_preview() }}</h4>
+   {{! city.generated_html }}
+   <div>
+        <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ city.id }}">
+            <i class="glyphicon glyphicon-pencil"></i> Edit city
+        </a>
+        <a href="{{ url_list['list'] }}" class="btn btn-default">
+            <i class="glyphicon glyphicon-th"></i> Back to List
+        </a>
+    </div>
+{% endblock %}

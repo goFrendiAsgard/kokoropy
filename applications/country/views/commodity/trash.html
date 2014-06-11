@@ -1,0 +1,15 @@
+% rebase('country/views/base')
+% commodity.generate_detail_view()
+
+{% block style %}
+    {{! commodity.generated_style }}
+{% endblock %}
+
+{% block script %}
+    {{! commodity.generated_script }}
+{% endblock %}
+
+{% block content %}
+    <h4>Are you sure want to remove {{ commodity.quick_preview() }}?</h4>
+    {{! commodity.generated_html }}
+{% endblock %}

@@ -8,6 +8,7 @@ from alembic.operations import Operations
 import datetime, time, json
 from kokoropy import Fore, Back, base_url
 import asset
+from kokoropy import var_dump
 
 # initialize logger
 import logging
@@ -36,31 +37,31 @@ class Model(Base):
     __prefix_of_id__        = '%Y%m%d-'
     __digit_num_of_id__     = 3
     # columns to be shown
-    __shown_column__            = []
-    __form_column__             = []
-    __insert_column__           = []
-    __update_column__           = []
-    __virtual_shown_column__    = []
-    __virtual_form_column__     = []
-    __virtual_insert_column__   = []
-    __virtual_update_column__   = []
-    __excluded_shown_column__   = []
-    __excluded_form_column__    = []
-    __excluded_insert_column__  = []
-    __excluded_update_column__  = []
+    __shown_column__            = None
+    __form_column__             = None
+    __insert_column__           = None
+    __update_column__           = None
+    __virtual_shown_column__    = None
+    __virtual_form_column__     = None
+    __virtual_insert_column__   = None
+    __virtual_update_column__   = None
+    __excluded_shown_column__   = None
+    __excluded_form_column__    = None
+    __excluded_insert_column__  = None
+    __excluded_update_column__  = None
     # columns to be shown on tabular
-    __tabular_shown_column__            = []
-    __tabular_form_column__             = []
-    __tabular_insert_column__           = []
-    __tabular_update_column__           = []
-    __tabular_virtual_shown_column__    = []
-    __tabular_virtual_form_column__     = []
-    __tabular_virtual_insert_column__   = []
-    __tabular_virtual_update_column__   = []
-    __tabular_excluded_shown_column__   = []
-    __tabular_excluded_form_column__    = []
-    __tabular_excluded_insert_column__  = []
-    __tabular_excluded_update_column__  = []
+    __tabular_shown_column__            = None
+    __tabular_form_column__             = None
+    __tabular_insert_column__           = None
+    __tabular_update_column__           = None
+    __tabular_virtual_shown_column__    = None
+    __tabular_virtual_form_column__     = None
+    __tabular_virtual_insert_column__   = None
+    __tabular_virtual_update_column__   = None
+    __tabular_excluded_shown_column__   = None
+    __tabular_excluded_form_column__    = None
+    __tabular_excluded_insert_column__  = None
+    __tabular_excluded_update_column__  = None
     # columns to be shown on one to many
     __detail_shown_column__             = {}
     __detail_form_column__              = {}
@@ -75,9 +76,9 @@ class Model(Base):
     __detail_excluded_insert_column__   = {}
     __detail_excluded_update_column__   = {}
     # automatic assigned columns
-    __automatic_assigned_column__ = []
-    __automatic_assigned_insert_column__ = []
-    __automatic_assigned_update_column__ = []
+    __automatic_assigned_column__        = None
+    __automatic_assigned_insert_column__ = None
+    __automatic_assigned_update_column__ = None
     
     @declared_attr
     def __tablename__(self):
@@ -128,8 +129,8 @@ class Model(Base):
             virtual_column_list_priorities = [self.__virtual_update_column__, self.__virtual_form_column__]
         else:
             column_list_priorities = [self.__shown_column__]
-            excluded_column_list_priorities = [self.__excluded_column__]
-            virtual_column_list_priorities = [self.__virtual_column__]
+            excluded_column_list_priorities = [self.__excluded_shown_column__]
+            virtual_column_list_priorities = [self.__virtual_shown_column__]
         # assign default value to column_list
         for config_list in column_list_priorities:
             if len(config_list) > 0:
@@ -271,7 +272,7 @@ class Model(Base):
         if self.__automatic_assigned_column__ is not None:
             automatic_assigned_column = self.__automatic_assigned_column__
         else:
-            automatic_assigned_column = self._form_column
+            automatic_assigned_column = self._column_list
         return automatic_assigned_column
     
     @property
@@ -1006,12 +1007,12 @@ class Model(Base):
             if self.__tabular_shown_column__ is not None:
                 column_names = self.__tabular_shown_column__
             else:
-                column_names = self._shown_column
+                column_names = self._column_list
         elif state == 'form':
             if self.__tabular_form_column__ is not None:
                 column_names = self.__tabular_form_column__
             else:
-                column_names = self._form_column
+                column_names = self._column_list
         return column_names
     
     def generate_tabular_label(self, **kwargs):
