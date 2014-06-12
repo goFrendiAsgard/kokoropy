@@ -8,7 +8,6 @@ from alembic.operations import Operations
 import datetime, time, json
 from kokoropy import Fore, Back, base_url
 import asset
-from kokoropy import var_dump
 
 # initialize logger
 import logging
@@ -133,7 +132,7 @@ class Model(Base):
             virtual_column_list_priorities = [self.__virtual_shown_column__]
         # assign default value to column_list
         for config_list in column_list_priorities:
-            if len(config_list) > 0:
+            if config_list is not None:
                 column_list = config_list
                 break
         if len(column_list) == 0:
@@ -148,13 +147,13 @@ class Model(Base):
             column_list = new_column_list
         # add virtual_columns
         for config_list in virtual_column_list_priorities:
-            if len(config_list) > 0:
+            if config_list is not None:
                 virtual_column_list = config_list
                 break
         column_list += virtual_column_list
         # remove excluded_columns
         for config_list in excluded_column_list_priorities:
-            if len(config_list) > 0:
+            if config_list is not None:
                 excluded_column_list = config_list
                 break
         for column_name in excluded_column_list:
@@ -185,20 +184,20 @@ class Model(Base):
             virtual_column_list_priorities = [self.__tabular_virtual_column__]
         # assign default value to column_list
         for config_list in column_list_priorities:
-            if len(config_list) > 0:
+            if config_list is not None:
                 column_list = config_list
                 break
         if len(column_list) == 0:
             column_list = self._column_list
         # add virtual_columns
         for config_list in virtual_column_list_priorities:
-            if len(config_list) > 0:
+            if config_list is not None:
                 virtual_column_list = config_list
                 break
         column_list += virtual_column_list
         # remove excluded_columns
         for config_list in excluded_column_list_priorities:
-            if len(config_list) > 0:
+            if config_list is not None:
                 excluded_column_list = config_list
                 break
         for column_name in excluded_column_list:

@@ -1,6 +1,6 @@
-from kokoropy import load_view, base_url, request, route, get, post, put, delete, publish_methods
+from kokoropy import load_view, base_url, request, publish_methods, load_template, application_path, file_get_contents
 from sqlalchemy.ext.declarative import declared_attr
-import inspect, math, random
+import math, random, os
 from kokoropy import var_dump
 
 class Crud_Controller(object):
@@ -54,11 +54,20 @@ class Crud_Controller(object):
     def _get_parameter(self, key):
         if not hasattr(self, '_parameter'):
             self._setup_parameter()
-        if key in self.__parameter:
+        if key in self._parameter:
             return self._parameter[key]
     
     def _load_view(self, view):
-        return load_view(self.__application_name__, self.__table_name__ + '/' + view, **self._parameter)
+        if os.path.exists(application_path(os.path.join(self.__application_name__, 'views', self.__table_name__, view))):
+            return load_view(self.__application_name__, self.__table_name__ + '/' + view, **self._parameter)
+        else:
+            content = ''
+            content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_' + view + '.html'))
+            content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_' + view + '.html'))
+            content = content.replace('G_Table_Name', self.__table_name__.title())
+            content = content.replace('g_table_name', self.__table_name__)
+            content = content.replace('g_application_name', self.__application_name__)
+            return load_template(content, **self._parameter)
     
     def _token_key(self):
         return '__token_' + self.__application_name__ + '_' + self.__table_name__

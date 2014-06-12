@@ -286,7 +286,6 @@ def scaffold_crud(application_name, table_name, *columns):
         # controller
         content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_controller.py'))
         content = content.replace('g_model_module', model_module)
-        content = content.replace('G_Table_Name_List', ucase_table_name_list)
         content = content.replace('G_Table_Name', ucase_table_name)
         content = content.replace('g_table_name', table_name)
         content = content.replace('g_application_name', application_name)
@@ -299,12 +298,15 @@ def scaffold_crud(application_name, table_name, *columns):
         view_directory = application_path(os.path.join(application_name, 'views', table_name))
         if not os.path.isdir(view_directory):
             makedirs(view_directory)
+        # make readme
+        content = 'To use custom view, please rename *.example.html into *.html and modify the file'
+        file_put_contents(os.path.join(view_directory, '_README.txt'), content)
         for view in view_list:
-            content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_' + view + '.html'))    
+            content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_' + view + '.html'))
             content = content.replace('G_Table_Name', ucase_table_name)
             content = content.replace('g_table_name', table_name)
             content = content.replace('g_application_name', application_name)
-            filename = view + '.html'
+            filename = view + '.example.html'
             filename = os.path.join(view_directory, filename)
             # write file
             file_put_contents(filename, content)

@@ -94,22 +94,19 @@ class Autoroute_Controller(object):
     pass
 
 # load view
-def load_view(application_name, view_name, *args, **kwargs):
-    args_list = list(args)
-    args_list.insert(0, os.path.join(application_name , "views" , view_name))
-    # get view_path (relative to template path
-    if not request.BASE_URL is None:
-        kwargs['BASE_URL'] = request.BASE_URL
+def load_view(application_name, *args, **kwargs):
+    ''' Usage:
+    load_view('application_name', 'view_name', ....)
+    load_view('application_name/view_name', ....)
+    '''
+    # determine view_path
+    if '/' in application_name:
+        # if application_name has '/', then view_name is mean to be the first element of args
+        view_path = application_name
     else:
-        kwargs['BASE_URL'] = base_url()
-    kwargs['RUNTIME_PATH']      = runtime_path()
-    kwargs['app_path']  = application_path()
-    # adjust args[0], add "'views' if it is not exits
-    path_list = list(args_list[0].split('/'))
-    if len(path_list) >= 2 and path_list[1] != 'views':
-        path_list = [path_list[0],] + ['views',] + path_list[1:]
-    # get view_path
-    view_path = os.path.join(*path_list)    
+        view_name = args[0]
+        args = args[1:]
+        view_path = os.path.join(application_name , "views" , view_name)
     # get template's content
     default_extensions = ['html', 'tpl', 'stpl', 'thtml']
     extension = view_path.split('.')[-1]
@@ -124,19 +121,31 @@ def load_view(application_name, view_name, *args, **kwargs):
                 if os.path.exists(path):
                     break
     content = file_get_contents(path)
-    # add \n to prevent content rendered as path
-    if not '\n' in content:
-        content = content + '\n'
+    return load_template(content, *args, **kwargs)
+
+def load_template(template, *args, **kwargs):
+    # modify kwargs
+    if not request.BASE_URL is None:
+        kwargs['BASE_URL'] = request.BASE_URL
+    else:
+        kwargs['BASE_URL'] = base_url()
+    kwargs['RUNTIME_PATH']      = runtime_path()
+    kwargs['app_path']  = application_path()
+    # modify args
+    args_list = list(args)
+    # add \n to prevent template rendered as path
+    if not '\n' in template:
+        template = template + '\n'
     # create block pattern
     block_pattern = r'{%( *)block( *)([A-Za-z0-9_-]*)( *)%}((.|\n)*?){%( *)endblock( *)%}+?'
     # get block_chunks
-    block_chunks = re.findall(block_pattern, content)
-    # remove all literal block from content
-    content = re.sub(block_pattern, r'', content)
-    # get content by rendering template
-    args_list[0] = content
+    block_chunks = re.findall(block_pattern, template)
+    # remove all literal block from template
+    template = re.sub(block_pattern, r'', template)
+    # get template by rendering content
+    args_list.insert(0, template)
     args = tuple(args_list)
-    content = _bottle_template(*args, **kwargs)
+    template = _bottle_template(*args, **kwargs)
     for chunk in block_chunks:
         block_name = chunk[2]
         block_content = chunk[4]
@@ -144,7 +153,7 @@ def load_view(application_name, view_name, *args, **kwargs):
         block_content = re.sub(r'{%( *)parent( *)%}+?',
                                r'\n% __base_block_'+block_name+'()\n',
                                block_content)
-        content = '% def __block_' + block_name + '():\n' + block_content + '\n% end\n' + content
+        template = '\n% def __block_' + block_name + '():\n' + block_content + '\n% end\n' + template
     # change 
     #    {% block X %}Y{% endblock %}" 
     # into 
@@ -153,13 +162,13 @@ def load_view(application_name, view_name, *args, **kwargs):
     #     % end
     #     % setdefault('__block_X', __base_block_X)
     #     % __block_X()
-    content = re.sub(block_pattern, 
+    template = re.sub(block_pattern, 
                      r'\n% def __base_block_\3():\n\5\n% end\n% setdefault("__block_\3", __base_block_\3)\n%__block_\3()\n',
-                     content)
+                     template)
     # render again
-    args_list[0] = content
+    args_list[0] = template
     args = tuple(args_list)
-    content = _bottle_template(*args, **kwargs)
+    template = _bottle_template(*args, **kwargs)
     return _bottle_template(*args, **kwargs)
 
 # This class serve kokoropy static files routing & some injection into request object
