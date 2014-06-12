@@ -10,7 +10,20 @@
 {% endblock %}
 
 {% block content %}
-    <h4>Are you sure want to delete {{ g_table_name.quick_preview() }}?</h4>
+    <h4>Are you sure to delete {{ g_table_name.quick_preview() }}?</h4>
+    <div class="alert alert-danger">
+        <b>Warning</b> This action is unrecoverable
+    </div>
     {{! g_table_name.generated_html }}
-    <div class="alert alert-danger">This action is not recoverable</div>
+    <div>
+        <form action="{{ url_list['destroy'] }}/{{ g_table_name.id }}" method="post">
+            <input type="hidden" name="__token" value="{{ __token }}" />
+            <button type="submit" class="btn btn-danger">
+                <i class="glyphicon glyphicon-remove-sign"></i> Delete
+            </button>
+            <a href="{{ url_list['list'] }}" class="btn btn-default">
+                <i class="glyphicon glyphicon-th"></i> Cancel
+            </a>
+        </form>
+    </div>
 {% endblock %}

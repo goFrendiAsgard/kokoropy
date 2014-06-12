@@ -10,6 +10,17 @@
 {% endblock %}
 
 {% block content %}
-    <h4>Are you sure want to remove {{ g_table_name.quick_preview() }}?</h4>
+    <h4>Are you sure to remove {{ g_table_name.quick_preview() }}?</h4>
     {{! g_table_name.generated_html }}
+    <div>
+        <form action="{{ url_list['destroy'] }}/{{ g_table_name.id }}" method="post">
+            <input type="hidden" name="__token" value="{{ __token }}" />
+            <button type="submit" class="btn btn-default">
+                <i class="glyphicon glyphicon-trash"></i> Remove
+            </button>
+            <a href="{{ url_list['list'] }}" class="btn btn-default">
+                <i class="glyphicon glyphicon-th"></i> Cancel
+            </a>
+        </form>
+    </div>
 {% endblock %}

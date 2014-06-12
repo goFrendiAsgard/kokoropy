@@ -3,11 +3,21 @@ from sqlalchemy.ext.declarative import declared_attr
 import math, random, os
 from kokoropy import var_dump
 
-class Crud_Controller(object):
+class Multi_Language_Controller(object):
+    
+    def preprocess_content(self, content):
+        return content
+    
+    def load_view(self, application_name, view_name, *args, **kwargs):
+        # get content
+        content = load_view(application_name, view_name, *args, **kwargs)
+        # preprocess
+        return self.preprocess_content(content)
+
+class Crud_Controller(Multi_Language_Controller):
     __model__               = None
     __application_name__    = ''
     __view_directory__      = ''
-    
     
     @declared_attr
     def __url_list__(self):
@@ -34,6 +44,17 @@ class Crud_Controller(object):
         else:
             return ''
     
+    @declared_attr
+    def __caption__(self):
+        if hasattr(self.__model__, '__caption__'):
+            return self.__model__.__caption__
+        else:
+            return ''
+    
+    @declared_attr
+    def __row_per_page__(self):
+        return 5;
+    
     @classmethod
     def publish_route(cls):
         obj = cls()
@@ -43,30 +64,48 @@ class Crud_Controller(object):
             methods.append((method_name, getattr(obj, method_name)))
         publish_methods(cls.__application_name__, cls.__table_name__, methods)
     
-    def _setup_parameter(self):
-        self._parameter = {'url_list': self.__url_list__}
+    def _setup_view_parameter(self):
+        self._view_parameter = {
+                'url_list': self.__url_list__,
+                'caption' : self.__caption__
+            }
     
-    def _set_parameter(self, key, value):
-        if not hasattr(self, '_parameter'):
-            self._setup_parameter()
-        self._parameter[key] = value
+    def _set_view_parameter(self, key, value):
+        if not hasattr(self, '_view_parameter'):
+            self._setup_view_parameter()
+        self._view_parameter[key] = value
     
-    def _get_parameter(self, key):
-        if not hasattr(self, '_parameter'):
-            self._setup_parameter()
-        if key in self._parameter:
-            return self._parameter[key]
+    def _get_view_parameter(self, key):
+        if not hasattr(self, '_view_parameter'):
+            self._setup_view_parameter()
+        if key in self._view_parameter:
+            return self._view_parameter[key]
     
     def _load_view(self, view):
         if os.path.exists(application_path(os.path.join(self.__application_name__, 'views', self.__table_name__, view))):
-            return load_view(self.__application_name__, self.__table_name__ + '/' + view, **self._parameter)
+            # normal load_view (if view exists)
+            content = load_view(self.__application_name__, self.__table_name__ + '/' + view, **self._view_parameter)
         else:
+            # take default key content
             content = ''
             content = file_get_contents(os.path.join(os.path.dirname(__file__), 'views', view + '.html'))
             content = content.replace('G_Table_Name', self.__table_name__.title())
             content = content.replace('g_table_name', self.__table_name__)
             content = content.replace('g_application_name', self.__application_name__)
-            return load_template(content, **self._parameter)
+            # do load_template
+            content = load_template(content, **self._view_parameter)
+        return self.preprocess_content(content)
+    
+    def load_view(self, application_name, view_name, *args, **kwargs):
+        # add some default view parameter to kwargs
+        if not hasattr(self, '_view_parameter'):
+            self._setup_view_parameter()
+        for key in self._view_parameter:
+            if key not in kwargs:
+                kwargs[key] = self._get_view_parameter(key)
+        # call Multi_Language_Controller's load_view
+        content = Multi_Language_Controller.load_view(self, application_name, view_name, *args, **kwargs)
+        return content
     
     def _token_key(self):
         return '__token_' + self.__application_name__ + '_' + self.__table_name__
@@ -90,17 +129,17 @@ class Crud_Controller(object):
         # get page index
         current_page = int(request.GET['page']) if 'page' in request.GET else 1
         # determine limit and offset
-        limit = 50
+        limit = self.__row_per_page__
         offset = (current_page-1) * limit
         # get the data
         data_list = self.__model__.get(limit = limit, offset = offset)
         # calculate page count
         page_count = int(math.ceil(float(self.__model__.count())/limit))
         # load the view
-        self._setup_parameter()
-        self._set_parameter(self.__table_name__+'_list', data_list)
-        self._set_parameter('current_page', current_page)
-        self._set_parameter('page_count', page_count)
+        self._setup_view_parameter()
+        self._set_view_parameter(self.__table_name__+'_list', data_list)
+        self._set_view_parameter('current_page', current_page)
+        self._set_view_parameter('page_count', page_count)
         return self._load_view('list')
     
     def show(self, id):
@@ -108,8 +147,8 @@ class Crud_Controller(object):
         data = self.__model__.find(id)
         data.set_state_show()
         # load the view
-        self._setup_parameter()
-        self._set_parameter(self.__table_name__, data)
+        self._setup_view_parameter()
+        self._set_view_parameter(self.__table_name__, data)
         return self._load_view('show')
     
     def new(self):
@@ -117,9 +156,9 @@ class Crud_Controller(object):
         data = self.__model__()
         data.set_state_insert()
         # load the view
-        self._setup_parameter()
-        self._set_parameter(self.__table_name__, data)
-        self._set_parameter('__token', self._set_token())
+        self._setup_view_parameter()
+        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter('__token', self._set_token())
         return self._load_view('new')
     
     def create(self):
@@ -139,10 +178,10 @@ class Crud_Controller(object):
             success = data.success
             error_message = data.error_message
         # load the view
-        self._setup_parameter()
-        self._set_parameter(self.__table_name__, data)
-        self._set_parameter('success', success)
-        self._set_parameter('error_message', error_message)
+        self._setup_view_parameter()
+        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter('success', success)
+        self._set_view_parameter('error_message', error_message)
         return self._load_view('create')
     
     def edit(self, id):
@@ -150,9 +189,9 @@ class Crud_Controller(object):
         data = self.__model__.find(id)
         data.set_state_update()
         # load the view
-        self._setup_parameter()
-        self._set_parameter(self.__table_name__, data)
-        self._set_parameter('__token', self._set_token())
+        self._setup_view_parameter()
+        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter('__token', self._set_token())
         return self._load_view('edit')
     
     def update(self,id):
@@ -171,19 +210,19 @@ class Crud_Controller(object):
             success = data.success
             error_message = data.error_message
         # load the view
-        self._setup_parameter()
-        self._set_parameter(self.__table_name__, data)
-        self._set_parameter('success', success)
-        self._set_parameter('error_message', error_message)
+        self._setup_view_parameter()
+        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter('success', success)
+        self._set_view_parameter('error_message', error_message)
         return self._load_view('update')
     
     def trash(self, id):
         ''' Trash Form '''
         data = self.__model__.find(id)
         # load the view
-        self._setup_parameter()
-        self._set_parameter(self.__table_name__, data)
-        self._set_parameter('__token', self._set_token())
+        self._setup_view_parameter()
+        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter('__token', self._set_token())
         return self._load_view('show')
     
     def remove(self, id):
@@ -199,19 +238,19 @@ class Crud_Controller(object):
             success = data.success
             error_message = data.error_message
         # load the view
-        self._setup_parameter()
-        self._set_parameter(self.__table_name__, data)
-        self._set_parameter('success', success)
-        self._set_parameter('error_message', error_message)
+        self._setup_view_parameter()
+        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter('success', success)
+        self._set_view_parameter('error_message', error_message)
         return self._load_view('remove')
     
     def delete(self, id):
         ''' Delete Form '''
         data = self.__model__.find(id)
         # load the view
-        self._setup_parameter()
-        self._set_parameter(self.__table_name__, data)
-        self._set_parameter('__token', self._set_token())
+        self._setup_view_parameter()
+        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter('__token', self._set_token())
         return self._load_view('delete')
     
     def destroy(self, id):
@@ -227,8 +266,8 @@ class Crud_Controller(object):
             success = data.success
             error_message = data.error_message
         # load the view
-        self._setup_parameter()
-        self._set_parameter(self.__table_name__, data)
-        self._set_parameter('success', success)
-        self._set_parameter('error_message', error_message)
+        self._setup_view_parameter()
+        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter('success', success)
+        self._set_view_parameter('error_message', error_message)
         return self._load_view('destroy')

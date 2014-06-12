@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block content %}
-    <h4>Editing {{ g_table_name.quick_preview() }}</h4>
+    <h4>Editing {{ caption }} : {{ g_table_name.quick_preview() }}</h4>
     <form action="{{ url_list['update'] }}/{{ g_table_name.id }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
         <input type="hidden" name="__token" value="{{ __token }}" />
         {{! g_table_name.generated_html }}
@@ -21,7 +21,7 @@
                     <i class="glyphicon glyphicon-floppy-disk"></i> Save
                 </button>
                 <a href="{{ url_list['list'] }}" class="btn btn-default">
-                    <i class="glyphicon glyphicon-th"></i> Cancel and Go Back to List
+                    <i class="glyphicon glyphicon-th"></i> Cancel
                 </a>
             </div>
         </div>

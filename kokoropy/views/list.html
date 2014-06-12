@@ -1,9 +1,17 @@
 % rebase('g_application_name/views/base')
 {% block content %}
-    <h2>g_table_name list</h2>
+    <h2>{{ caption }} List</h2>
+    <ul class="pagination">
+    % for i in range(page_count):
+        % page = str(i+1)
+        <li class="{{ 'active' if str(current_page) == page else ''}}">
+            <a href="{{ url_list['list'] + '?page=' + page }}">{{ page }}</a>
+        </li>
+    % end
+    </ul>
     <div class="pull-right">
         <a class="btn btn-default" href="{{ url_list["new"] }}">
-            <i class="glyphicon glyphicon-plus"></i> New g_table_name
+            <i class="glyphicon glyphicon-plus"></i> New {{ caption }}
         </a>
     </div>
     <table class="table table-striped">

@@ -84,6 +84,11 @@ class Model(Base):
         # self is refered to class, not "this"
         return self.__name__.lower()
     
+    @declared_attr
+    def __caption__(self):
+        table_name = self.__tablename__
+        return table_name.replace('_', ' ').title()
+    
     @property
     def state(self):
         if self.__state__ is None:
@@ -996,6 +1001,9 @@ class Model(Base):
         '''
         Quick preview of record, override this
         '''
+        column_list = self._column_list
+        if len(column_list) >1:
+            return getattr(self, column_list[1])
         return self.id
     
     def _get_tabular_column_names_by_state(self, state = None):

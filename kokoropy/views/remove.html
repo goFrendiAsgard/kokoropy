@@ -1,7 +1,7 @@
 % rebase('g_application_name/views/base')
 
 {% block content %}
-    <h4>Remove g_table_name</h4>
+    <h4>Remove {{ caption }}</h4>
     <div class="alert {{ 'alert-success' if success else 'alert-danger' }}">
         % if error_message != '':
             <b>Error : </b>
@@ -9,13 +9,13 @@
         % else:
             <b>Success !!!</b>
         % end
-        <div>
-            <a class="btn btn-default" href="{{ url_list["new"] }}">
-                <i class="glyphicon glyphicon-plus"></i> Insert new g_table_name
-            </a>
-            <a href="{{ url_list['list'] }}" class="btn btn-default">
-                <i class="glyphicon glyphicon-th"></i> Back to List
-            </a>
-        </div>
+    </div>
+    <div>
+        <a class="btn btn-default" href="{{ url_list["new"] }}">
+            <i class="glyphicon glyphicon-plus"></i> Insert new g_table_name
+        </a>
+        <a href="{{ url_list['list'] }}" class="btn btn-default">
+            <i class="glyphicon glyphicon-th"></i> Back to List
+        </a>
     </div>
 {% endblock %}
