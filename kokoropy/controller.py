@@ -62,8 +62,7 @@ class Crud_Controller(object):
             return load_view(self.__application_name__, self.__table_name__ + '/' + view, **self._parameter)
         else:
             content = ''
-            content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_' + view + '.html'))
-            content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_' + view + '.html'))
+            content = file_get_contents(os.path.join(os.path.dirname(__file__), 'views', view + '.html'))
             content = content.replace('G_Table_Name', self.__table_name__.title())
             content = content.replace('g_table_name', self.__table_name__)
             content = content.replace('g_application_name', self.__application_name__)

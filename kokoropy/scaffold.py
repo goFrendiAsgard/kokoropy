@@ -302,7 +302,7 @@ def scaffold_crud(application_name, table_name, *columns):
         content = 'To use custom view, please rename *.example.html into *.html and modify the file'
         file_put_contents(os.path.join(view_directory, '_README.txt'), content)
         for view in view_list:
-            content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_view_' + view + '.html'))
+            content = file_get_contents(os.path.join(os.path.dirname(__file__), 'views', view + '.html'))
             content = content.replace('G_Table_Name', ucase_table_name)
             content = content.replace('g_table_name', table_name)
             content = content.replace('g_application_name', application_name)
