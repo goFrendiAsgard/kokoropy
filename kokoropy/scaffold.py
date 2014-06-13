@@ -299,8 +299,11 @@ def scaffold_crud(application_name, table_name, *columns):
         if not os.path.isdir(view_directory):
             makedirs(view_directory)
         # make readme
-        content = 'To use custom view, please rename *.example.html into *.html and modify the file'
+        content = 'You can make your own custom file by providing : \n'
+        for view in view_list:
+            content += '* %s.html\n' %(view)
         file_put_contents(os.path.join(view_directory, '_README.txt'), content)
+        '''
         for view in view_list:
             content = file_get_contents(os.path.join(os.path.dirname(__file__), 'views', view + '.html'))
             content = content.replace('G_Table_Name', ucase_table_name)
@@ -310,3 +313,4 @@ def scaffold_crud(application_name, table_name, *columns):
             filename = os.path.join(view_directory, filename)
             # write file
             file_put_contents(filename, content)
+        '''

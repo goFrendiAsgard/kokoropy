@@ -54,9 +54,11 @@ def default_script():
                 '});' +\
                 '$("._integer-input").spinner();' +\
             '}' + '\n' +\
-            '_mutate_input();' +\
-            '$("._new_row").live("click", function(event){' +\
+            '$(document).ready(function(){'+\
                 '_mutate_input();' +\
+                '$("._new_row").live("click", function(event){' +\
+                    '_mutate_input();' +\
+                '});' +\
             '});' +\
         '</script>'
     return generated_script

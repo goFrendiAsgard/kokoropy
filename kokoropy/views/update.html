@@ -9,18 +9,18 @@
         % else:
             <b>Success !!!</b>
         % end
-        <div>
-            <a class="btn btn-default" href="{{ url_list["new"] }}">
-                <i class="glyphicon glyphicon-plus"></i> Insert another g_table_name
+    </div>
+    <div>
+        <a class="btn btn-default" href="{{ url_list["new"] }}">
+            <i class="glyphicon glyphicon-plus"></i> Insert {{ caption }}
+        </a>
+        % if success:
+            <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ g_table_name.id }}">
+                <i class="glyphicon glyphicon-pencil"></i> Edit {{ caption }}
             </a>
-            % if success:
-                <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ g_table_name.id }}">
-                    <i class="glyphicon glyphicon-pencil"></i> Edit g_table_name again
-                </a>
-            % end
-            <a href="{{ url_list['list'] }}" class="btn btn-default">
-                <i class="glyphicon glyphicon-th"></i> Back to List
-            </a>
-        </div>
+        % end
+        <a href="{{ url_list['list'] }}" class="btn btn-default">
+            <i class="glyphicon glyphicon-th"></i> Back to List
+        </a>
     </div>
 {% endblock %}

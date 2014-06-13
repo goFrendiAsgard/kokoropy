@@ -1,6 +1,8 @@
-from kokoropy import load_view, base_url, request, publish_methods, load_template, application_path, file_get_contents
+from kokoropy import load_view, base_url, request, publish_methods, load_template, \
+    application_path, file_get_contents
 from sqlalchemy.ext.declarative import declared_attr
-import math, random, os
+import math, random, os, json
+from model import Model
 from kokoropy import var_dump
 
 class Multi_Language_Controller(object):
@@ -41,15 +43,13 @@ class Crud_Controller(Multi_Language_Controller):
     def __table_name__(self):
         if hasattr(self.__model__, '__tablename__'):
             return self.__model__.__tablename__
-        else:
-            return ''
+        return ''
     
     @declared_attr
     def __caption__(self):
         if hasattr(self.__model__, '__caption__'):
             return self.__model__.__caption__
-        else:
-            return ''
+        return ''
     
     @declared_attr
     def __row_per_page__(self):
@@ -75,16 +75,42 @@ class Crud_Controller(Multi_Language_Controller):
             self._setup_view_parameter()
         self._view_parameter[key] = value
     
-    def _get_view_parameter(self, key):
+    def _get_view_parameter(self, key = None):
         if not hasattr(self, '_view_parameter'):
             self._setup_view_parameter()
-        if key in self._view_parameter:
+        if key is None:
+            return self._view_parameter
+        elif key in self._view_parameter:
             return self._view_parameter[key]
+    
+    def _get_view_parameter_as_json(self, key = None):
+        # change everything to isoformat to prevent error
+        dct = {}
+        for key in self._get_view_parameter(key):
+            value = self._get_view_parameter(key)
+            if isinstance(value, Model):
+                value = value.to_dict(isoformat = True)
+            elif isinstance(value, list):
+                new_value = []
+                for item in value:
+                    if isinstance(item, Model):
+                        item = item.to_dict(isoformat = True)
+                    elif hasattr(value, 'isoformat'):
+                        item = item.isoformat()
+                    new_value.append(item)
+                value = new_value
+            elif hasattr(value, 'isoformat'):
+                value = value.isoformat()
+            dct[key] = value
+        # message should be translated
+        if 'message' in dct:
+            dct['message'] = self.preprocess_content(dct['message'])
+        return json.dumps(dct)
     
     def _load_view(self, view):
         if os.path.exists(application_path(os.path.join(self.__application_name__, 'views', self.__table_name__, view))):
             # normal load_view (if view exists)
-            content = load_view(self.__application_name__, self.__table_name__ + '/' + view, **self._view_parameter)
+            content = load_view(self.__application_name__, self.__table_name__ + '/' + view, **self._get_view_parameter())
         else:
             # take default key content
             content = ''
@@ -93,7 +119,7 @@ class Crud_Controller(Multi_Language_Controller):
             content = content.replace('g_table_name', self.__table_name__)
             content = content.replace('g_application_name', self.__application_name__)
             # do load_template
-            content = load_template(content, **self._view_parameter)
+            content = load_template(content, **self._get_view_parameter())
         return self.preprocess_content(content)
     
     def load_view(self, application_name, view_name, *args, **kwargs):
@@ -142,10 +168,11 @@ class Crud_Controller(Multi_Language_Controller):
         self._set_view_parameter('page_count', page_count)
         return self._load_view('list')
     
-    def show(self, id):
+    def show(self, id=None):
         ''' Show One Record '''
         data = self.__model__.find(id)
-        data.set_state_show()
+        if data is not None:
+            data.set_state_show()
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__, data)
@@ -182,19 +209,24 @@ class Crud_Controller(Multi_Language_Controller):
         self._set_view_parameter(self.__table_name__, data)
         self._set_view_parameter('success', success)
         self._set_view_parameter('error_message', error_message)
+        # if ajax request (or explicitly request response to be json)
+        if request.is_xhr or request.POST.pop('__as_json', False):
+            self._set_view_parameter('__token', self._set_token())
+            return self._get_view_parameter_as_json()
         return self._load_view('create')
     
-    def edit(self, id):
+    def edit(self, id = None):
         ''' Update Form '''
         data = self.__model__.find(id)
-        data.set_state_update()
+        if data is not None:
+            data.set_state_update()
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__, data)
         self._set_view_parameter('__token', self._set_token())
         return self._load_view('edit')
     
-    def update(self,id):
+    def update(self,id = None):
         ''' Update Action '''
         token = request.POST.pop('__token', '')
         if not self._is_token_match(token):
@@ -203,20 +235,28 @@ class Crud_Controller(Multi_Language_Controller):
             data = None
         else:
             data = self.__model__.find(id)
-            data.set_state_update()
-            # put your code here
-            data.assign_from_dict(request.POST)
-            data.save()
-            success = data.success
-            error_message = data.error_message
+            if data is not None:
+                data.set_state_update()
+                # put your code here
+                data.assign_from_dict(request.POST)
+                data.save()
+                success = data.success
+                error_message = data.error_message
+            else:
+                success = False
+                error_message = 'Data Not Found'
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__, data)
         self._set_view_parameter('success', success)
         self._set_view_parameter('error_message', error_message)
+        # if ajax request (or explicitly request response to be json)
+        if request.is_xhr or request.POST.pop('__as_json', False):
+            self._set_view_parameter('__token', self._set_token())
+            return self._get_view_parameter_as_json()
         return self._load_view('update')
     
-    def trash(self, id):
+    def trash(self, id = None):
         ''' Trash Form '''
         data = self.__model__.find(id)
         # load the view
@@ -225,7 +265,7 @@ class Crud_Controller(Multi_Language_Controller):
         self._set_view_parameter('__token', self._set_token())
         return self._load_view('show')
     
-    def remove(self, id):
+    def remove(self, id = None):
         ''' Trash Action '''
         token = request.POST.pop('__token', '')
         if not self._is_token_match(token):
@@ -234,17 +274,25 @@ class Crud_Controller(Multi_Language_Controller):
             data = None
         else:
             data = self.__model__.find(id)
-            data.trash()
-            success = data.success
-            error_message = data.error_message
+            if data is not None:
+                data.trash()
+                success = data.success
+                error_message = data.error_message
+            else:
+                success = False
+                error_message = 'Data Not Found'
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__, data)
         self._set_view_parameter('success', success)
         self._set_view_parameter('error_message', error_message)
+        # if ajax request (or explicitly request response to be json)
+        if request.is_xhr or request.POST.pop('__as_json', False):
+            self._set_view_parameter('__token', self._set_token())
+            return self._get_view_parameter_as_json()
         return self._load_view('remove')
     
-    def delete(self, id):
+    def delete(self, id=None):
         ''' Delete Form '''
         data = self.__model__.find(id)
         # load the view
@@ -253,7 +301,7 @@ class Crud_Controller(Multi_Language_Controller):
         self._set_view_parameter('__token', self._set_token())
         return self._load_view('delete')
     
-    def destroy(self, id):
+    def destroy(self, id=None):
         ''' Delete Action '''
         token = request.POST.pop('__token', '')
         if not self._is_token_match(token):
@@ -262,12 +310,20 @@ class Crud_Controller(Multi_Language_Controller):
             data = None
         else:
             data = self.__model__.find(id)
-            data.delete()
-            success = data.success
-            error_message = data.error_message
+            if data is not None:
+                data.delete()
+                success = data.success
+                error_message = data.error_message
+            else:
+                success = False
+                error_message = 'Data Not Found'
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__, data)
         self._set_view_parameter('success', success)
         self._set_view_parameter('error_message', error_message)
+        # if ajax request (or explicitly request response to be json)
+        if request.is_xhr or request.POST.pop('__as_json', False):
+            self._set_view_parameter('__token', self._set_token())
+            return self._get_view_parameter_as_json()
         return self._load_view('destroy')

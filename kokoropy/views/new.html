@@ -7,16 +7,55 @@
 
 {% block script %}
     {{! g_table_name.generated_script }}
+    <script type="text/javascript" src="{{ BASE_URL }}assets/jquery.form.min.js"></script>
+    <script type="text/javascript">
+        $('#__main_form').ajaxForm({
+            dataType: 'json',
+            success : function(response) {
+                    // change token
+                    $('#__token').val(response.__token);
+                    // get response's properties
+                    var success = response.success;
+                    var error_message = response.error_message;
+                    var id = response.g_table_name.id;
+                    console.log(response.g_table_name);
+                    // determine message
+                    var message_html = '';
+                    if(success){
+                        message_html += '<b>Success</b> ' + error_message;
+                        $('#__message_div').addClass('alert alert-success');
+                        // also change button
+                        var button_html = '<a class="btn btn-default" href="{{ url_list["new"] }}"> ' +
+                                '<i class="glyphicon glyphicon-plus"></i> Insert another {{ caption }} ' +
+                            '</a> ' +
+                            '<a class="btn btn-default" href="{{ url_list["edit"] }}/' + id + '"> ' +
+                                '<i class="glyphicon glyphicon-pencil"></i> Edit inserted {{ caption }} ' +
+                            '</a> ' +
+                            '<a href="{{ url_list['list'] }}" class="btn btn-default"> ' +
+                                '<i class="glyphicon glyphicon-th"></i> Back to List ' +
+                            '</a>';
+                        $('#__button_div').html(button_html);
+                    }else{
+                        message_html += '<b>Error</b> ' + error_message;
+                        $('#__message_div').addClass('alert alert-danger');
+                    }
+                    $('#__message_div').html(message_html);
+                }
+        });
+    </script>
 {% endblock %}
 
 {% block content %}
     <h4>New {{ caption }}</h4>
-    <form action="{{ url_list['create'] }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
-        <input type="hidden" name="__token" value="{{ __token }}" />
-        {{! g_table_name.generated_html }}
+    <form id="__main_form" action="{{ url_list['create'] }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
+        <input id="__token" type="hidden" name="__token" value="{{ __token }}" />
         <!-- Form Control -->
+        {{! g_table_name.generated_html }}
+        <div id="__message_div" class="col-md-offset-3 col-lg-offset-3 col-xs-12 col-sm-12 col-md-9 col-lg-9">
+            <!-- AJAX message going to be here -->
+        </div>
         <div class="form-group">
-            <div class="col-md-offset-3 col-lg-offset-3 col-xs-12 col-sm-12 col-md-9 col-lg-9">
+            <div id="__button_div" class="col-md-offset-3 col-lg-offset-3 col-xs-12 col-sm-12 col-md-9 col-lg-9">
                 <button type="submit" class="btn btn-default">
                     <i class="glyphicon glyphicon-floppy-disk"></i> Save
                 </button>

@@ -794,9 +794,6 @@ def migration_downgrade(application_name):
         db_session.delete(max_migration)
         db_session.commit()
 
-def is_ajax():
-    return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-
 def _key_spaces(data):
     spaces = {}
     max_len = 0

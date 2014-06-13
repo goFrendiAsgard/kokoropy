@@ -12,11 +12,11 @@
     </div>
     <div>
         <a class="btn btn-default" href="{{ url_list["new"] }}">
-            <i class="glyphicon glyphicon-plus"></i> Insert another g_table_name
+            <i class="glyphicon glyphicon-plus"></i> Insert another {{ caption }}
         </a>
         % if success:
             <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ g_table_name.id }}">
-                <i class="glyphicon glyphicon-pencil"></i> Edit inserted g_table_name
+                <i class="glyphicon glyphicon-pencil"></i> Edit inserted {{ caption }}
             </a>
         % end
         <a href="{{ url_list['list'] }}" class="btn btn-default">
