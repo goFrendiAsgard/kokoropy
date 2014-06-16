@@ -5,7 +5,6 @@ import math, random, os, json
 from model import Model
 from operator import and_, or_
 from kokoropy import var_dump
-from sqlalchemy.sql.expression import BinaryExpression
 
 class Multi_Language_Controller(object):
     
@@ -48,12 +47,18 @@ class Crud_Controller(Multi_Language_Controller):
                         ref_metadata = model_obj._get_relation_metadata(column_name)
                         ref_class = model_obj._get_relation_class(column_name)
                         ref_obj = ref_class()
+                        sub_column_names = ref_obj._column_list
                         if ref_metadata.uselist:
                             # one to many
-                            pass
+                            for sub_column_name in sub_column_names:
+                                sub_column = getattr(ref_class, sub_column_name)
+                                tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike(q + '%')))
+                                tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike('% '+q+'%')))
+                                tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike('%-'+q+'%')))
+                                tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike('%/'+q+'%')))
+                                tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike('%|_'+q+'%', escape='|')))
                         else:
                             # many to one
-                            sub_column_names = ref_obj._column_list
                             for sub_column_name in sub_column_names:
                                 sub_column = getattr(ref_class, sub_column_name)
                                 tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike(q + '%')))
