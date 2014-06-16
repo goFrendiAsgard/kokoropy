@@ -44,20 +44,24 @@ class Crud_Controller(Multi_Language_Controller):
                 tmp_criterion = self.__model__._real_id < 0 # False
                 for column_name in column_names:
                     prop = getattr(self.__model__, column_name)
-                    if isinstance(property, Model):
-                        # many to one
-                        sub_column_names = property.column_list
-                        for sub_column_name in sub_column_names:
-                            sub_prop = getattr(prop, sub_column_name)
-                            tmp_criterion = or_(tmp_criterion, sub_prop.ilike(q + '%'))
-                            tmp_criterion = or_(tmp_criterion, sub_prop.ilike('% '+q+'%'))
-                            tmp_criterion = or_(tmp_criterion, sub_prop.ilike('%-'+q+'%'))
-                            tmp_criterion = or_(tmp_criterion, sub_prop.ilike('%/'+q+'%'))
-                            tmp_criterion = or_(tmp_criterion, sub_prop.ilike('%|_'+q+'%', escape='|'))
-                    elif isinstance(property, list):
-                        # one to many
-                        pass
-                    else:
+                    if column_name in model_obj._get_relation_names():
+                        ref_metadata = model_obj._get_relation_metadata(column_name)
+                        ref_class = model_obj._get_relation_class(column_name)
+                        ref_obj = ref_class()
+                        if ref_metadata.uselist:
+                            # one to many
+                            pass
+                        else:
+                            # many to one
+                            sub_column_names = ref_obj._column_list
+                            for sub_column_name in sub_column_names:
+                                sub_column = getattr(ref_class, sub_column_name)
+                                tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike(q + '%')))
+                                tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike('% '+q+'%')))
+                                tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike('%-'+q+'%')))
+                                tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike('%/'+q+'%')))
+                                tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike('%|_'+q+'%', escape='|')))
+                    elif column_name in model_obj._get_actual_column_names():
                         tmp_criterion = or_(tmp_criterion, prop.ilike(q + '%'))
                         tmp_criterion = or_(tmp_criterion, prop.ilike('% '+q+'%'))
                         tmp_criterion = or_(tmp_criterion, prop.ilike('%-'+q+'%'))
