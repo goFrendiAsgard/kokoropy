@@ -35,6 +35,8 @@
                                 '<i class="glyphicon glyphicon-th"></i> Back to List ' +
                             '</a>';
                         $('#__button_div').html(button_html);
+                        // disable the input
+                        $('#__main_form input').prop("readonly", true);
                     }else{
                         message_html += '<b>Error</b> ' + error_message;
                         $('#__message_div').addClass('alert alert-danger');

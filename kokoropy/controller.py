@@ -25,23 +25,38 @@ class Crud_Controller(Multi_Language_Controller):
     
     def search_input(self):
         q = request.GET['__q'] if '__q' in request.GET else ''
-        html = '<input type="text" id="__q" name="__q" placeholder="Search" value="' + q + '" >'
+        html  = '<div class="form-group">'
+        html +=     '<input type="text" id="__q" name="__q" class="form-control" placeholder="Search" value="' + q + '" >'
+        html += '</div>'
         return html
     
     def default_criterion(self):
+        return self.__model__._real_id > 0
+    
+    def search_criterion(self):
         q = request.GET['__q'] if '__q' in request.GET else None
-        if self.__model__ is not None:
+        criterion = self.__model__._real_id > 0
+        if self.__model__ is not None and q is not None:
+            q_parts = q.replace('-',' ').replace('_',' ').replace('/',' ').split(' ')
             model_obj = self.__model__()
             column_names = model_obj._column_list
-            criterion = self.__model__._real_id < 0 # False
-            for column_name in column_names:
-                prop = getattr(self.__model__, column_name)
-                if isinstance(property, Model):
-                    pass
-                else:
-                    criterion = or_(criterion, prop.like(q))
-        else:
-            criterion = self.__model__._real_id > 0
+            for q in q_parts:
+                tmp_criterion = self.__model__._real_id < 0 # False
+                for column_name in column_names:
+                    prop = getattr(self.__model__, column_name)
+                    if isinstance(property, Model):
+                        # many to one
+                        pass
+                    elif isinstance(property, list):
+                        # one to many
+                        pass
+                    else:
+                        tmp_criterion = or_(tmp_criterion, prop.ilike(q + '%'))
+                        tmp_criterion = or_(tmp_criterion, prop.ilike('% '+q+'%'))
+                        tmp_criterion = or_(tmp_criterion, prop.ilike('%-'+q+'%'))
+                        tmp_criterion = or_(tmp_criterion, prop.ilike('%/'+q+'%'))
+                        tmp_criterion = or_(tmp_criterion, prop.ilike('%|_'+q+'%', escape='|'))
+                criterion = and_(criterion, tmp_criterion)
         return criterion
     
     @declared_attr
@@ -181,7 +196,7 @@ class Crud_Controller(Multi_Language_Controller):
         limit = self.__row_per_page__
         offset = (current_page-1) * limit
         # get the data
-        data_list = self.__model__.get(self.default_criterion(), limit = limit, offset = offset)
+        data_list = self.__model__.get(and_(self.default_criterion(), self.search_criterion()), limit = limit, offset = offset)
         # calculate page count
         page_count = int(math.ceil(float(self.__model__.count())/limit))
         # load the view

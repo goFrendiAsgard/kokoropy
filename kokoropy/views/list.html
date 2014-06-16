@@ -10,9 +10,9 @@
     % end
     </ul>
     <div class="pull-right">
-        <form action="{{ url_list['list']}}" method="get">
+        <form action="{{ url_list['list']}}" method="get" class="form-inline">
             {{! search_input }}
-            <button class="btn btn-default"><i class="glyphicon glyphicon-search"></i>Search</button>
+            <button class="btn btn-default"><i class="glyphicon glyphicon-search"></i> Search</button>
             <a class="btn btn-default" href="{{ url_list["new"] }}">
                 <i class="glyphicon glyphicon-plus"></i> New {{ caption }}
             </a>
