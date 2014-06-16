@@ -10,9 +10,13 @@
     % end
     </ul>
     <div class="pull-right">
-        <a class="btn btn-default" href="{{ url_list["new"] }}">
-            <i class="glyphicon glyphicon-plus"></i> New {{ caption }}
-        </a>
+        <form action="{{ url_list['list']}}" method="get">
+            {{! search_input }}
+            <button class="btn btn-default"><i class="glyphicon glyphicon-search"></i>Search</button>
+            <a class="btn btn-default" href="{{ url_list["new"] }}">
+                <i class="glyphicon glyphicon-plus"></i> New {{ caption }}
+            </a>
+        </form>
     </div>
     <table class="table table-striped">
         <thead>

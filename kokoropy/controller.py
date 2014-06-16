@@ -3,7 +3,9 @@ from kokoropy import load_view, base_url, request, publish_methods, load_templat
 from sqlalchemy.ext.declarative import declared_attr
 import math, random, os, json
 from model import Model
+from operator import and_, or_
 from kokoropy import var_dump
+from sqlalchemy.sql.expression import BinaryExpression
 
 class Multi_Language_Controller(object):
     
@@ -21,22 +23,34 @@ class Crud_Controller(Multi_Language_Controller):
     __application_name__    = ''
     __view_directory__      = ''
     
+    def search_input(self):
+        q = request.GET['__q'] if '__q' in request.GET else ''
+        html = '<input type="text" id="__q" name="__q" placeholder="Search" value="' + q + '" >'
+        return html
+    
+    def default_criterion(self):
+        q = request.GET['__q'] if '__q' in request.GET else None
+        if self.__model__ is not None:
+            model_obj = self.__model__()
+            column_names = model_obj._column_list
+            criterion = self.__model__._real_id < 0 # False
+            for column_name in column_names:
+                prop = getattr(self.__model__, column_name)
+                if isinstance(property, Model):
+                    pass
+                else:
+                    criterion = or_(criterion, prop.like(q))
+        else:
+            criterion = self.__model__._real_id > 0
+        return criterion
+    
     @declared_attr
     def __url_list__(self):
+        view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
         url = base_url(self.__application_name__+'/' + self.__table_name__) + '/'
-        url_list = {
-            'index'   : url ,
-            'list'    : url + 'list',
-            'show'    : url + 'show',
-            'new'     : url + 'new',
-            'create'  : url + 'create',
-            'edit'    : url + 'edit',
-            'update'  : url + 'update',
-            'trash'   : url + 'trash',
-            'remove'  : url + 'remove',
-            'delete'  : url + 'delete',
-            'destroy' : url + 'destroy'
-        }
+        url_list = {'index' : url}
+        for view in view_list:
+            url_list[view] = url + view
         return url_list
     
     @declared_attr
@@ -58,16 +72,25 @@ class Crud_Controller(Multi_Language_Controller):
     @classmethod
     def publish_route(cls):
         obj = cls()
+        obj._fill_url_list()
         method_names = cls.__url_list__.keys()
         methods = []
         for method_name in method_names:
             methods.append((method_name, getattr(obj, method_name)))
         publish_methods(cls.__application_name__, cls.__table_name__, methods)
     
+    def _fill_url_list(self):
+        view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
+        url = base_url(self.__application_name__+'/' + self.__table_name__) + '/'
+        for view in view_list:
+            if view not in self.__url_list__:
+                self.__url_list__[view] = url + view
+    
     def _setup_view_parameter(self):
+        self._fill_url_list()
         self._view_parameter = {
-                'url_list': self.__url_list__,
-                'caption' : self.__caption__
+                'url_list'      : self.__url_list__,
+                'caption'       : self.__caption__
             }
     
     def _set_view_parameter(self, key, value):
@@ -153,12 +176,12 @@ class Crud_Controller(Multi_Language_Controller):
     def list(self):
         ''' Show table '''
         # get page index
-        current_page = int(request.GET['page']) if 'page' in request.GET else 1
+        current_page = int(request.GET.pop('page', 1))
         # determine limit and offset
         limit = self.__row_per_page__
         offset = (current_page-1) * limit
         # get the data
-        data_list = self.__model__.get(limit = limit, offset = offset)
+        data_list = self.__model__.get(self.default_criterion(), limit = limit, offset = offset)
         # calculate page count
         page_count = int(math.ceil(float(self.__model__.count())/limit))
         # load the view
@@ -166,6 +189,7 @@ class Crud_Controller(Multi_Language_Controller):
         self._set_view_parameter(self.__table_name__+'_list', data_list)
         self._set_view_parameter('current_page', current_page)
         self._set_view_parameter('page_count', page_count)
+        self._set_view_parameter('search_input', self.search_input())
         return self._load_view('list')
     
     def show(self, id=None):

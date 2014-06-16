@@ -78,6 +78,13 @@ class Model(Base):
     __automatic_assigned_column__        = None
     __automatic_assigned_insert_column__ = None
     __automatic_assigned_update_column__ = None
+    # privilege
+    __allow_list__      = True
+    __allow_show__      = True
+    __allow_edit__      = True
+    __allow_new__       = True
+    __allow_trash__     = True
+    __allow_delete__    = True
     
     @declared_attr
     def __tablename__(self):
@@ -485,6 +492,23 @@ class Model(Base):
                             ref_class = self._get_relation_class(column_name)
                             value = ref_class.find(value)
                         setattr(self, column_name, value)
+    
+    @classmethod
+    def allow_list(cls):
+        return cls.__allow_list__
+    
+    @classmethod
+    def allow_new(cls):
+        return cls.__allow_new__
+    
+    def allow_edit(self):
+        return self.__allow_edit__
+    
+    def allow_trash(self):
+        return self.__allow_trash__
+    
+    def allow_delete(self):
+        return self.__allow_delete__
     
     def before_save(self):
         self.success = True
