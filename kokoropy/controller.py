@@ -46,7 +46,14 @@ class Crud_Controller(Multi_Language_Controller):
                     prop = getattr(self.__model__, column_name)
                     if isinstance(property, Model):
                         # many to one
-                        pass
+                        sub_column_names = property.column_list
+                        for sub_column_name in sub_column_names:
+                            sub_prop = getattr(prop, sub_column_name)
+                            tmp_criterion = or_(tmp_criterion, sub_prop.ilike(q + '%'))
+                            tmp_criterion = or_(tmp_criterion, sub_prop.ilike('% '+q+'%'))
+                            tmp_criterion = or_(tmp_criterion, sub_prop.ilike('%-'+q+'%'))
+                            tmp_criterion = or_(tmp_criterion, sub_prop.ilike('%/'+q+'%'))
+                            tmp_criterion = or_(tmp_criterion, sub_prop.ilike('%|_'+q+'%', escape='|'))
                     elif isinstance(property, list):
                         # one to many
                         pass
@@ -212,6 +219,8 @@ class Crud_Controller(Multi_Language_Controller):
         data = self.__model__.find(id)
         if data is not None:
             data.set_state_show()
+        else:
+            return self.list()
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__, data)
@@ -259,6 +268,8 @@ class Crud_Controller(Multi_Language_Controller):
         data = self.__model__.find(id)
         if data is not None:
             data.set_state_update()
+        else:
+            return self.list()
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__, data)
@@ -298,6 +309,8 @@ class Crud_Controller(Multi_Language_Controller):
     def trash(self, id = None):
         ''' Trash Form '''
         data = self.__model__.find(id)
+        if data is None:
+            return self.list()
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__, data)

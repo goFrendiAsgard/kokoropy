@@ -231,7 +231,7 @@ class Model(Base):
             excluded_column_list_priorities = [self.__detail_excluded_insert_column__, self.__detail_excluded_form_column__]
             virtual_column_list_priorities = [self.__detail_virtual_insert_column__, self.__detail_virtual_form_column__]
         elif state == 'update':
-            column_list_priorities = [self.__detail__update_column__, self.__detail__form_column__, self.__detail_shown_column__]
+            column_list_priorities = [self.__detail_update_column__, self.__detail_form_column__, self.__detail_shown_column__]
             excluded_column_list_priorities = [self.__detail_excluded_update_column__, self.__detail_excluded_form_column__]
             virtual_column_list_priorities = [self.__detail_virtual_update_column__, self.__detail_virtual_form_column__]
         else:
@@ -437,7 +437,7 @@ class Model(Base):
                         else:
                             value = True
                     setattr(self, column_name, value)
-            elif column_name in self._get_relation_names:
+            elif column_name in self._get_relation_names():
                 relation_metadata = self._get_relation_metadata(column_name)
                 if relation_metadata.uselist:
                     # one to many

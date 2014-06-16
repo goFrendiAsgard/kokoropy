@@ -35,11 +35,18 @@
                             '</a>';
                         $('#__button_div').html(button_html);
                         // disable the input
-                        $('#__main_form input').prop("readonly", true);
+                        $('#__main_form input, #__main_form select').prop("readonly", true);
+                        $('#__main_form input, #__main_form select').prop("disabled", "disabled");
+                        $('#__main_form a._new_row').addClass("disabled");
                     }else{
                         message_html += '<b>Error</b> ' + error_message;
                         $('#__message_div').addClass('alert alert-danger');
                     }
+                    $('#__message_div').html(message_html);
+                },
+            error : function(jqXHR, textStatus, errorThrown ){
+                    $('#__message_div').addClass('alert alert-danger');
+                    var message_html = '<b>AJAX Error</b> ' + errorThrown;
                     $('#__message_div').html(message_html);
                 }
         });
