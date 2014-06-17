@@ -837,7 +837,7 @@ class Model(Base):
                     input_element += '</tr>'
                     input_element += '</thead>'
                     # what should be added when add row clicked
-                    ref_obj.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name))
+                    ref_obj.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name), parent_column_name = column_name)
                     new_row  = '<tr>'
                     new_row += ref_obj.generated_html
                     # delete column
@@ -865,7 +865,7 @@ class Model(Base):
                     # body
                     input_element += '<tbody id="_' + column_name + '_tbody">'
                     for child in getattr(self, column_name):
-                        child.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name))
+                        child.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name), parent_column_name = column_name)
                         input_element += '<tr>'
                         input_element += child.generated_html
                         input_element += '<td>'

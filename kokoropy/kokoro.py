@@ -916,7 +916,7 @@ def _var_dump(variable, depth = 0, not_new_line = False, mode = 'plain'):
 
 def var_dump(variable = None, **kwargs):
     if variable is None:
-        variable = globals()
+        variable = {'globals()' : globals(), 'locals()' : locals()}
     print_output = kwargs.pop('print_output', False)
     mode         = kwargs.pop('mode', 'plain')
     result       = _var_dump(variable, 0, False, mode)

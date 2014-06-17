@@ -1,7 +1,7 @@
 % rebase('g_application_name/views/base')
 
 {% block content %}
-    <h4>Update {{ caption }} : {{ g_table_name.quick_preview() }}</h4>
+    <h4>Update {{ caption }} : {{ g_table_name.quick_preview() if g_table_name is not None else 'None' }}</h4>
     <div class="alert {{ 'alert-success' if success else 'alert-danger' }}">
         % if error_message != '':
             <b>Error : </b>

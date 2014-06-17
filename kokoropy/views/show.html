@@ -1,23 +1,33 @@
 % rebase('g_application_name/views/base')
-% g_table_name.generate_detail_view()
+% if g_table_name is not None:
+%   g_table_name.generate_input_components()
+% end
 
 {% block style %}
-    {{! g_table_name.generated_style }}
+    % if g_table_name is not None:
+        {{! g_table_name.generated_style }}
+    % end
 {% endblock %}
 
 {% block script %}
-    {{! g_table_name.generated_script }}
+    % if g_table_name is not None:
+        {{! g_table_name.generated_script }}
+    % end
 {% endblock %}
 
 {% block content %}
-    <h4>Showing {{ caption }} : {{ g_table_name.quick_preview() }}</h4>
-   {{! g_table_name.generated_html }}
-   <div>
-        <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ g_table_name.id }}">
-            <i class="glyphicon glyphicon-pencil"></i> Edit g_table_name
-        </a>
-        <a href="{{ url_list['list'] }}" class="btn btn-default">
-            <i class="glyphicon glyphicon-th"></i> Back to List
-        </a>
-    </div>
+    % if g_table_name is not None:
+        <h4>Showing {{ caption }} : {{ g_table_name.quick_preview() }}</h4>
+        {{! g_table_name.generated_html }}
+        <div>
+            <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ g_table_name.id }}">
+                <i class="glyphicon glyphicon-pencil"></i> Edit g_table_name
+            </a>
+            <a href="{{ url_list['list'] }}" class="btn btn-default">
+                <i class="glyphicon glyphicon-th"></i> Back to List
+            </a>
+        </div>
+    % else:
+        <div class="alert alert-danger">Data not found</div>
+    % end
 {% endblock %}

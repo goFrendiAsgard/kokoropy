@@ -195,6 +195,9 @@ class Crud_Controller(Multi_Language_Controller):
         request.SESSION[self._token_key()] = value
         return value
     
+    def _get_token(self):
+        return request.SESSION[self._token_key()]
+    
     def _is_token_match(self, token):
         value = request.SESSION.pop(self._token_key(), '')
         match = value == token
@@ -218,6 +221,7 @@ class Crud_Controller(Multi_Language_Controller):
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__+'_list', data_list)
+        self._set_view_parameter(self.__table_name__.title(), self.__model__)
         self._set_view_parameter('current_page', current_page)
         self._set_view_parameter('page_count', page_count)
         self._set_view_parameter('search_input', self.search_input())
@@ -228,8 +232,6 @@ class Crud_Controller(Multi_Language_Controller):
         data = self.__model__.find(id)
         if data is not None:
             data.set_state_show()
-        else:
-            return self.list()
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__, data)
@@ -268,7 +270,11 @@ class Crud_Controller(Multi_Language_Controller):
         self._set_view_parameter('error_message', error_message)
         # if ajax request (or explicitly request response to be json)
         if request.is_xhr or request.POST.pop('__as_json', False):
-            self._set_view_parameter('__token', self._set_token())
+            if success:
+                token = self._set_token()
+            else:
+                token = self._get_token()
+            self._set_view_parameter('__token', token)
             return self._get_view_parameter_as_json()
         return self._load_view('create')
     
@@ -277,8 +283,6 @@ class Crud_Controller(Multi_Language_Controller):
         data = self.__model__.find(id)
         if data is not None:
             data.set_state_update()
-        else:
-            return self.list()
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__, data)
@@ -311,15 +315,17 @@ class Crud_Controller(Multi_Language_Controller):
         self._set_view_parameter('error_message', error_message)
         # if ajax request (or explicitly request response to be json)
         if request.is_xhr or request.POST.pop('__as_json', False):
-            self._set_view_parameter('__token', self._set_token())
+            if success:
+                token = self._set_token()
+            else:
+                token = self._get_token()
+            self._set_view_parameter('__token', token)
             return self._get_view_parameter_as_json()
         return self._load_view('update')
     
     def trash(self, id = None):
         ''' Trash Form '''
         data = self.__model__.find(id)
-        if data is None:
-            return self.list()
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__, data)
@@ -349,7 +355,11 @@ class Crud_Controller(Multi_Language_Controller):
         self._set_view_parameter('error_message', error_message)
         # if ajax request (or explicitly request response to be json)
         if request.is_xhr or request.POST.pop('__as_json', False):
-            self._set_view_parameter('__token', self._set_token())
+            if success:
+                token = self._set_token()
+            else:
+                token = self._get_token()
+            self._set_view_parameter('__token', token)
             return self._get_view_parameter_as_json()
         return self._load_view('remove')
     
@@ -385,6 +395,10 @@ class Crud_Controller(Multi_Language_Controller):
         self._set_view_parameter('error_message', error_message)
         # if ajax request (or explicitly request response to be json)
         if request.is_xhr or request.POST.pop('__as_json', False):
-            self._set_view_parameter('__token', self._set_token())
+            if success:
+                token = self._set_token()
+            else:
+                token = self._get_token()
+            self._set_view_parameter('__token', token)
             return self._get_view_parameter_as_json()
         return self._load_view('destroy')

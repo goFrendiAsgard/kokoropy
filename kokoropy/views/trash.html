@@ -1,62 +1,98 @@
 % rebase('g_application_name/views/base')
-% g_table_name.generate_detail_view()
+% if g_table_name is not None:
+%   g_table_name.generate_input_components()
+% end
 
 {% block style %}
-    {{! g_table_name.generated_style }}
+    % if g_table_name is not None:
+        {{! g_table_name.generated_style }}
+    % end
 {% endblock %}
 
 {% block script %}
-    {{! g_table_name.generated_script }}
-    <script type="text/javascript" src="{{ BASE_URL }}assets/jquery.form.min.js"></script>
-    <script type="text/javascript">
-        $('#__main_form').ajaxForm({
-            dataType: 'json',
-            success : function(response) {
-                    // change token
-                    $('#__token').val(response.__token);
-                    // get response's properties
-                    var success = response.success;
-                    var error_message = response.error_message;
-                    // determine message
-                    var message_html = '';
-                    if(success){
-                        message_html += '<b>Success</b> ' + error_message;
-                        $('#__message_div').addClass('alert alert-success');
-                        // also change button
-                        var button_html = '<a class="btn btn-default" href="{{ url_list["new"] }}"> ' +
-                                '<i class="glyphicon glyphicon-plus"></i> Insert another {{ caption }} ' +
-                            '</a> ' +
-                            '<a href="{{ url_list['list'] }}" class="btn btn-default"> ' +
-                                '<i class="glyphicon glyphicon-th"></i> Back to List ' +
-                            '</a>';
-                        $('#__button_div').html(button_html);
-                    }else{
-                        message_html += '<b>Error</b> ' + error_message;
+    % if g_table_name is not None:
+        {{! g_table_name.generated_script }}
+        <script type="text/javascript" src="{{ BASE_URL }}assets/jquery.form.min.js"></script>
+        <script type="text/javascript">
+            function _block_form(){
+                $('#__main_form input, #__main_form select').prop("readonly", true);
+                $('#__main_form input, #__main_form select').prop("disabled", "disabled");
+                $('#__main_form a._new_row').addClass("disabled");
+            }
+
+            function _unblock_form(){
+                $('#__main_form input, #__main_form select').removeProp("readonly");
+                $('#__main_form input, #__main_form select').removeProp("disabled");
+                $('#__main_form a._new_row').addClass("disabled");
+            }
+
+            $('#__main_form').ajaxForm({
+                dataType: 'json',
+                type: 'POST',
+                beforeSubmit: function(){
+                        _block_form();
+                    },
+                success : function(response) {
+                        // change token
+                        $('#__token').val(response.__token);
+                        // get response's properties
+                        var success         = 'success' in response?
+                            response.success            : false;
+                        var error_message   = 'error_message' in response?
+                            response.error_message      : 'Invalid response';
+                        var id              = 'g_table_name' in response && 'id' in response.g_table_name?
+                            response.g_table_name.id    : '';
+                        // determine message
+                        var message_html    = '';
+                        if(success){
+                            message_html += '<b>Success</b> ' + error_message;
+                            $('#__message_div').addClass('alert alert-success');
+                            // also change button
+                            var button_html = '<a class="btn btn-default" href="{{ url_list["new"] }}"> ' +
+                                    '<i class="glyphicon glyphicon-plus"></i> Insert another {{ caption }} ' +
+                                '</a> ' +
+                                '<a href="{{ url_list['list'] }}" class="btn btn-default"> ' +
+                                    '<i class="glyphicon glyphicon-th"></i> Back to List ' +
+                                '</a>';
+                            $('#__button_div').html(button_html);
+                        }else{
+                            message_html += '<b>Error</b> ' + error_message;
+                            $('#__message_div').addClass('alert alert-danger');
+                        }
+                        $('#__message_div').html(message_html);
+                    },
+                error : function(jqXHR, textStatus, errorThrown ){
+                        _unblock_form();
                         $('#__message_div').addClass('alert alert-danger');
+                        var message_html = '<b>AJAX Error</b> ' + errorThrown;
+                        $('#__message_div').html(message_html);
                     }
-                    $('#__message_div').html(message_html);
-                }
-        });
-    </script>
+            });
+        </script>
+    % end
 {% endblock %}
 
 {% block content %}
-    <h4>Are you sure to remove {{ g_table_name.quick_preview() }}?</h4>
-    {{! g_table_name.generated_html }}
-    <div class="col-md-offset-3 col-lg-offset-3 col-xs-12 col-sm-12 col-md-9 col-lg-9">
-        <form id="__main_form" action="{{ url_list['destroy'] }}/{{ g_table_name.id }}" method="post">
-            <input id="__token" type="hidden" name="__token" value="{{ __token }}" />
-            <div id="__message_div">
-                <!-- AJAX message going to be here -->
-            </div>
-            <div id="__button_div">
-                <button type="submit" class="btn btn-default">
-                    <i class="glyphicon glyphicon-trash"></i> Remove
-                </button>
-                <a href="{{ url_list['list'] }}" class="btn btn-default">
-                    <i class="glyphicon glyphicon-th"></i> Cancel
-                </a>
-            </div>
-        </form>
-    </div>
+    % if g_table_name is not None:
+        <h4>Are you sure to remove {{ g_table_name.quick_preview() }}?</h4>
+        {{! g_table_name.generated_html }}
+        <div class="col-md-offset-3 col-lg-offset-3 col-xs-12 col-sm-12 col-md-9 col-lg-9">
+            <form id="__main_form" action="{{ url_list['destroy'] }}/{{ g_table_name.id }}" method="post">
+                <input id="__token" type="hidden" name="__token" value="{{ __token }}" />
+                <div id="__message_div">
+                    <!-- AJAX message going to be here -->
+                </div>
+                <div id="__button_div">
+                    <button type="submit" class="btn btn-default">
+                        <i class="glyphicon glyphicon-trash"></i> Remove
+                    </button>
+                    <a href="{{ url_list['list'] }}" class="btn btn-default">
+                        <i class="glyphicon glyphicon-th"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    % else:
+        <div class="alert alert-danger">Data not found</div>
+    % end
 {% endblock %}

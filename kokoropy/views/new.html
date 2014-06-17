@@ -9,43 +9,59 @@
     {{! g_table_name.generated_script }}
     <script type="text/javascript" src="{{ BASE_URL }}assets/jquery.form.min.js"></script>
     <script type="text/javascript">
+        function _block_form(){
+            $('#__main_form input, #__main_form select').prop("readonly", true);
+            $('#__main_form input, #__main_form select').prop("disabled", "disabled");
+            $('#__main_form a._new_row').addClass("disabled");
+        }
+
+        function _unblock_form(){
+            $('#__main_form input, #__main_form select').removeProp("readonly");
+            $('#__main_form input, #__main_form select').removeProp("disabled");
+            $('#__main_form a._new_row').addClass("disabled");
+        }
+
         $('#__main_form').ajaxForm({
             dataType: 'json',
+            type: 'POST',
+            beforeSubmit: function(){
+                    _block_form();
+                },
             success : function(response) {
                     // change token
                     $('#__token').val(response.__token);
                     // get response's properties
-                    var success = response.success;
-                    var error_message = response.error_message;
-                    var id = response.g_table_name.id;
-                    console.log(response.g_table_name);
+                    var success         = 'success' in response?
+                        response.success            : false;
+                    var error_message   = 'error_message' in response?
+                        response.error_message      : 'Invalid response';
+                    var id              = 'g_table_name' in response && 'id' in response.g_table_name?
+                        response.g_table_name.id    : '';
                     // determine message
-                    var message_html = '';
+                    var message_html    = '';
                     if(success){
-                        message_html += '<b>Success</b> ' + error_message;
+                        message_html   += '<b>Success</b> ' + error_message;
                         $('#__message_div').addClass('alert alert-success');
                         // also change button
                         var button_html = '<a class="btn btn-default" href="{{ url_list["new"] }}"> ' +
                                 '<i class="glyphicon glyphicon-plus"></i> Insert another {{ caption }} ' +
                             '</a> ' +
                             '<a class="btn btn-default" href="{{ url_list["edit"] }}/' + id + '"> ' +
-                                '<i class="glyphicon glyphicon-pencil"></i> Edit inserted {{ caption }} ' +
+                                '<i class="glyphicon glyphicon-pencil"></i> Re-Edit {{ caption }} ' +
                             '</a> ' +
                             '<a href="{{ url_list['list'] }}" class="btn btn-default"> ' +
                                 '<i class="glyphicon glyphicon-th"></i> Back to List ' +
                             '</a>';
                         $('#__button_div').html(button_html);
-                        // disable the input
-                        $('#__main_form input, #__main_form select').prop("readonly", true);
-                        $('#__main_form input, #__main_form select').prop("disabled", "disabled");
-                        $('#__main_form a._new_row').addClass("disabled");
                     }else{
-                        message_html += '<b>Error</b> ' + error_message;
+                        _unblock_form();
+                        message_html  += '<b>Error</b> ' + error_message;
                         $('#__message_div').addClass('alert alert-danger');
                     }
                     $('#__message_div').html(message_html);
                 },
             error : function(jqXHR, textStatus, errorThrown ){
+                    _unblock_form();
                     $('#__message_div').addClass('alert alert-danger');
                     var message_html = '<b>AJAX Error</b> ' + errorThrown;
                     $('#__message_div').html(message_html);

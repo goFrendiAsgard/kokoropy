@@ -13,9 +13,11 @@
         <form action="{{ url_list['list']}}" method="get" class="form-inline">
             {{! search_input }}
             <button class="btn btn-default"><i class="glyphicon glyphicon-search"></i> Search</button>
-            <a class="btn btn-default" href="{{ url_list["new"] }}">
-                <i class="glyphicon glyphicon-plus"></i> New {{ caption }}
-            </a>
+            % if G_Table_Name.allow_new:
+                <a class="btn btn-default" href="{{ url_list["new"] }}">
+                    <i class="glyphicon glyphicon-plus"></i> New {{ caption }}
+                </a>
+            % end
         </form>
     </div>
     <table class="table table-striped">
@@ -33,15 +35,21 @@
                     </td>
                     <!-- action -->
                     <td>
-                        <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ g_table_name.id }}">
-                            <i class="glyphicon glyphicon-pencil"></i> Edit
-                        </a>
-                        <a class="btn btn-default" href="{{ url_list["trash"] }}/{{ g_table_name.id }}">
-                            <i class="glyphicon glyphicon-trash"></i> Trash
-                        </a>
-                        <a class="btn btn-danger" href="{{ url_list["delete"] }}/{{ g_table_name.id }}">
-                            <i class="glyphicon glyphicon-remove-sign"></i> Delete
-                        </a>
+                        % if G_Table_Name.allow_edit:
+                            <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ g_table_name.id }}">
+                                <i class="glyphicon glyphicon-pencil"></i> Edit
+                            </a>
+                        % end
+                        % if G_Table_Name.allow_trash:
+                            <a class="btn btn-default" href="{{ url_list["trash"] }}/{{ g_table_name.id }}">
+                                <i class="glyphicon glyphicon-trash"></i> Trash
+                            </a>
+                        % end
+                        % if G_Table_Name.allow_delete:
+                            <a class="btn btn-danger" href="{{ url_list["delete"] }}/{{ g_table_name.id }}">
+                                <i class="glyphicon glyphicon-remove-sign"></i> Delete
+                            </a>
+                        % end
                     </td>
                 </tr>
             % end
