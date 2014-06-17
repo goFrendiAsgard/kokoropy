@@ -1173,7 +1173,8 @@ def auto_migrate(engine):
             # get model_column properties
             model_column_kwargs = {}
             for prop in column_properties:
-                model_column_kwargs[prop] = getattr(model_column, prop)
+                if hasattr(model_column, prop):
+                    model_column_kwargs[prop] = getattr(model_column, prop)
             # make model_column with alembic if necessary
             if model_column.name not in db_meta.tables[model_table_name].columns:
                 try:
