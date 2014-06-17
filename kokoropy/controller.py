@@ -217,7 +217,7 @@ class Crud_Controller(Multi_Language_Controller):
         # get the data
         data_list = self.__model__.get(and_(self.default_criterion(), self.search_criterion()), limit = limit, offset = offset)
         # calculate page count
-        page_count = int(math.ceil(float(self.__model__.count())/limit))
+        page_count = int(math.ceil(float(self.__model__.count(and_(self.default_criterion(), self.search_criterion()))/limit))
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__+'_list', data_list)
