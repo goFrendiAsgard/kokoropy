@@ -48,24 +48,24 @@ class Crud_Controller(Multi_Language_Controller):
                         ref_class = model_obj._get_relation_class(column_name)
                         ref_obj = ref_class()
                         sub_column_names = ref_obj._column_list
-                        if ref_metadata.uselist:
-                            # one to many
-                            for sub_column_name in sub_column_names:
+                        for sub_column_name in sub_column_names:
+                            # only applied to actual column
+                            if sub_column_name in ref_obj._get_actual_column_names():
                                 sub_column = getattr(ref_class, sub_column_name)
-                                tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike(q + '%')))
-                                tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike('% '+q+'%')))
-                                tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike('%-'+q+'%')))
-                                tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike('%/'+q+'%')))
-                                tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike('%|_'+q+'%', escape='|')))
-                        else:
-                            # many to one
-                            for sub_column_name in sub_column_names:
-                                sub_column = getattr(ref_class, sub_column_name)
-                                tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike(q + '%')))
-                                tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike('% '+q+'%')))
-                                tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike('%-'+q+'%')))
-                                tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike('%/'+q+'%')))
-                                tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike('%|_'+q+'%', escape='|')))
+                                if ref_metadata.uselist:
+                                    # one to many
+                                    tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike(q + '%')))
+                                    tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike('% '+q+'%')))
+                                    tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike('%-'+q+'%')))
+                                    tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike('%/'+q+'%')))
+                                    tmp_criterion = or_(tmp_criterion, prop.any(sub_column.ilike('%|_'+q+'%', escape='|')))
+                                else:
+                                    # many to one
+                                    tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike(q + '%')))
+                                    tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike('% '+q+'%')))
+                                    tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike('%-'+q+'%')))
+                                    tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike('%/'+q+'%')))
+                                    tmp_criterion = or_(tmp_criterion, prop.has(sub_column.ilike('%|_'+q+'%', escape='|')))
                     elif column_name in model_obj._get_actual_column_names():
                         tmp_criterion = or_(tmp_criterion, prop.ilike(q + '%'))
                         tmp_criterion = or_(tmp_criterion, prop.ilike('% '+q+'%'))
@@ -217,7 +217,10 @@ class Crud_Controller(Multi_Language_Controller):
         # get the data
         data_list = self.__model__.get(and_(self.default_criterion(), self.search_criterion()), limit = limit, offset = offset)
         # calculate page count
-        page_count = int(math.ceil(float(self.__model__.count(and_(self.default_criterion(), self.search_criterion()))/limit))
+        page_count = int(math.ceil(
+            float(self.__model__.count(
+                    and_(self.default_criterion(), self.search_criterion())
+                )/float(limit))))
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__+'_list', data_list)
