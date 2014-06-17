@@ -1,66 +1,74 @@
 % rebase('g_application_name/views/base')
 {% block content %}
     <h2>{{ caption }} List</h2>
-    <ul class="pagination">
-    % for i in range(page_count):
-        % page = str(i+1)
-        <li class="{{ 'active' if str(current_page) == page else ''}}">
-            <a href="{{ url_list['list'] + '?page=' + page }}">{{ page }}</a>
-        </li>
-    % end
-    </ul>
-    <div class="pull-right">
-        <form action="{{ url_list['list']}}" method="get" class="form-inline">
-            {{! search_input }}
-            <button class="btn btn-default"><i class="glyphicon glyphicon-search"></i> Search</button>
-            % if G_Table_Name.allow_new:
-                <a class="btn btn-default" href="{{ url_list["new"] }}">
-                    <i class="glyphicon glyphicon-plus"></i> New {{ caption }}
-                </a>
+    <div class="{{ 'container' if len(g_table_name_list) == 0 else ''}}">
+        % if len(g_table_name_list) > 0:
+            <ul class="pagination">
+            % for i in range(page_count):
+                % page = str(i+1)
+                <li class="{{ 'active' if str(current_page) == page else ''}}">
+                    <a href="{{ url_list['list'] + '?page=' + page }}">{{ page }}</a>
+                </li>
             % end
-        </form>
+            </ul>
+        % end
+        <div class="pull-right pagination">
+            <form action="{{ url_list['list']}}" method="get" class="form-inline">
+                {{! search_input }}
+                <button class="btn btn-default"><i class="glyphicon glyphicon-search"></i> Search</button>
+                % if G_Table_Name.allow_new:
+                    <a class="btn btn-default" href="{{ url_list["new"] }}">
+                        <i class="glyphicon glyphicon-plus"></i> New {{ caption }}
+                    </a>
+                % end
+            </form>
+        </div>
     </div>
-    <table class="table table-striped">
-        <thead>
-            <th>Data</th>
-            <th>Action</th>
-        </thead>
-        <tbody>
-            % for g_table_name in g_table_name_list:
-                <tr>
-                    <!-- data -->
-                    <td>
-                        <a href="{{ url_list["show"] }}/{{ g_table_name.id }}">
-                            {{ g_table_name.quick_preview() }}</a>
-                    </td>
-                    <!-- action -->
-                    <td>
-                        % if G_Table_Name.allow_edit:
-                            <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ g_table_name.id }}">
-                                <i class="glyphicon glyphicon-pencil"></i> Edit
-                            </a>
-                        % end
-                        % if G_Table_Name.allow_trash:
-                            <a class="btn btn-default" href="{{ url_list["trash"] }}/{{ g_table_name.id }}">
-                                <i class="glyphicon glyphicon-trash"></i> Trash
-                            </a>
-                        % end
-                        % if G_Table_Name.allow_delete:
-                            <a class="btn btn-danger" href="{{ url_list["delete"] }}/{{ g_table_name.id }}">
-                                <i class="glyphicon glyphicon-remove-sign"></i> Delete
-                            </a>
-                        % end
-                    </td>
-                </tr>
-            % end
-        </tbody>
-    </table>
-    <ul class="pagination">
-    % for i in range(page_count):
-        % page = str(i+1)
-        <li class="{{ 'active' if str(current_page) == page else ''}}">
-            <a href="{{ url_list['list'] + '?page=' + page }}">{{ page }}</a>
-        </li>
+    % if len(g_table_name_list) > 0:
+        <table class="table table-striped">
+            <thead>
+                <th>Data</th>
+                <th>Action</th>
+            </thead>
+            <tbody>
+                % for g_table_name in g_table_name_list:
+                    <tr>
+                        <!-- data -->
+                        <td>
+                            <a href="{{ url_list["show"] }}/{{ g_table_name.id }}">
+                                {{ g_table_name.quick_preview() }}</a>
+                        </td>
+                        <!-- action -->
+                        <td>
+                            % if G_Table_Name.allow_edit:
+                                <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ g_table_name.id }}">
+                                    <i class="glyphicon glyphicon-pencil"></i> Edit
+                                </a>
+                            % end
+                            % if G_Table_Name.allow_trash:
+                                <a class="btn btn-default" href="{{ url_list["trash"] }}/{{ g_table_name.id }}">
+                                    <i class="glyphicon glyphicon-trash"></i> Trash
+                                </a>
+                            % end
+                            % if G_Table_Name.allow_delete:
+                                <a class="btn btn-danger" href="{{ url_list["delete"] }}/{{ g_table_name.id }}">
+                                    <i class="glyphicon glyphicon-remove-sign"></i> Delete
+                                </a>
+                            % end
+                        </td>
+                    </tr>
+                % end
+            </tbody>
+        </table>
+        <ul class="pagination">
+        % for i in range(page_count):
+            % page = str(i+1)
+            <li class="{{ 'active' if str(current_page) == page else ''}}">
+                <a href="{{ url_list['list'] + '?page=' + page }}">{{ page }}</a>
+            </li>
+        % end
+        </ul>
+    % else:
+        <div class="alert alert-danger">Data not found</div>
     % end
-    </ul>
 {% endblock %}

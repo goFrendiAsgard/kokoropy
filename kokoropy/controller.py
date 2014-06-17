@@ -217,10 +217,7 @@ class Crud_Controller(Multi_Language_Controller):
         # get the data
         data_list = self.__model__.get(and_(self.default_criterion(), self.search_criterion()), limit = limit, offset = offset)
         # calculate page count
-        page_count = int(math.ceil(
-            float(self.__model__.count(
-                    and_(self.default_criterion(), self.search_criterion())
-                )/float(limit))))
+        page_count = int(math.ceil(float(self.__model__.count(and_(self.default_criterion(), self.search_criterion()))/float(limit))))
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__+'_list', data_list)
@@ -333,7 +330,7 @@ class Crud_Controller(Multi_Language_Controller):
         self._setup_view_parameter()
         self._set_view_parameter(self.__table_name__, data)
         self._set_view_parameter('__token', self._set_token())
-        return self._load_view('show')
+        return self._load_view('trash')
     
     def remove(self, id = None):
         ''' Trash Action '''

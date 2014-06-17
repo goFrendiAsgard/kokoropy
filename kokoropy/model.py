@@ -213,7 +213,6 @@ class Model(Base):
                 excluded_column_list = config_list
                 break
         for column_name in excluded_column_list:
-            print column_name
             column_list.remove(column_name)
         return column_list
     
@@ -458,7 +457,6 @@ class Model(Base):
                                     relation_variable_list.append({})
                                     del(i)
                             new_variable_key = variable_key[len(column_name)+1:-2]
-                            print new_variable_key, list_val
                             for i in xrange(record_count):
                                 relation_variable_list[i][new_variable_key] = list_val[i]
                     if hasattr(variable, 'getall'):
@@ -484,6 +482,7 @@ class Model(Base):
                             getattr(self, column_name).append(ref_obj)
                         if deleted:
                             getattr(self, column_name).remove(ref_obj)
+                            ref_obj.trash()
                 else:
                     # many to one
                     if column_name in variable and variable[column_name] != '':
@@ -824,12 +823,24 @@ class Model(Base):
                     # one to many
                     ref_obj = self._get_relation_class(column_name)()
                     ref_obj.generate_tabular_label(state = 'form', shown_column = self._get_detail_column_list(column_name))
-                    input_element  = '<div class="pull-right">'
+                    if len(getattr(self, column_name)) == 0:
+                        div_empty_style = ''
+                        table_style = 'style="display:none;"'
+                        div_control_class = ''
+                    else:
+                        div_empty_style = 'style="display:none;"'
+                        table_style = ''
+                        div_control_class = 'pull-right'
+                    # div empty
+                    input_element  = '<div id="_div_empty_'+column_name+'" '+div_empty_style+'>No data</div>'
+                    # div control
+                    input_element += '<div id="_div_control_'+column_name+'" class="'+div_control_class+'">'
                     input_element += '<a id="_' + column_name + '_add" class="btn btn-default _new_row" href="#">'
                     input_element += '<i class="glyphicon glyphicon-plus"></i> New ' + self.build_label(column_name)
                     input_element += '</a>'
                     input_element += '</div>'
-                    input_element += '<table class="table">'
+                    # table
+                    input_element += '<table id="_table_'+column_name+'" class="table" '+table_style+'>'
                     input_element += '<thead>'
                     input_element += '<tr>'
                     input_element += ref_obj.generated_html
@@ -858,6 +869,9 @@ class Model(Base):
                     script += '});'
                     script += '$("#_' + column_name + '_add").click(function(event){'
                     script += '    $("#_' + column_name + '_tbody").append(\'' + new_row + '\');'
+                    script += '    $("#_div_control_' + column_name + '").addClass("pull-right");'
+                    script += '    $("#_div_empty_' + column_name + '").hide();'
+                    script += '    $("#_table_' + column_name + '").show();'
                     script += '    event.preventDefault();'
                     script += '});'
                     script += '</script>'
