@@ -1,5 +1,5 @@
 from kokoropy.controller import Crud_Controller
-from ..models.country import City
+from ..models.structure import City
 
 class City_Controller(Crud_Controller):
     __model__               = City

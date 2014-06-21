@@ -1,5 +1,5 @@
 from kokoropy.controller import Crud_Controller
-from ..models.g_model_module import G_Table_Name
+from ..models.structure import G_Table_Name
 
 class G_Table_Name_Controller(Crud_Controller):
     __model__               = G_Table_Name

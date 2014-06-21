@@ -1,7 +1,16 @@
 from kokoro import *
+from copy import copy
 
 def make_timestamp():
     return datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')
+
+def write_and_backup(filename, data):
+    if os.path.exists(filename):
+        old_data = file_get_contents(filename)
+        if old_data != data:
+            backup_time = datetime.fromtimestamp(time.time()).strftime('%Y_%m_%d_%H_%M_%S')
+            shutil.copy2(filename, filename+'.'+backup_time+'.bak')
+    file_put_contents(filename, data)
 
 def scaffold_application(application_name):
     source = os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_application')
@@ -43,7 +52,7 @@ def scaffold_migration(application_name, migration_name, table_name='your_table'
     filename = timestamp+'_'+migration_name+'.py'
     filename = application_path(os.path.join(application_name, 'migrations', filename))
     # write file
-    file_put_contents(filename, content)
+    write_and_backup(filename, content)
 
 def add_column_to_structure(structure, table_name, column_name = None, content = None, no_form = False):
     '''
@@ -242,10 +251,10 @@ def scaffold_model(application_name, table_name, *columns):
     if not os.path.exists(application_path(application_name)):
         scaffold_application(application_name)
     # determine file name
-    filename = table_name+'.py'
+    filename = 'structure.py'
     filename = application_path(os.path.join(application_name, 'models', filename))
     # write file
-    file_put_contents(filename, content)
+    write_and_backup(filename, content)
     return structure
 
 def scaffold_crud(application_name, table_name, *columns):
@@ -256,26 +265,24 @@ def scaffold_crud(application_name, table_name, *columns):
             continue
         ucase_table_name_list.append(t.title())
     ucase_table_name_list = ", ".join(ucase_table_name_list)
-    model_module = table_name
     
     controller_filename = application_path(os.path.join(application_name, 'controllers', 'index.py'))
-    if not os.path.isfile(controller_filename):
-        url_pairs = []
-        for t in structure['__list__']:
-            if structure[t]['__no_form__']:
-                continue
-            url_pairs.append('\'%s\' : base_url(\'%s/%s\')' %(t.replace('_',' ').title(), application_name, t))
-        url_pairs = ',\n            '.join(url_pairs)
-        # main controller
-        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_main_controller.py'))
-        content = content.replace('# g_url_pairs', url_pairs)
-        content = content.replace('g_application_name', application_name)
-        file_put_contents(controller_filename, content)
-        # main view
-        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_main_view.html'))
-        content = content.replace('g_application_name', application_name)
-        filename = application_path(os.path.join(application_name, 'views', 'index.html'))
-        file_put_contents(filename, content)
+    url_pairs = []
+    for t in structure['__list__']:
+        if structure[t]['__no_form__']:
+            continue
+        url_pairs.append('\'%s\' : base_url(\'%s/%s\')' %(t.replace('_',' ').title(), application_name, t))
+    url_pairs = ',\n            '.join(url_pairs)
+    # main controller
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_main_controller.py'))
+    content = content.replace('# g_url_pairs', url_pairs)
+    content = content.replace('g_application_name', application_name)
+    write_and_backup(controller_filename, content)
+    # main view
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_main_view.html'))
+    content = content.replace('g_application_name', application_name)
+    filename = application_path(os.path.join(application_name, 'views', 'index.html'))
+    write_and_backup(filename, content)
     
     # for each table, make controller and views
     for table_name in structure['__list__']:
@@ -285,14 +292,13 @@ def scaffold_crud(application_name, table_name, *columns):
         ucase_table_name = table_name.title()
         # controller
         content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_controller.py'))
-        content = content.replace('g_model_module', model_module)
         content = content.replace('G_Table_Name', ucase_table_name)
         content = content.replace('g_table_name', table_name)
         content = content.replace('g_application_name', application_name)
         filename = table_name+'.py'
         filename = application_path(os.path.join(application_name, 'controllers', filename))
         # write file
-        file_put_contents(filename, content)
+        write_and_backup(filename, content)
         # views
         view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
         view_directory = application_path(os.path.join(application_name, 'views', table_name))
@@ -302,15 +308,28 @@ def scaffold_crud(application_name, table_name, *columns):
         content = 'You can make your own custom file by providing : \n'
         for view in view_list:
             content += '* %s.html\n' %(view)
-        file_put_contents(os.path.join(view_directory, '_README.txt'), content)
-        '''
-        for view in view_list:
-            content = file_get_contents(os.path.join(os.path.dirname(__file__), 'views', view + '.html'))
-            content = content.replace('G_Table_Name', ucase_table_name)
-            content = content.replace('g_table_name', table_name)
-            content = content.replace('g_application_name', application_name)
-            filename = view + '.example.html'
-            filename = os.path.join(view_directory, filename)
-            # write file
-            file_put_contents(filename, content)
-        '''
+        write_and_backup(os.path.join(view_directory, '_README.txt'), content)
+
+def scaffold_view(application_name, table_name, view = None):
+    view_directory = application_path(os.path.join(application_name, 'views', table_name))
+    ucase_table_name = table_name.title()
+    if not os.path.isdir(view_directory):
+        makedirs(view_directory)
+    if view is not None:
+        view_list = [view]
+    else:
+        view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
+    for view in view_list:
+        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'views', view + '.html'))
+        content = content.replace('G_Table_Name', ucase_table_name)
+        content = content.replace('g_table_name', table_name)
+        content = content.replace('g_application_name', application_name)
+        filename = view + '.html'
+        filename = os.path.join(view_directory, filename)
+        # write file
+        write_and_backup(filename, content)
+
+def scaffold_cms():
+    source = os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_cms')
+    destination = application_path('cms')
+    copytree(source, destination)

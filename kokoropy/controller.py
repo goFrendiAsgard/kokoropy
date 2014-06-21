@@ -78,16 +78,16 @@ class Crud_Controller(Multi_Language_Controller):
     @declared_attr
     def __url_list__(self):
         view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
-        url = base_url(self.__application_name__+'/' + self.__table_name__) + '/'
+        url = base_url(self.__application_name__+'/' + self.__model_name__) + '/'
         url_list = {'index' : url}
         for view in view_list:
             url_list[view] = url + view
         return url_list
     
     @declared_attr
-    def __table_name__(self):
-        if hasattr(self.__model__, '__tablename__'):
-            return self.__model__.__tablename__
+    def __model_name__(self):
+        if self.__model__ is not None:
+            return self.__model__.__name__.lower()
         return ''
     
     @declared_attr
@@ -108,11 +108,11 @@ class Crud_Controller(Multi_Language_Controller):
         methods = []
         for method_name in method_names:
             methods.append((method_name, getattr(obj, method_name)))
-        publish_methods(cls.__application_name__, cls.__table_name__, methods)
+        publish_methods(cls.__application_name__, cls.__model_name__, methods)
     
     def _fill_url_list(self):
         view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
-        url = base_url(self.__application_name__+'/' + self.__table_name__) + '/'
+        url = base_url(self.__application_name__+'/' + self.__model_name__) + '/'
         for view in view_list:
             if view not in self.__url_list__:
                 self.__url_list__[view] = url + view
@@ -162,15 +162,15 @@ class Crud_Controller(Multi_Language_Controller):
         return json.dumps(dct)
     
     def _load_view(self, view):
-        if os.path.exists(application_path(os.path.join(self.__application_name__, 'views', self.__table_name__, view))):
+        if os.path.exists(application_path(os.path.join(self.__application_name__, 'views', self.__model_name__, view))):
             # normal load_view (if view exists)
-            content = load_view(self.__application_name__, self.__table_name__ + '/' + view, **self._get_view_parameter())
+            content = load_view(self.__application_name__, self.__model_name__ + '/' + view, **self._get_view_parameter())
         else:
             # take default key content
             content = ''
             content = file_get_contents(os.path.join(os.path.dirname(__file__), 'views', view + '.html'))
-            content = content.replace('G_Table_Name', self.__table_name__.title())
-            content = content.replace('g_table_name', self.__table_name__)
+            content = content.replace('G_Table_Name', self.__model_name__.title())
+            content = content.replace('g_table_name', self.__model_name__)
             content = content.replace('g_application_name', self.__application_name__)
             # do load_template
             content = load_template(content, **self._get_view_parameter())
@@ -188,7 +188,7 @@ class Crud_Controller(Multi_Language_Controller):
         return content
     
     def _token_key(self):
-        return '__token_' + self.__application_name__ + '_' + self.__table_name__
+        return '__token_' + self.__application_name__ + '_' + self.__model_name__
     
     def _set_token(self):
         value = str.zfill(str(random.randrange(0,10000)), 5)
@@ -220,8 +220,8 @@ class Crud_Controller(Multi_Language_Controller):
         page_count = int(math.ceil(float(self.__model__.count(and_(self.default_criterion(), self.search_criterion()))/float(limit))))
         # load the view
         self._setup_view_parameter()
-        self._set_view_parameter(self.__table_name__+'_list', data_list)
-        self._set_view_parameter(self.__table_name__.title(), self.__model__)
+        self._set_view_parameter(self.__model_name__+'_list', data_list)
+        self._set_view_parameter(self.__model_name__.title(), self.__model__)
         self._set_view_parameter('current_page', current_page)
         self._set_view_parameter('page_count', page_count)
         self._set_view_parameter('search_input', self.search_input())
@@ -234,7 +234,7 @@ class Crud_Controller(Multi_Language_Controller):
             data.set_state_show()
         # load the view
         self._setup_view_parameter()
-        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter(self.__model_name__, data)
         return self._load_view('show')
     
     def new(self):
@@ -243,7 +243,7 @@ class Crud_Controller(Multi_Language_Controller):
         data.set_state_insert()
         # load the view
         self._setup_view_parameter()
-        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter(self.__model_name__, data)
         self._set_view_parameter('__token', self._set_token())
         return self._load_view('new')
     
@@ -265,7 +265,7 @@ class Crud_Controller(Multi_Language_Controller):
             error_message = data.error_message
         # load the view
         self._setup_view_parameter()
-        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter(self.__model_name__, data)
         self._set_view_parameter('success', success)
         self._set_view_parameter('error_message', error_message)
         # if ajax request (or explicitly request response to be json)
@@ -285,7 +285,7 @@ class Crud_Controller(Multi_Language_Controller):
             data.set_state_update()
         # load the view
         self._setup_view_parameter()
-        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter(self.__model_name__, data)
         self._set_view_parameter('__token', self._set_token())
         return self._load_view('edit')
     
@@ -310,7 +310,7 @@ class Crud_Controller(Multi_Language_Controller):
                 error_message = 'Data Not Found'
         # load the view
         self._setup_view_parameter()
-        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter(self.__model_name__, data)
         self._set_view_parameter('success', success)
         self._set_view_parameter('error_message', error_message)
         # if ajax request (or explicitly request response to be json)
@@ -328,7 +328,7 @@ class Crud_Controller(Multi_Language_Controller):
         data = self.__model__.find(id)
         # load the view
         self._setup_view_parameter()
-        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter(self.__model_name__, data)
         self._set_view_parameter('__token', self._set_token())
         return self._load_view('trash')
     
@@ -350,7 +350,7 @@ class Crud_Controller(Multi_Language_Controller):
                 error_message = 'Data Not Found'
         # load the view
         self._setup_view_parameter()
-        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter(self.__model_name__, data)
         self._set_view_parameter('success', success)
         self._set_view_parameter('error_message', error_message)
         # if ajax request (or explicitly request response to be json)
@@ -368,7 +368,7 @@ class Crud_Controller(Multi_Language_Controller):
         data = self.__model__.find(id)
         # load the view
         self._setup_view_parameter()
-        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter(self.__model_name__, data)
         self._set_view_parameter('__token', self._set_token())
         return self._load_view('delete')
     
@@ -390,7 +390,7 @@ class Crud_Controller(Multi_Language_Controller):
                 error_message = 'Data Not Found'
         # load the view
         self._setup_view_parameter()
-        self._set_view_parameter(self.__table_name__, data)
+        self._set_view_parameter(self.__model_name__, data)
         self._set_view_parameter('success', success)
         self._set_view_parameter('error_message', error_message)
         # if ajax request (or explicitly request response to be json)

@@ -90,6 +90,8 @@ def _is_anything_modified():
             continue
         for filename in filenames:
             absolute_filename = os.path.join(dirpath, filename)
+            if not os.path.exists(absolute_filename):
+                continue
             last_change = _get_modification_date(absolute_filename)
             # check if there are some added or edited files
             if (absolute_filename not in FILE_STAT) or (FILE_STAT[absolute_filename] != last_change):
@@ -136,6 +138,7 @@ def scaffold_application():
     if len(sys.argv)>2:
         application_name = sys.argv[2]
         scaffold.scaffold_application(application_name)
+        print(' * Application Created')
     else:
         help()
 
@@ -152,11 +155,12 @@ def scaffold_migration():
         else:
             columns = []
         scaffold.scaffold_migration(application_name, migration_name, table_name, *columns)
+        print(' * Migration Created')
     else:
         help()
 
 def scaffold_model():
-    if len(sys.argv)>3:
+    if len(sys.argv)>2:
         application_name = sys.argv[2]
         if len(sys.argv)>3:
             table_name = sys.argv[3]
@@ -167,11 +171,12 @@ def scaffold_model():
         else:
             columns = []
         scaffold.scaffold_model(application_name, table_name, *columns)
+        print(' * Model Created')
     else:
         help()
 
 def scaffold_crud():
-    if len(sys.argv)>3:
+    if len(sys.argv)>2:
         application_name = sys.argv[2]
         if len(sys.argv)>3:
             table_name = sys.argv[3]
@@ -182,8 +187,29 @@ def scaffold_crud():
         else:
             columns = []
         scaffold.scaffold_crud(application_name, table_name, *columns)
+        print(' * CRUD Application Created')
     else:
         help()
+
+def scaffold_view():
+    if len(sys.argv)>2:
+        application_name = sys.argv[2]
+        if len(sys.argv)>3:
+            table_name = sys.argv[3]
+        else:
+            table_name = 'table'
+        if len(sys.argv)>4:
+            view = sys.argv[4]
+        else:
+            view = None
+        scaffold.scaffold_view(application_name, table_name, view)
+        print(' * View Created')
+    else:
+        help
+
+def scaffold_cms():
+    scaffold.scaffold_cms()
+    print(' * CMS Created')
         
 def migration_upgrade():
     if len(sys.argv)>2:
@@ -191,11 +217,13 @@ def migration_upgrade():
         kokoropy.migration_upgrade(application_name)
     else:
         kokoropy.migration_upgrade()
+    print(' * Upgrade Complete')
 
 def migration_downgrade():
     if len(sys.argv)>2:
         application_name = sys.argv[2]
         kokoropy.migration_downgrade(application_name)
+    print(' * Downgrade Complete')
 
 def migration_log():
     migrations = {}
@@ -225,6 +253,10 @@ def info():
     print('     %spython %s%s scaffold-model %sAPPLICATION-NAME [table-name] [column-name:type] ... %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
     print(' * Scaffold CRUD')
     print('     %spython %s%s scaffold-crud %sAPPLICATION-NAME [table-name] [column-name:type] ... %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
+    print(' * Scaffold View (to make custom CRUD view)')
+    print('     %spython %s%s scaffold-view %sAPPLICATION-NAME [table-name] [view]%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
+    print(' * Scaffold CMS')
+    print('     %spython %s%s scaffold-cms %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.RESET))
     print(' * Migration upgrade (to the newest version)')
     print('     %spython %s%s migration-upgrade %s[APPLICATION-NAME]%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
     print(' * Migration downgrade (to the previous version)')
@@ -241,6 +273,8 @@ if __name__ == '__main__':
             'scaffold-migration' : scaffold_migration,
             'scaffold-model' : scaffold_model,
             'scaffold-crud' : scaffold_crud,
+            'scaffold-view' : scaffold_view,
+            'scaffold-cms'  : scaffold_cms,
             'migration-upgrade' : migration_upgrade,
             'migration-downgrade' : migration_downgrade,
             'migration-log' : migration_log,

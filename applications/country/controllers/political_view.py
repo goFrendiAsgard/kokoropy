@@ -1,5 +1,5 @@
 from kokoropy.controller import Crud_Controller
-from ..models.country import Political_View
+from ..models.structure import Political_View
 
 class Political_View_Controller(Crud_Controller):
     __model__               = Political_View
