@@ -21,7 +21,6 @@ Model.metadata = MetaData()
 
 class Country(Model):
     __session__ = session
-    # Excluded Columns
     __detail_excluded_shown_column__ = {
             "country_commodities" : ["country"],
             "country_enemies" : ["left_country"],
@@ -32,22 +31,15 @@ class Country(Model):
             "country_enemies" : ["left_country"],
             "country_friends" : ["left_country"]
         }
-    # Column's Labels
     __column_label__ = {
-        "country_commodities" : "Commodities",
-            "country_enemies" : "Enemies",
-            "country_friends" : "Friends"
+            "country_friends" : "Friends",
+            "country_enemies" : "Enemies"
         }
-    # Detail Column's Labels
     __detail_column_label__ = {
-            "country_enemies" : {
-                "right_country" : "Country"
-            },
-            "country_friends" : {
-                "right_country" : "Country"
-            }
+            "country_friends" : {"right_country" : "Country"},
+            "country_enemies" : {"right_country" : "Country"}
         }
-    # Fields Declarations
+    # fields declaration
     name = Column(String(50))
     independence_date = Column(Date)
     rate = Column(Integer)
@@ -64,7 +56,7 @@ class Country(Model):
 
 class Country_Friends(Model):
     __session__ = session
-    # Fields Declarations
+    # fields declaration
     fk_left_country = Column(Integer, ForeignKey("country._real_id"))
     fk_right_country = Column(Integer, ForeignKey("country._real_id"))
     left_country = relationship("Country", foreign_keys="Country_Friends.fk_left_country")
@@ -72,7 +64,7 @@ class Country_Friends(Model):
 
 class Country_Enemies(Model):
     __session__ = session
-    # Fields Declarations
+    # fields declaration
     fk_left_country = Column(Integer, ForeignKey("country._real_id"))
     fk_right_country = Column(Integer, ForeignKey("country._real_id"))
     left_country = relationship("Country", foreign_keys="Country_Enemies.fk_left_country")
@@ -80,12 +72,12 @@ class Country_Enemies(Model):
 
 class Commodity(Model):
     __session__ = session
-    # Fields Declarations
+    # fields declaration
     name = Column(String(50))
 
 class Country_Commodities(Model):
     __session__ = session
-    # Fields Declarations
+    # fields declaration
     fk_country = Column(Integer, ForeignKey("country._real_id"))
     fk_commodity = Column(Integer, ForeignKey("commodity._real_id"))
     country = relationship("Country", foreign_keys="Country_Commodities.fk_country")
@@ -93,13 +85,13 @@ class Country_Commodities(Model):
 
 class City(Model):
     __session__ = session
-    # Fields Declarations
+    # fields declaration
     fk_country = Column(Integer, ForeignKey("country._real_id"))
     name = Column(String(50))
 
 class Political_View(Model):
     __session__ = session
-    # Fields Declarations
+    # fields declaration
     name = Column(String(50))
 
 

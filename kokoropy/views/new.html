@@ -2,30 +2,19 @@
 % g_table_name.generate_input_components()
 
 {% block style %}
-    {{! g_table_name.generated_style }}
+    {{ !KOKORO_CRUD_STYLE }}
+    {{ !g_table_name.generated_style }}
 {% endblock %}
 
 {% block script %}
-    {{! g_table_name.generated_script }}
-    <script type="text/javascript" src="{{ BASE_URL }}assets/jquery.form.min.js"></script>
+    {{ !KOKORO_CRUD_SCRIPT }}
+    {{ !g_table_name.generated_script }}
     <script type="text/javascript">
-        function _block_form(){
-            $('#__main_form input, #__main_form select').prop("readonly", true);
-            $('#__main_form input, #__main_form select').prop("disabled", "disabled");
-            $('#__main_form a._new_row').addClass("disabled");
-        }
-
-        function _unblock_form(){
-            $('#__main_form input, #__main_form select').removeProp("readonly");
-            $('#__main_form input, #__main_form select').removeProp("disabled");
-            $('#__main_form a._new_row').addClass("disabled");
-        }
-
         $('#__main_form').ajaxForm({
             dataType: 'json',
             type: 'POST',
             beforeSubmit: function(){
-                    _block_form();
+                    _block_form('#__main_form');
                 },
             success : function(response) {
                     // change token
@@ -54,14 +43,14 @@
                             '</a>';
                         $('#__button_div').html(button_html);
                     }else{
-                        _unblock_form();
+                        _unblock_form('#__main_form');
                         message_html  += '<b>Error</b> ' + error_message;
                         $('#__message_div').addClass('alert alert-danger');
                     }
                     $('#__message_div').html(message_html);
                 },
             error : function(jqXHR, textStatus, errorThrown ){
-                    _unblock_form();
+                    _unblock_form('#__main_form');
                     $('#__message_div').addClass('alert alert-danger');
                     var message_html = '<b>AJAX Error</b> ' + errorThrown;
                     $('#__message_div').html(message_html);

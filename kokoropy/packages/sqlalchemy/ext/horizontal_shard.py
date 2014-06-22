@@ -52,13 +52,13 @@ class ShardedQuery(Query):
         if self._shard_id is not None:
             return iter_for_shard(self._shard_id)
         else:
-            partial = []
+            _partial = []
             for shard_id in self.query_chooser(self):
-                partial.extend(iter_for_shard(shard_id))
+                _partial.extend(iter_for_shard(shard_id))
 
             # if some kind of in memory 'sorting'
             # were done, this is where it would happen
-            return iter(partial)
+            return iter(_partial)
 
     def get(self, ident, **kwargs):
         if self._shard_id is not None:

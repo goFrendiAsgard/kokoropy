@@ -80,7 +80,7 @@ if py3k:
     import _thread as thread
     from urllib.parse import urljoin, SplitResult as UrlSplitResult
     from urllib.parse import urlencode, quote as urlquote, unquote as urlunquote
-    urlunquote = functools.partial(urlunquote, encoding='latin1')
+    urlunquote = functools._partial(urlunquote, encoding='latin1')
     from http.cookies import SimpleCookie
     from collections import MutableMapping as DictMixin
     import pickle
@@ -578,7 +578,7 @@ class Bottle(object):
 
         #: A :class:`ConfigDict` for app specific configuration.
         self.config = ConfigDict()
-        self.config._on_change = functools.partial(self.trigger_hook, 'config')
+        self.config._on_change = functools._partial(self.trigger_hook, 'config')
         self.config.meta_set('autojson', 'validate', bool)
         self.config.meta_set('catchall', 'validate', bool)
         self.config['catchall'] = catchall
@@ -3253,8 +3253,8 @@ class SimpleTemplate(BaseTemplate):
         env = self.defaults.copy()
         env.update(kwargs)
         env.update({'_stdout': _stdout, '_printlist': _stdout.extend,
-            'include': functools.partial(self._include, env),
-            'rebase': functools.partial(self._rebase, env), '_rebase': None,
+            'include': functools._partial(self._include, env),
+            'rebase': functools._partial(self._rebase, env), '_rebase': None,
             '_str': self._str, '_escape': self._escape, 'get': env.get,
             'setdefault': env.setdefault, 'defined': env.__contains__ })
         eval(self.co, env)
@@ -3464,9 +3464,9 @@ def template(*args, **kwargs):
     for dictarg in args[1:]: kwargs.update(dictarg)
     return TEMPLATES[tplid].render(kwargs)
 
-mako_template = functools.partial(template, template_adapter=MakoTemplate)
-cheetah_template = functools.partial(template, template_adapter=CheetahTemplate)
-jinja2_template = functools.partial(template, template_adapter=Jinja2Template)
+mako_template = functools._partial(template, template_adapter=MakoTemplate)
+cheetah_template = functools._partial(template, template_adapter=CheetahTemplate)
+jinja2_template = functools._partial(template, template_adapter=Jinja2Template)
 
 
 def view(tpl_name, **defaults):
@@ -3493,9 +3493,9 @@ def view(tpl_name, **defaults):
         return wrapper
     return decorator
 
-mako_view = functools.partial(view, template_adapter=MakoTemplate)
-cheetah_view = functools.partial(view, template_adapter=CheetahTemplate)
-jinja2_view = functools.partial(view, template_adapter=Jinja2Template)
+mako_view = functools._partial(view, template_adapter=MakoTemplate)
+cheetah_view = functools._partial(view, template_adapter=CheetahTemplate)
+jinja2_view = functools._partial(view, template_adapter=Jinja2Template)
 
 
 

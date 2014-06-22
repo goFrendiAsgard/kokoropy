@@ -16,6 +16,18 @@ if os.path.dirname(__file__) not in sys.path:
     sys.path.append(os.path.join(os.path.dirname(__file__),'packages'))
 
 ###################################################################################################
+# Hacks & Dirty Tricks :)
+###################################################################################################  
+# Python 3 hack for xrange
+if sys.version_info >= (3,0,0):
+    xrange = range
+    from urllib.parse import urlparse
+    from urllib.request import urlopen
+else:
+    from urlparse import urlparse
+    from urllib2 import urlopen
+
+###################################################################################################
 # Import things
 ###################################################################################################
 import bottle, threading, time, tempfile, re, beaker.middleware, types
@@ -33,6 +45,7 @@ from sqlalchemy.sql.expression import desc
 # colorama
 from colorama import init, Fore, Back, Style
 init()
+
 ############################### SQL ALCHEMY SCRIPT ####################################
 
 # create Base
@@ -48,19 +61,7 @@ class Migration(Base):
     def __init__(self, signature, migration_name):
         self.signature = signature
         self.migration_name = migration_name
-
-###################################################################################################
-# Hacks & Dirty Tricks :)
-###################################################################################################  
-# Python 3 hack for xrange
-if sys.version_info >= (3,0,0):
-    xrange = range
-    from urllib.parse import urlparse
-    from urllib.request import urlopen
-else:
-    from urlparse import urlparse
-    from urllib2 import urlopen
-
+        
 # intellisense hack
 request.SESSION = {}
 
@@ -93,115 +94,9 @@ class KokoroWSGIRefServer(bottle.ServerAdapter):
 class Autoroute_Controller(object):
     pass
 
-# load view
-def load_view(application_name, *args, **kwargs):
-    ''' Usage:
-    load_view('application_name', 'view_name', ....)
-    load_view('application_name/view_name', ....)
-    '''
-    # determine view_path
-    if '/' in application_name:
-        # if application_name has '/', then view_name is mean to be the first element of args
-        view_path = application_name
-    else:
-        view_name = args[0]
-        args = args[1:]
-        view_path = os.path.join(application_name , "views" , view_name)
-    # get template's content
-    default_extensions = ['html', 'tpl', 'stpl', 'thtml']
-    extension = view_path.split('.')[-1]
-    for template_path in TEMPLATE_PATH:
-        if extension in default_extensions:
-            path = os.path.join(template_path, view_path)
-            if os.path.exists(path):
-                break
-        else:
-            for default_extension in default_extensions:
-                path = os.path.join(template_path, view_path + '.' + default_extension)
-                if os.path.exists(path):
-                    break
-    content = file_get_contents(path)
-    return load_template(content, *args, **kwargs)
-
-def load_template(template, *args, **kwargs):
-    # modify kwargs
-    if not request.BASE_URL is None:
-        kwargs['BASE_URL'] = request.BASE_URL
-    else:
-        kwargs['BASE_URL'] = base_url()
-    kwargs['RUNTIME_PATH']      = runtime_path()
-    kwargs['app_path']  = application_path()
-    # modify args
-    args_list = list(args)
-    # add \n to prevent template rendered as path
-    if not '\n' in template:
-        template = template + '\n'
-    # create block pattern
-    block_pattern = r'{%( *)block( *)([A-Za-z0-9_-]*)( *)%}((.|\n)*?){%( *)endblock( *)%}+?'
-    # get block_chunks
-    block_chunks = re.findall(block_pattern, template)
-    # remove all literal block from template
-    template = re.sub(block_pattern, r'', template)
-    # get template by rendering content
-    args_list.insert(0, template)
-    args = tuple(args_list)
-    template = _bottle_template(*args, **kwargs)
-    for chunk in block_chunks:
-        block_name = chunk[2]
-        block_content = chunk[4]
-        # change {% parent %} into % __base_block_BLOCKNAME()\n
-        block_content = re.sub(r'{%( *)parent( *)%}+?',
-                               r'\n% __base_block_'+block_name+'()\n',
-                               block_content)
-        template = '\n% def __block_' + block_name + '():\n' + block_content + '\n% end\n' + template
-    # change 
-    #    {% block X %}Y{% endblock %}" 
-    # into 
-    #     % def __base_block_X:
-    #         Y
-    #     % end
-    #     % setdefault('__block_X', __base_block_X)
-    #     % __block_X()
-    template = re.sub(block_pattern, 
-                     r'\n% def __base_block_\3():\n\5\n% end\n% setdefault("__block_\3", __base_block_\3)\n%__block_\3()\n',
-                     template)
-    # render again
-    args_list[0] = template
-    args = tuple(args_list)
-    template = _bottle_template(*args, **kwargs)
-    return _bottle_template(*args, **kwargs)
-
-# This class serve kokoropy static files routing & some injection into request object
-class _Kokoro_Router(object):
-    def before_request(self):
-        """ Before request event
-            Inject request.SESSION as alias of request.environ["beaker.session"]
-            There is no need to call this function manually
-        """
-        request.SESSION = request.environ["beaker.session"]
-        request.RUNTIME_PATH = runtime_path()
-        request.APPLICATION_PATH = application_path()
-        url = bottle.request.url
-        url_part = urlparse(url)
-        scheme = url_part.scheme
-        host = scheme + '://' + request.get_header('host')
-        request.HOST = host
-        request.BASE_URL = add_trailing_slash(host) + remove_begining_slash(add_trailing_slash(base_url()))
-    
-    def serve_assets(self, path, application='index'):
-        """ Serve static files
-            There is no need to call this function manually
-        """
-        # return things
-        APP_PATH = application_path()
-        APP_PATH = remove_trailing_slash(APP_PATH)
-        output = {}
-        if os.path.exists(os.path.join(APP_PATH, application, "assets", path)):
-            output = static_file(path, root=os.path.join(APP_PATH, application, "assets"))
-        else:
-            default_root = os.path.join(os.path.dirname(__file__),'statics')
-            output = static_file(path, root=default_root)
-        return output
+###################################################################################################
+# Commonly used functions
+###################################################################################################
 
 def isset(variable):
     """ PHP favoured isset. 
@@ -305,6 +200,254 @@ def file_get_contents(filename):
         return ''.join(open(filename).readlines())
     else:
         return ''.join(urlopen(filename).readlines())
+
+def _key_spaces(data):
+    spaces = {}
+    max_len = 0
+    for item in data:
+        if len(item)>max_len:
+            max_len = len(item)
+    for item in data:
+        spaces[item] = ' ' * (max_len - len(item))
+    return spaces
+
+def _type_label(type_label, mode = 'plain'):
+    type_label = str(type_label)
+    # strip out '<' and '>'
+    if type_label[0] == '<':
+        type_label = type_label[1:]
+    if type_label[-1] == '>':
+        type_label = type_label[:-1]
+    # determine return base on mode
+    if mode == 'html':
+        return '<i>&lt;' + type_label + '&gt;</i>'
+    elif mode == 'console':
+        return Fore.YELLOW + Style.DIM + type_label + Style.NORMAL + Fore.RESET
+    else:
+        return '<' + type_label + '>'
+
+def _key_label(key, mode = 'plain'):
+    key = str(key)
+    # determine return base on mode
+    if mode == 'html':
+        return '<b>' + key + '</b>'
+    elif mode == 'console':
+        return Fore.YELLOW + Style.BRIGHT + key + Style.NORMAL + Fore.RESET
+    else:
+        return key
+
+def _value_label(value, mode = 'plain'):
+    if type(value) == types.StringType:
+        value = "'" + value + "'"
+    else:
+        value = str(value)
+    # determine return base on mode
+    if mode == 'html':
+        return '<b>' + value + '</b>'
+    elif mode == 'console':
+        return Fore.CYAN + Style.BRIGHT + value + Style.NORMAL + Fore.RESET
+    else:
+        return value
+
+def _var_dump(variable, depth = 0, not_new_line = False, mode = 'plain'):
+    indentation   = " " * 4
+    padding       = indentation * depth
+    key_padding   = indentation * (depth+1)
+    first_padding = '' if not_new_line else padding
+    not_new_line  = True
+    depth+= 1
+    # Dictionary
+    if type(variable) == types.DictType :
+        items = []
+        spaces = _key_spaces(variable)
+        for key in variable :
+            item = key_padding + "%s%s : %s" % (_key_label("'"+key+"'",mode), spaces[key], _var_dump(variable[key], depth, True, mode))
+            items.append(item)
+        items = ',\n'.join(items)
+        return '%s%s {\n%s\n%s}' % ( first_padding, _type_label('Dictionary', mode), items, padding)
+    # Instance of class
+    elif type(variable) == types.InstanceType:
+        items = []
+        spaces = _key_spaces(dir(variable))
+        for key in dir(variable):
+            item = key_padding + "%s%s : %s" % (_key_label(key,mode), spaces[key], _var_dump(getattr(variable,key), depth, True, mode))
+            items.append(item)
+        items = ',\n'.join(items)
+        return '%s%s (\n%s\n%s)' % ( first_padding, _type_label('Instance of ' + str(variable.__class__), mode), items, padding)
+    # List
+    elif type(variable) == types.ListType :
+        items = []
+        for item in variable :
+            items.append(_var_dump(item, depth, False, mode))
+        items = ',\n'.join(items)
+        return '%s%s [\n%s\n%s]' % ( first_padding, _type_label('List', mode), items, padding)
+    # Tuple
+    elif type(variable) == types.TupleType :
+        items = []
+        for item in variable :
+            items.append(_var_dump(item, depth, False, mode))
+        items = ',\n'.join(items)
+        return '%s%s (\n%s\n%s)' % ( first_padding, _type_label('Tuple', mode), items, padding)
+    elif type(variable) == types.MethodType:
+        return first_padding + _type_label('Method', mode)
+    elif type(variable) == types.FunctionType:
+        return first_padding + _type_label('Function', mode)
+    elif type(variable) == types.BuiltinFunctionType:
+        return first_padding + _type_label('BuiltinFunction', mode)
+    elif type(variable) == types.BuiltinMethodType:
+        return first_padding + _type_label('BuiltinMethod', mode)
+    elif type(variable) == types.NoneType:
+        return first_padding + _type_label('None', mode)
+    elif type(variable) == types.ClassType:
+        return first_padding + _type_label('Class', mode)
+    elif type(variable) == types.BufferType:
+        return first_padding + _type_label('Buffer', mode)
+    elif type(variable) == types.TypeType:
+        return first_padding + _type_label('Type', mode)
+    elif type(variable) == types.ModuleType:
+        return first_padding + _type_label('Module', mode)
+    elif type(variable) == types.ObjectType:
+        return first_padding + _type_label('Object', mode)
+    elif type(variable) == types.StringType:
+        return first_padding + _type_label('String', mode) + ' ' + _value_label(variable, mode)
+    elif type(variable) == types.IntType:
+        return first_padding + _type_label('Integer', mode) + ' ' + _value_label(variable, mode)
+    elif type(variable) == types.LongType:
+        return first_padding + _type_label('Long', mode) + ' ' + _value_label(variable, mode)
+    elif type(variable) == types.FloatType:
+        return first_padding + _type_label('Float', mode) + ' ' + _value_label(variable, mode)
+    elif type(variable) == types.BooleanType:
+        return first_padding + _type_label('Boolean', mode) + ' ' + _value_label(variable, mode)
+    else:
+        return first_padding + _type_label(type(variable), mode)
+
+def var_dump(variable = None, **kwargs):
+    if variable is None:
+        variable = {'globals()' : globals(), 'locals()' : locals()}
+    print_output = kwargs.pop('print_output', False)
+    mode         = kwargs.pop('mode', 'plain')
+    result       = _var_dump(variable, 0, False, mode)
+    if mode == 'html':
+        result = '<pre>' + result + '</pre>'
+    if print_output:
+        print(result)
+    return result
+
+###################################################################################################
+# View & Template related functions
+###################################################################################################
+# load view
+def load_view(application_name, *args, **kwargs):
+    ''' Usage:
+    load_view('application_name', 'view_name', ....)
+    load_view('application_name/view_name', ....)
+    '''
+    # determine view_path
+    if '/' in application_name:
+        # if application_name has '/', then view_name is mean to be the first element of args
+        view_path = application_name
+    else:
+        view_name = args[0]
+        args = args[1:]
+        view_path = os.path.join(application_name , "views" , view_name)
+    # get template's content
+    default_extensions = ['html', 'tpl', 'stpl', 'thtml']
+    extension = view_path.split('.')[-1]
+    for template_path in TEMPLATE_PATH:
+        if extension in default_extensions:
+            path = os.path.join(template_path, view_path)
+            if os.path.exists(path):
+                break
+        else:
+            for default_extension in default_extensions:
+                path = os.path.join(template_path, view_path + '.' + default_extension)
+                if os.path.exists(path):
+                    break
+    content = file_get_contents(path)
+    return load_template(content, *args, **kwargs)
+
+def load_template(template, *args, **kwargs):
+    import_asset = '% from kokoropy.asset import JQUI_BOOTSTRAP_STYLE, JQUI_BOOTSTRAP_SCRIPT, KOKORO_CRUD_STYLE, KOKORO_CRUD_SCRIPT, HTML'
+    # modify kwargs
+    if 'BASE_URL' in request and request.BASE_URL is not None:
+        kwargs['BASE_URL'] = request.BASE_URL
+    else:
+        kwargs['BASE_URL'] = base_url()
+    kwargs['RUNTIME_PATH'] = runtime_path()
+    kwargs['APP_PATH']     = application_path()
+    # modify args
+    args_list = list(args)
+    # add \n to prevent template rendered as path
+    if not '\n' in template:
+        template = template + '\n'
+    template = import_asset  + '\n'+ template
+    # create block pattern
+    block_pattern = r'{%( *)block( *)([A-Za-z0-9_-]*)( *)%}((.|\n)*?){%( *)endblock( *)%}+?'
+    # get block_chunks
+    block_chunks = re.findall(block_pattern, template)
+    # remove all literal block from template
+    template = re.sub(block_pattern, r'', template)
+    # get template by rendering content
+    args_list.insert(0, template)
+    args = tuple(args_list)
+    template = _bottle_template(*args, **kwargs)
+    for chunk in block_chunks:
+        block_name = chunk[2]
+        block_content = chunk[4]
+        # change {% parent %} into % __base_block_BLOCKNAME()\n
+        block_content = re.sub(r'{%( *)parent( *)%}+?',
+                               r'\n% __base_block_'+block_name+'()\n',
+                               block_content)
+        template = '\n% def __block_' + block_name + '():\n' + import_asset + '\n' + block_content + '\n% end\n' + template
+    # change 
+    #    {% block X %}Y{% endblock %}" 
+    # into 
+    #     % def __base_block_X:
+    #         Y
+    #     % end
+    #     % setdefault('__block_X', __base_block_X)
+    #     % __block_X()
+    template = re.sub(block_pattern, 
+                     r'\n% def __base_block_\3():\n' + import_asset + r'\n\5\n% end\n% setdefault("__block_\3", __base_block_\3)\n%__block_\3()\n',
+                     template)
+    # render again
+    args_list[0] = template
+    args = tuple(args_list)
+    return _bottle_template(*args, **kwargs)
+
+
+# This class serve kokoropy static files routing & some injection into request object
+class _Kokoro_Router(object):
+    def before_request(self):
+        """ Before request event
+            Inject request.SESSION as alias of request.environ["beaker.session"]
+            There is no need to call this function manually
+        """
+        request.SESSION = request.environ["beaker.session"]
+        request.RUNTIME_PATH = runtime_path()
+        request.APPLICATION_PATH = application_path()
+        url = bottle.request.url
+        url_part = urlparse(url)
+        scheme = url_part.scheme
+        host = scheme + '://' + request.get_header('host')
+        request.HOST = host
+        request.BASE_URL = add_trailing_slash(host) + remove_begining_slash(add_trailing_slash(base_url()))
+    
+    def serve_assets(self, path, application='index'):
+        """ Serve static files
+            There is no need to call this function manually
+        """
+        # return things
+        APP_PATH = application_path()
+        APP_PATH = remove_trailing_slash(APP_PATH)
+        output = {}
+        if os.path.exists(os.path.join(APP_PATH, application, "assets", path)):
+            output = static_file(path, root=os.path.join(APP_PATH, application, "assets"))
+        else:
+            default_root = os.path.join(os.path.dirname(__file__),'statics')
+            output = static_file(path, root=default_root)
+        return output
+
 
 def _sort_names(names=[], key=None):
     """ Sort list or list of dictionary for routing
@@ -794,137 +937,6 @@ def migration_downgrade(application_name):
         db_session.delete(max_migration)
         db_session.commit()
 
-def _key_spaces(data):
-    spaces = {}
-    max_len = 0
-    for item in data:
-        if len(item)>max_len:
-            max_len = len(item)
-    for item in data:
-        spaces[item] = ' ' * (max_len - len(item))
-    return spaces
-
-def _type_label(type_label, mode = 'plain'):
-    type_label = str(type_label)
-    # strip out '<' and '>'
-    if type_label[0] == '<':
-        type_label = type_label[1:]
-    if type_label[-1] == '>':
-        type_label = type_label[:-1]
-    # determine return base on mode
-    if mode == 'html':
-        return '<i>&lt;' + type_label + '&gt;</i>'
-    elif mode == 'console':
-        return Fore.YELLOW + Style.DIM + type_label + Style.NORMAL + Fore.RESET
-    else:
-        return '<' + type_label + '>'
-
-def _key_label(key, mode = 'plain'):
-    key = str(key)
-    # determine return base on mode
-    if mode == 'html':
-        return '<b>' + key + '</b>'
-    elif mode == 'console':
-        return Fore.YELLOW + Style.BRIGHT + key + Style.NORMAL + Fore.RESET
-    else:
-        return key
-
-def _value_label(value, mode = 'plain'):
-    if type(value) == types.StringType:
-        value = "'" + value + "'"
-    else:
-        value = str(value)
-    # determine return base on mode
-    if mode == 'html':
-        return '<b>' + value + '</b>'
-    elif mode == 'console':
-        return Fore.CYAN + Style.BRIGHT + value + Style.NORMAL + Fore.RESET
-    else:
-        return value
-
-def _var_dump(variable, depth = 0, not_new_line = False, mode = 'plain'):
-    indentation   = " " * 4
-    padding       = indentation * depth
-    key_padding   = indentation * (depth+1)
-    first_padding = '' if not_new_line else padding
-    not_new_line  = True
-    depth+= 1
-    # Dictionary
-    if type(variable) == types.DictType :
-        items = []
-        spaces = _key_spaces(variable)
-        for key in variable :
-            item = key_padding + "%s%s : %s" % (_key_label("'"+key+"'",mode), spaces[key], _var_dump(variable[key], depth, True, mode))
-            items.append(item)
-        items = ',\n'.join(items)
-        return '%s%s {\n%s\n%s}' % ( first_padding, _type_label('Dictionary', mode), items, padding)
-    # Instance of class
-    elif type(variable) == types.InstanceType:
-        items = []
-        spaces = _key_spaces(dir(variable))
-        for key in dir(variable):
-            item = key_padding + "%s%s : %s" % (_key_label(key,mode), spaces[key], _var_dump(getattr(variable,key), depth, True, mode))
-            items.append(item)
-        items = ',\n'.join(items)
-        return '%s%s (\n%s\n%s)' % ( first_padding, _type_label('Instance of ' + str(variable.__class__), mode), items, padding)
-    # List
-    elif type(variable) == types.ListType :
-        items = []
-        for item in variable :
-            items.append(_var_dump(item, depth, False, mode))
-        items = ',\n'.join(items)
-        return '%s%s [\n%s\n%s]' % ( first_padding, _type_label('List', mode), items, padding)
-    # Tuple
-    elif type(variable) == types.TupleType :
-        items = []
-        for item in variable :
-            items.append(_var_dump(item, depth, False, mode))
-        items = ',\n'.join(items)
-        return '%s%s (\n%s\n%s)' % ( first_padding, _type_label('Tuple', mode), items, padding)
-    elif type(variable) == types.MethodType:
-        return first_padding + _type_label('Method', mode)
-    elif type(variable) == types.FunctionType:
-        return first_padding + _type_label('Function', mode)
-    elif type(variable) == types.BuiltinFunctionType:
-        return first_padding + _type_label('BuiltinFunction', mode)
-    elif type(variable) == types.BuiltinMethodType:
-        return first_padding + _type_label('BuiltinMethod', mode)
-    elif type(variable) == types.NoneType:
-        return first_padding + _type_label('None', mode)
-    elif type(variable) == types.ClassType:
-        return first_padding + _type_label('Class', mode)
-    elif type(variable) == types.BufferType:
-        return first_padding + _type_label('Buffer', mode)
-    elif type(variable) == types.TypeType:
-        return first_padding + _type_label('Type', mode)
-    elif type(variable) == types.ModuleType:
-        return first_padding + _type_label('Module', mode)
-    elif type(variable) == types.ObjectType:
-        return first_padding + _type_label('Object', mode)
-    elif type(variable) == types.StringType:
-        return first_padding + _type_label('String', mode) + ' ' + _value_label(variable, mode)
-    elif type(variable) == types.IntType:
-        return first_padding + _type_label('Integer', mode) + ' ' + _value_label(variable, mode)
-    elif type(variable) == types.LongType:
-        return first_padding + _type_label('Long', mode) + ' ' + _value_label(variable, mode)
-    elif type(variable) == types.FloatType:
-        return first_padding + _type_label('Float', mode) + ' ' + _value_label(variable, mode)
-    elif type(variable) == types.BooleanType:
-        return first_padding + _type_label('Boolean', mode) + ' ' + _value_label(variable, mode)
-    else:
-        return first_padding + _type_label(type(variable), mode)
-
-def var_dump(variable = None, **kwargs):
-    if variable is None:
-        variable = {'globals()' : globals(), 'locals()' : locals()}
-    print_output = kwargs.pop('print_output', False)
-    mode         = kwargs.pop('mode', 'plain')
-    result       = _var_dump(variable, 0, False, mode)
-    if mode == 'html':
-        result = '<pre>' + result + '</pre>'
-    if print_output:
-        print(result)
-    return result
-
 def publish_methods(directory, controller, methods=[], publishers=[route, get, post, put, delete]):
     _publish_methods(directory, controller, '', methods, publishers)
+

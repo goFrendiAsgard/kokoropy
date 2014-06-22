@@ -33,13 +33,13 @@ class Country(Model):
             "country_friends" : ["left_country"]
         }
     # Column's Labels
-    __column_label__ = {
+    __column_label = {
         "country_commodities" : "Commodities",
             "country_enemies" : "Enemies",
             "country_friends" : "Friends"
         }
     # Detail Column's Labels
-    __detail_column_label__ = {
+    __detail_column_label = {
             "country_enemies" : {
                 "right_country" : "Country"
             },

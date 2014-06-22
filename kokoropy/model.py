@@ -34,7 +34,7 @@ class Model(Base):
     __connection_string__   = ''
     __echo__ = True
     __prefix_of_id__        = '%Y%m%d-'
-    __digit_num_of_id__     = 3
+    __digit_num_of_id__     = 5
     # columns to be shown
     __shown_column__            = None
     __form_column__             = None
@@ -74,6 +74,9 @@ class Model(Base):
     __detail_excluded_form_column__     = {}
     __detail_excluded_insert_column__   = {}
     __detail_excluded_update_column__   = {}
+    # label
+    __column_label__                    = {}
+    __detail_column_label__             = {}
     # automatic assigned columns
     __automatic_assigned_column__        = None
     __automatic_assigned_insert_column__ = None
@@ -781,6 +784,8 @@ class Model(Base):
         if custom_label is not None:
             return custom_label
         else:
+            if column_name in self.__column_label__:
+                return self.__column_label__[column_name]
             return column_name.replace('_', ' ').title()
     
     def _encode_input_attribute(self, attribute):
@@ -822,7 +827,11 @@ class Model(Base):
                 if relation_metadata.uselist:
                     # one to many
                     ref_obj = self._get_relation_class(column_name)()
-                    ref_obj.generate_tabular_label(state = 'form', shown_column = self._get_detail_column_list(column_name))
+                    if column_name in self.__detail_column_label__:
+                        custom_label = self.__detail_column_label__[column_name]
+                    else:
+                        custom_label = {}
+                    ref_obj.generate_tabular_label(state = 'form', shown_column = self._get_detail_column_list(column_name), custom_label = custom_label)
                     if len(getattr(self, column_name)) == 0:
                         div_empty_style = ''
                         table_style = 'style="display:none;"'
@@ -989,7 +998,12 @@ class Model(Base):
                         
                         # table
                         ref_obj = self._get_relation_class(column_name)()
-                        ref_obj.generate_tabular_label(state = 'view', shown_column = self._get_detail_column_list(column_name))
+                        ref_obj = self._get_relation_class(column_name)()
+                        if column_name in self.__detail_column_label__:
+                            custom_label = self.__detail_column_label__[column_name]
+                        else:
+                            custom_label = {}
+                        ref_obj.generate_tabular_label(state = 'view', shown_column = self._get_detail_column_list(column_name), custom_label = custom_label)
                         value  = '<table class="table">'
                         value += '<thead><tr>' + ref_obj.generated_html + '</tr></thead>'
                         value += '<tbody>'
@@ -1032,8 +1046,10 @@ class Model(Base):
     
     def _include_default_resource(self):
         base_url = base_url()
-        self._generated_script += asset.default_script()
-        self._generated_css += asset.default_style()
+        self._generated_script += asset.JQUI_BOOTSTRAP_SCRIPT
+        self._generated_script += asset.KOKORO_CRUD_SCRIPT
+        self._generated_css += asset.JQUI_BOOTSTRAP_STYLE
+        self._generated_css += asset.KOKORO_CRUD_STYLE
 
     def quick_preview(self):
         '''
@@ -1063,6 +1079,7 @@ class Model(Base):
     def generate_tabular_label(self, **kwargs):
         include_resource = kwargs.pop('_include_default_resource', False)
         shown_column = kwargs.pop('shown_column', [])
+        custom_label = kwargs.pop('custom_label', {})
         # prepare resource
         self.reset_generated()
         if include_resource:
@@ -1074,7 +1091,11 @@ class Model(Base):
         for column_name in shown_column:
             if column_name in self._get_relation_names() and self._get_relation_class(column_name) == self.__class__:
                 continue
-            html += '<th>' + self.build_label(column_name) + '</th>'
+            if column_name in custom_label:
+                label = custom_label[column_name]
+            else:
+                label = self.build_label(column_name)
+            html += '<th>' + label + '</th>'
         self.generated_html = html
     
     def generate_tabular_representation(self, **kwargs):

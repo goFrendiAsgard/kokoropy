@@ -184,7 +184,7 @@ class Mapper(_InspectionAttr):
            possibly existing within the database. This affects whether a
            mapper will assign an incoming row to an existing identity, as well
            as if :meth:`.Session.merge` will check the database first for a
-           particular primary key value. A "partial primary key" can occur if
+           particular primary key value. A "_partial primary key" can occur if
            one has mapped to an OUTER JOIN, for example.
 
         :param batch: Defaults to ``True``, indicating that save operations
@@ -1095,7 +1095,7 @@ class Mapper(_InspectionAttr):
         self.class_manager = manager
 
         manager.mapper = self
-        manager.deferred_scalar_loader = util.partial(
+        manager.deferred_scalar_loader = util._partial(
                             loading.load_scalar_attributes, self)
 
         # The remaining members can be added by any mapper,

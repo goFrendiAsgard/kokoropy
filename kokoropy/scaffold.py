@@ -1,3 +1,12 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+'''
+Repo: https://github.com/goFrendiAsgard/kokoropy
+'''
+__author__  = 'Go Frendi Gunawan'
+__version__ = 'development'
+__license__ = 'MIT'
+
 from kokoro import *
 from copy import copy
 
@@ -83,6 +92,18 @@ def add_detail_excluded_shown_column_to_structure(structure, table_name, column_
         structure[table_name]['__detail_excluded_shown_column__'][column_name] = []
     structure[table_name]['__detail_excluded_shown_column__'][column_name].append(detail_column_name)
 
+def add_column_label_to_structure(structure, table_name, column_name, label):
+    if '__column_label__' not in structure[table_name]:
+        structure[table_name]['__column_label__'] = {}
+    structure[table_name]['__column_label__'][column_name] = label
+
+def add_detail_column_label_to_structure(structure, table_name, column_name, detail_column_name, label):
+    if '__detail_column_label__' not in structure[table_name]:
+        structure[table_name]['__detail_column_label__'] = {}
+    if column_name not in structure[table_name]['__detail_column_label__']:
+        structure[table_name]['__detail_column_label__'][column_name] = {}
+    structure[table_name]['__detail_column_label__'][column_name][detail_column_name] = label
+
 def _structure_to_script(structure):
     '''
     example of data structure:
@@ -104,6 +125,7 @@ def _structure_to_script(structure):
         script += '    __session__ = session\n'
         # excluded column
         if '__detail_excluded_shown_column__' in structure[table_name]:
+            script += '    # Excluded Columns\n'
             for key in ('__detail_excluded_shown_column__', '__detail_excluded_form_column__'):
                 script += '    ' + key + ' = {\n            '
                 pair_list = []
@@ -118,7 +140,31 @@ def _structure_to_script(structure):
                     pair_list.append('"' + column_name + '" : [' + detail_columns + ']')
                 script += ',\n            '.join(pair_list)
                 script += '\n        }\n'
-        script += '    # fields declaration\n'
+        # column's label
+        if '__column_label__' in structure[table_name]:
+            script += '    # Column\'s Labels\n'
+            script += '    __column_label__ = {\n        '
+            pair_list = []
+            for column_name in structure[table_name]['__column_label__']:
+                label = structure[table_name]['__column_label__'][column_name]
+                pair_list.append('"' + column_name + '" : "' + label + '"')
+            script += ',\n            '.join(pair_list)
+            script += '\n        }\n'
+        # detail column's label
+        if '__detail_column_label__' in structure[table_name]:
+            script += '    # Detail Column\'s Labels\n'
+            script += '    __detail_column_label__ = {\n            '
+            pair_list = []
+            for column_name in structure[table_name]['__detail_column_label__']:
+                sub_pair_list = []
+                for detail_column_name in structure[table_name]['__detail_column_label__'][column_name]:
+                    detail_label = structure[table_name]['__detail_column_label__'][column_name][detail_column_name]
+                    sub_pair_list.append('"' + detail_column_name + '" : "' + detail_label + '"')
+                pair_list.append('"' + column_name + '" : {\n                ' +\
+                                 ',\n                '.join(sub_pair_list) + '\n            }')
+            script += ',\n            '.join(pair_list)
+            script += '\n        }\n'
+        script += '    # Fields Declarations\n'
         for column_name in structure[table_name]['__list__']:
             content = structure[table_name][column_name]
             script += '    ' + column_name + ' = ' + content + '\n'
@@ -203,6 +249,12 @@ def _scaffold_model(structure, table_name, *columns):
                 # add detail excluded shown column
                 add_detail_excluded_shown_column_to_structure(structure, table_name, 
                     rel_col_name, rel_col_name_left)
+                # add column label to structure
+                add_column_label_to_structure(structure, table_name, rel_col_name, colname.replace('_', ' ').title())
+                # add detail column label to structure
+                if table_name == other_table_name:
+                    add_detail_column_label_to_structure(structure, table_name, rel_col_name, 
+                        rel_col_name_right, ucase_table_name.replace('_', ' '))
         else:
             colname = column[0]
             if len(column)>1:
