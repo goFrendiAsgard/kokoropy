@@ -1,4 +1,3 @@
-% from kokoropy import asset
 <!DOCTYPE html>
 <html>
     <head>
@@ -7,7 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="description" content="{{ get('_description', 'A web page') }}">
         <meta name="author" content="{{ get('_author', 'You') }}">
-        {{ !asset.JQUI_BOOTSTRAP_STYLE }}
+        {{ !JQUI_BOOTSTRAP_STYLE }}
         <title>{{ get('_title', 'Your Application') }}</title>
         {% block style %}{% endblock %}
     </head>
@@ -27,7 +26,7 @@
               <p>&copy; Yourself</p>
             </div>
         </div>
-        {{ !asset.JQUI_BOOTSTRAP_SCRIPT }}
+        {{ !JQUI_BOOTSTRAP_SCRIPT }}
         {% block script %}{% endblock %}
     </body>
 </html>
