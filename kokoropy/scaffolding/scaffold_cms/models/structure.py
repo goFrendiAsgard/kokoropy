@@ -2,17 +2,17 @@ from sqlalchemy import or_, and_, create_engine, MetaData, Column, ForeignKey, f
     Integer, String, Date, DateTime, Boolean, Text
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
 from sqlalchemy.ext.associationproxy import association_proxy
-from kokoropy.model import Model, auto_migrate
+from kokoropy.model import DB_Model, auto_migrate
 from ..configs.db import connection_string
 import hashlib
 
 engine = create_engine(connection_string, echo=False)
 session = scoped_session(sessionmaker(bind=engine))
 
-Model.metadata = MetaData()
+DB_Model.metadata = MetaData()
 
 '''
-    Model has several commonly overriden property and methods:
+    DB_Model has several commonly overriden property and methods:
     * __excluded_shown_column__       : list, hidden columns on "show detail" (e.g: ["id"])
     * __excluded_insert_column__      : list, hidden columns on "insert form" (e.g: ["id"])
     * __excluded_update_column__      : list, hidden columns on "edit form" (e.g: ["id"])
@@ -22,19 +22,19 @@ Model.metadata = MetaData()
 def encrypt_password(password):
     return hashlib.md5(hashlib.md5(password).hexdigest()).hexdigest()
 
-class Cms(Model):
+class Cms(DB_Model):
     __session__ = session
     # fields declaration
     last_update = Column(DateTime)
     version = Column(String(50))
 
-class Group(Model):
+class Group(DB_Model):
     __session__ = session
     # fields declaration
     name = Column(String(50))
     active = Column(Boolean)
 
-class Third_Party_Authenticator(Model):
+class Third_Party_Authenticator(DB_Model):
     __session__ = session
     # fields declaration
     name = Column(String(50))
@@ -42,7 +42,7 @@ class Third_Party_Authenticator(Model):
     callback_url = Column(String(255))
     active = Column(Boolean)
 
-class Page(Model):
+class Page(DB_Model):
     __session__ = session
     __detail_excluded_shown_column__ = {
             "page_groups" : ["page"]
@@ -79,7 +79,7 @@ class Page(Model):
                 max_page_order = 0
             self.page_order = max_page_order
 
-class Page_Groups(Model):
+class Page_Groups(DB_Model):
     __session__ = session
     # fields declaration
     fk_page = Column(Integer, ForeignKey("page._real_id"))
@@ -87,21 +87,21 @@ class Page_Groups(Model):
     page = relationship("Page", foreign_keys="Page_Groups.fk_page")
     group = relationship("Group", foreign_keys="Page_Groups.fk_group")
 
-class Theme(Model):
+class Theme(DB_Model):
     __session__ = session
     # fields declaration
     name = Column(String(50))
     content = Column(Text)
     custom_layout = relationship("Layout", foreign_keys="Layout.fk_theme")
 
-class Layout(Model):
+class Layout(DB_Model):
     __session__ = session
     # fields declaration
     fk_theme = Column(Integer, ForeignKey("theme._real_id"))
     name = Column(String(50))
     content = Column(Text)
 
-class Widget(Model):
+class Widget(DB_Model):
     __session__ = session
     __detail_excluded_shown_column__ = {
             "widget_groups" : ["widget"]
@@ -119,7 +119,7 @@ class Widget(Model):
     groups = association_proxy("widget_groups", "fk_group", creator=lambda _val: Widget_Groups(group = _val))
     active = Column(Boolean)
 
-class Widget_Groups(Model):
+class Widget_Groups(DB_Model):
     __session__ = session
     # fields declaration
     fk_widget = Column(Integer, ForeignKey("widget._real_id"))
@@ -127,7 +127,7 @@ class Widget_Groups(Model):
     widget = relationship("Widget", foreign_keys="Widget_Groups.fk_widget")
     group = relationship("Group", foreign_keys="Widget_Groups.fk_group")
 
-class User(Model):
+class User(DB_Model):
     __session__ = session
     __detail_excluded_shown_column__ = {
             "user_third_party_identities" : ["user"],
@@ -161,7 +161,7 @@ class User(Model):
         self.encrypted_password = encrypt_password(value)
     
     def assign_from_dict(self, variable):
-        Model.assign_from_dict(self, variable)
+        DB_Model.assign_from_dict(self, variable)
         if 'password' in variable and variable['password'] is not None and variable['password'] != '':
             self.password = variable['password']
     
@@ -171,7 +171,7 @@ class User(Model):
         else:
             return None
 
-class User_Groups(Model):
+class User_Groups(DB_Model):
     __session__ = session
     # fields declaration
     fk_user = Column(Integer, ForeignKey("user._real_id"))
@@ -179,7 +179,7 @@ class User_Groups(Model):
     user = relationship("User", foreign_keys="User_Groups.fk_user")
     group = relationship("Group", foreign_keys="User_Groups.fk_group")
 
-class User_Third_Party_Identities(Model):
+class User_Third_Party_Identities(DB_Model):
     __session__ = session
     # fields declaration
     fk_user = Column(Integer, ForeignKey("user._real_id"))
@@ -187,7 +187,7 @@ class User_Third_Party_Identities(Model):
     user = relationship("User", foreign_keys="User_Third_Party_Identities.fk_user")
     third_party_authenticator = relationship("Third_Party_Authenticator", foreign_keys="User_Third_Party_Identities.fk_third_party_authenticator")
 
-class Language(Model):
+class Language(DB_Model):
     __session__ = session
     # fields declaration
     name = Column(String(50))
@@ -195,14 +195,14 @@ class Language(Model):
     description = Column(Text)
     detail = relationship("Language_Detail", foreign_keys="Language_Detail.fk_language")
 
-class Language_Detail(Model):
+class Language_Detail(DB_Model):
     __session__ = session
     # fields declaration
     fk_language = Column(Integer, ForeignKey("language._real_id"))
     word = Column(String(255))
     translation = Column(String(255))
 
-class Configuration(Model):
+class Configuration(DB_Model):
     __session__ = session
     # fields declaration
     name = Column(String(50))
@@ -211,7 +211,7 @@ class Configuration(Model):
 
 '''
  By using auto_migrate, kokoropy will automatically adjust your database schema
- based on Model changes. However this is not always works. This method is merely
+ based on DB_Model changes. However this is not always works. This method is merely
  there for the sake of easyness and not recommended for production environment.
 '''
 auto_migrate(engine)

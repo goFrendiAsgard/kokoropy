@@ -2,7 +2,7 @@ from kokoropy import load_view, base_url, request, publish_methods, load_templat
     application_path, file_get_contents
 from sqlalchemy.ext.declarative import declared_attr
 import math, random, os, json
-from model import Model
+from model import DB_Model
 from operator import and_, or_
 from kokoropy import var_dump
 
@@ -23,11 +23,7 @@ class Crud_Controller(Multi_Language_Controller):
     __view_directory__      = ''
     
     def search_input(self):
-        q = request.GET['__q'] if '__q' in request.GET else ''
-        html  = '<div class="form-group">'
-        html +=     '<input type="text" id="__q" name="__q" class="form-control" placeholder="Search" value="' + q + '" >'
-        html += '</div>'
-        return html
+        return self._load_view('search')
     
     def default_criterion(self):
         return self.__model__._real_id > 0
@@ -142,12 +138,12 @@ class Crud_Controller(Multi_Language_Controller):
         dct = {}
         for key in self._get_view_parameter(key):
             value = self._get_view_parameter(key)
-            if isinstance(value, Model):
+            if isinstance(value, DB_Model):
                 value = value.to_dict(isoformat = True)
             elif isinstance(value, list):
                 new_value = []
                 for item in value:
-                    if isinstance(item, Model):
+                    if isinstance(item, DB_Model):
                         item = item.to_dict(isoformat = True)
                     elif hasattr(value, 'isoformat'):
                         item = item.isoformat()
@@ -210,7 +206,7 @@ class Crud_Controller(Multi_Language_Controller):
     def list(self):
         ''' Show table '''
         # get page index
-        current_page = int(request.GET.pop('page', 1))
+        current_page = int(request.GET['page'] if 'page' in request.GET else 1)
         # determine limit and offset
         limit = self.__row_per_page__
         offset = (current_page-1) * limit
@@ -218,6 +214,13 @@ class Crud_Controller(Multi_Language_Controller):
         data_list = self.__model__.get(and_(self.default_criterion(), self.search_criterion()), limit = limit, offset = offset)
         # calculate page count
         page_count = int(math.ceil(float(self.__model__.count(and_(self.default_criterion(), self.search_criterion()))/float(limit))))
+        # serialized get
+        get_pair = []
+        for key in request.GET:
+            if key == 'page' or request.GET[key] == '':
+                continue
+            get_pair.append(key + '=' + str(request.GET[key]))
+        get_pair = '&'.join(get_pair)
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__model_name__+'_list', data_list)
@@ -225,6 +228,7 @@ class Crud_Controller(Multi_Language_Controller):
         self._set_view_parameter('current_page', current_page)
         self._set_view_parameter('page_count', page_count)
         self._set_view_parameter('search_input', self.search_input())
+        self._set_view_parameter('serialized_get', get_pair)
         return self._load_view('list')
     
     def show(self, id=None):

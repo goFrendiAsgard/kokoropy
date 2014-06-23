@@ -121,7 +121,7 @@ def _structure_to_script(structure):
     script = ''
     for table_name in structure['__list__']:
         ucase_table_name = table_name.title()
-        script += 'class ' + ucase_table_name + '(Model):\n'
+        script += 'class ' + ucase_table_name + '(DB_Model):\n'
         script += '    __session__ = session\n'
         # excluded column
         if '__detail_excluded_shown_column__' in structure[table_name]:
@@ -370,7 +370,7 @@ def scaffold_view(application_name, table_name, view = None):
     if view is not None:
         view_list = [view]
     else:
-        view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
+        view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy', 'search']
     for view in view_list:
         content = file_get_contents(os.path.join(os.path.dirname(__file__), 'views', view + '.html'))
         content = content.replace('G_Table_Name', ucase_table_name)

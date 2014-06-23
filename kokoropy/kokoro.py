@@ -370,11 +370,12 @@ def load_template(template, *args, **kwargs):
     import_asset = '% from kokoropy.asset import JQUI_BOOTSTRAP_STYLE, JQUI_BOOTSTRAP_SCRIPT, KOKORO_CRUD_STYLE, KOKORO_CRUD_SCRIPT, HTML'
     # modify kwargs
     if 'BASE_URL' in request and request.BASE_URL is not None:
-        kwargs['BASE_URL'] = request.BASE_URL
+        kwargs['BASE_URL']  = request.BASE_URL
     else:
-        kwargs['BASE_URL'] = base_url()
-    kwargs['RUNTIME_PATH'] = runtime_path()
-    kwargs['APP_PATH']     = application_path()
+        kwargs['BASE_URL']  = base_url()
+    kwargs['RUNTIME_PATH']  = runtime_path()
+    kwargs['APP_PATH']      = application_path()
+    kwargs['REQUEST']       = request
     # modify args
     args_list = list(args)
     # add \n to prevent template rendered as path

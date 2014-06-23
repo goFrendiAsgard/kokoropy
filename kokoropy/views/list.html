@@ -7,7 +7,7 @@
             % for i in range(page_count):
                 % page = str(i+1)
                 <li class="{{ 'active' if str(current_page) == page else ''}}">
-                    <a href="{{ url_list['list'] + '?page=' + page }}">{{ page }}</a>
+                    <a href="{{ url_list['list'] + '?page=' + page + ('&' + serialized_get if serialized_get != '' else '') }}">{{ page }}</a>
                 </li>
             % end
             </ul>
@@ -64,7 +64,7 @@
         % for i in range(page_count):
             % page = str(i+1)
             <li class="{{ 'active' if str(current_page) == page else ''}}">
-                <a href="{{ url_list['list'] + '?page=' + page }}">{{ page }}</a>
+                <a href="{{ url_list['list'] + '?page=' + page + ('&' + serialized_get if serialized_get != '' else '') }}">{{ page }}</a>
             </li>
         % end
         </ul>

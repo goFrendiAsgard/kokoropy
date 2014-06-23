@@ -2,16 +2,16 @@ from sqlalchemy import or_, and_, create_engine, MetaData, Column, ForeignKey, f
     Integer, String, Date, DateTime, Boolean, Text
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
 from sqlalchemy.ext.associationproxy import association_proxy
-from kokoropy.model import Model, auto_migrate
+from kokoropy.model import DB_Model, auto_migrate
 from ..configs.db import connection_string
 
 engine = create_engine(connection_string, echo=False)
 session = scoped_session(sessionmaker(bind=engine))
 
-Model.metadata = MetaData()
+DB_Model.metadata = MetaData()
 
 '''
-    Model has several commonly overriden property and methods:
+    DB_Model has several commonly overriden property and methods:
     * __excluded_shown_column__       : list, hidden columns on "show detail" (e.g: ["id"])
     * __excluded_insert_column__      : list, hidden columns on "insert form" (e.g: ["id"])
     * __excluded_update_column__      : list, hidden columns on "edit form" (e.g: ["id"])
@@ -19,7 +19,7 @@ Model.metadata = MetaData()
     * __digit_num_of_id__             : integer, digit count after prefix id (e.g: 4)
 '''
 
-class Country(Model):
+class Country(DB_Model):
     __session__ = session
     # Excluded Columns
     __detail_excluded_shown_column__ = {
@@ -62,7 +62,7 @@ class Country(Model):
     fk_political_view = Column(Integer, ForeignKey("political_view._real_id"))
     political_view = relationship("Political_View", foreign_keys="Country.fk_political_view")
 
-class Country_Friends(Model):
+class Country_Friends(DB_Model):
     __session__ = session
     # Fields Declarations
     fk_left_country = Column(Integer, ForeignKey("country._real_id"))
@@ -70,7 +70,7 @@ class Country_Friends(Model):
     left_country = relationship("Country", foreign_keys="Country_Friends.fk_left_country")
     right_country = relationship("Country", foreign_keys="Country_Friends.fk_right_country")
 
-class Country_Enemies(Model):
+class Country_Enemies(DB_Model):
     __session__ = session
     # Fields Declarations
     fk_left_country = Column(Integer, ForeignKey("country._real_id"))
@@ -78,12 +78,12 @@ class Country_Enemies(Model):
     left_country = relationship("Country", foreign_keys="Country_Enemies.fk_left_country")
     right_country = relationship("Country", foreign_keys="Country_Enemies.fk_right_country")
 
-class Commodity(Model):
+class Commodity(DB_Model):
     __session__ = session
     # Fields Declarations
     name = Column(String(50))
 
-class Country_Commodities(Model):
+class Country_Commodities(DB_Model):
     __session__ = session
     # Fields Declarations
     fk_country = Column(Integer, ForeignKey("country._real_id"))
@@ -91,13 +91,13 @@ class Country_Commodities(Model):
     country = relationship("Country", foreign_keys="Country_Commodities.fk_country")
     commodity = relationship("Commodity", foreign_keys="Country_Commodities.fk_commodity")
 
-class City(Model):
+class City(DB_Model):
     __session__ = session
     # Fields Declarations
     fk_country = Column(Integer, ForeignKey("country._real_id"))
     name = Column(String(50))
 
-class Political_View(Model):
+class Political_View(DB_Model):
     __session__ = session
     # Fields Declarations
     name = Column(String(50))
@@ -105,7 +105,7 @@ class Political_View(Model):
 
 '''
  By using auto_migrate, kokoropy will automatically adjust your database schema
- based on Model changes. However this is not always works. This method is merely
+ based on DB_Model changes. However this is not always works. This method is merely
  there for the sake of easyness and not recommended for production environment.
 '''
 auto_migrate(engine)

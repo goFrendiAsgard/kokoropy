@@ -33,7 +33,7 @@ class GoogleNamespaceManager(OpenResourceNamespaceManager):
             table_dict = dict(created=db.DateTimeProperty(),
                               accessed=db.DateTimeProperty(),
                               data=db.BlobProperty())
-            table = type(table_name, (db.Model,), table_dict)
+            table = type(table_name, (db.DB_Model,), table_dict)
             return table
         self.table_name = table_name
         self.cache = GoogleNamespaceManager.tables.setdefault(table_name, make_cache())

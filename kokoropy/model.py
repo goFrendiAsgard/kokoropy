@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 # create Base
 Base = declarative_base()
         
-class Model(Base):
+class DB_Model(Base):
     '''
-    Model
+    DB_Model
     '''
     # defaults
     _real_id        = Column(Integer, primary_key=True)
@@ -363,7 +363,7 @@ class Model(Base):
     def get(cls, *criterion, **kwargs):
         '''
         Usage:
-            Model.get(Model.name=="whatever", limit=1000, offset=0, include_trashed=True, as_json=True, include_relation=True)
+            DB_Model.get(DB_Model.name=="whatever", limit=1000, offset=0, include_trashed=True, as_json=True, include_relation=True)
         '''
         # get kwargs parameters
         limit = kwargs.pop('limit', 1000)
@@ -371,6 +371,7 @@ class Model(Base):
         include_trashed = kwargs.pop('include_trashed', False)
         as_json = kwargs.pop('as_json', False)
         include_relation = kwargs.pop('include_relation', False)
+        order_by = kwargs.pop('order_by', None)
         # get / make session if not exists
         if hasattr(cls,'__session__ '):
             session = cls.__session__
@@ -381,7 +382,11 @@ class Model(Base):
         if include_trashed == False:
             query = query.filter(cls._trashed == False)
         # run the query
-        result = query.filter(*criterion).limit(limit).offset(offset).all()
+        if order_by is None:
+            result = query.filter(*criterion).limit(limit).offset(offset).all()
+        else:
+            result = query.filter(*criterion).limit(limit).offset(offset).order_by(order_by).all()
+        # as json
         if as_json:
             kwargs = {'include_relation' : include_relation, 'isoformat' : True}
             result_list = []
@@ -474,7 +479,7 @@ class Model(Base):
                         relation_variable = relation_variable_list[i]
                         ref_obj = None
                         for child in relation_value:
-                            if isinstance(child, Model):
+                            if isinstance(child, DB_Model):
                                 if child.id == old_id:
                                     ref_obj = child
                                     ref_obj.assign_from_dict(relation_variable)
@@ -583,14 +588,14 @@ class Model(Base):
     def _save_detail(self, already_saved_object):
         for relation_name in self._get_relation_names():
             relation_value = self._get_relation_value(relation_name)
-            if isinstance(relation_value, Model):
+            if isinstance(relation_value, DB_Model):
                 # one to many
                 if relation_value not in already_saved_object:
                     relation_value.save(already_saved_object)
             elif isinstance(relation_value, list):
                 # many to one
                 for child in relation_value:
-                    if isinstance(child, Model):
+                    if isinstance(child, DB_Model):
                         if child not in already_saved_object:
                             child.save(already_saved_object)
     
@@ -648,7 +653,7 @@ class Model(Base):
             relation_value = self._get_relation_value(relation_name)
             if isinstance(relation_value, list):
                 for child in relation_value:
-                    if isinstance(child, Model):
+                    if isinstance(child, DB_Model):
                         child.trash()
                         child.save()
     
@@ -663,7 +668,7 @@ class Model(Base):
             relation_value = self._get_relation_value(relation_name)
             if isinstance(relation_value, list):
                 for child in relation_value:
-                    if isinstance(child, Model):
+                    if isinstance(child, DB_Model):
                         child.untrash()
                         child.save()
     
@@ -678,7 +683,7 @@ class Model(Base):
             relation_value = self._get_relation_value(relation_name)
             if isinstance(relation_value, list):
                 for child in relation_value:
-                    if isinstance(child, Model):
+                    if isinstance(child, DB_Model):
                         child.trash()
                         child.delete()
     
@@ -722,12 +727,12 @@ class Model(Base):
             # also add relation to dictionary
             for relation_name in self._get_relation_names():
                 relation = self._get_relation_value(relation_name)
-                if isinstance(relation, Model):
+                if isinstance(relation, DB_Model):
                     dictionary[relation_name] = relation.to_dict(**kwargs)
                 elif isinstance(relation, list):
                     dictionary[relation_name] = []
                     for child in relation:
-                        if isinstance(child, Model):
+                        if isinstance(child, DB_Model):
                             dictionary[relation_name].append(child.to_dict(**kwargs))
                 else:
                     dictionary[relation_name] = relation
@@ -1020,7 +1025,7 @@ class Model(Base):
                             value += '</tfoot>'
                         value += '</table>'
                 # lookup value
-                elif isinstance(value, Model):
+                elif isinstance(value, DB_Model):
                     obj = getattr(self, column_name)
                     value = obj.quick_preview()
             # None or empty children
@@ -1165,11 +1170,41 @@ class Model(Base):
         html += '</div>'
         self.generated_html = html
 
+class Ordered_DB_Model(DB_Model):
+    _index          = Column(Integer)
+    # properties
+    __group_by__    = 'id'
+    __abstract__    = True
+    
+    def save(self, already_saved_object):
+        classobj = self.__class__
+        # get maxid
+        query = self.session.query(func.max(classobj.index).label("max_index")).filter(getattr(classobj, self.__group_by__)==getattr(self.__group_by__)).one()
+        max_index = query.max_index
+        if max_index is None:
+            max_index = 0
+        else:
+            max_index = int(max_index)
+        self._index = max_index
+        DB_Model.save(self, already_saved_object)
+    
+    @classmethod
+    def get(cls, *criterion, **kwargs):
+        if 'order_by' not in kwargs:
+            kwargs['order_by'] = cls._index
+        DB_Model.get(cls, *criterion, **kwargs)
+    
+    def move_up(self):
+        pass
+    
+    def move_down(self):
+        pass
+
 def auto_migrate(engine):
     print('    %s%s WARNING %s%s%s : You are using auto_migrate()\n    Note that not all operation supported. Be prepared to do things manually.\n    Using auto_migration in production mode is not recommended.%s%s' %(Fore.BLACK, Back.GREEN, Fore.RESET, Back.RESET, Fore.GREEN, Fore.RESET, Fore.MAGENTA))
     # make model_meta & db_meta
-    Model.metadata.create_all(bind=engine)
-    model_meta = Model.metadata
+    DB_Model.metadata.create_all(bind=engine)
+    model_meta = DB_Model.metadata
     db_meta = MetaData()
     db_meta.reflect(bind=engine)
     conn = engine.connect()
