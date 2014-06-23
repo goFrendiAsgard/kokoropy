@@ -71,6 +71,9 @@ class Country_Friends(Ordered_DB_Model):
     fk_right_country = Column(Integer, ForeignKey("country._real_id"))
     left_country = relationship("Country", foreign_keys="Country_Friends.fk_left_country")
     right_country = relationship("Country", foreign_keys="Country_Friends.fk_right_country")
+    
+    def quick_preview(self):
+        return self.right_country.quick_preview() + str(self._index)
 
 class Country_Enemies(DB_Model):
     __session__ = session

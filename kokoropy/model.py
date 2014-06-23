@@ -422,7 +422,17 @@ class DB_Model(Base):
     def find(cls, id_value):
         result = cls.get(cls.id == id_value)
         if len(result)>0:
-            return result[0]
+            row =  result[0]
+        else:
+            return None
+        # sort the relation
+        for relation_name in row._get_relation_names():
+            relation_class = row._get_relation_class(relation_name)
+            if issubclass(relation_class, Ordered_DB_Model):
+                relation = getattr(row, relation_name)
+                relation = sorted(relation, key = lambda x : x._index)
+                setattr(row, relation_name, relation)
+        return row
     
     def assign_from_dict(self, variable):
         for column_name in self._automatic_assigned_column:
@@ -445,10 +455,12 @@ class DB_Model(Base):
             elif column_name in self._get_relation_names():
                 relation_metadata = self._get_relation_metadata(column_name)
                 if relation_metadata.uselist:
+                    ref_class = self._get_relation_class(column_name)
                     # one to many
                     old_id_list = []
                     deleted_list = []
                     relation_variable_list = []
+                    index_list = []
                     record_count = 0
                     # by default bottle request doesn't automatically accept 
                     # POST with [] name
@@ -468,13 +480,16 @@ class DB_Model(Base):
                     if hasattr(variable, 'getall'):
                         old_id_list = variable.getall('_' + column_name + '_id[]')
                         deleted_list = variable.getall('_' + column_name + '_delete[]')
-                    ref_class = self._get_relation_class(column_name)
+                        if issubclass(ref_class, Ordered_DB_Model):
+                            index_list = variable.getall('_' + column_name + '_index[]')
                     # get relation
                     relation_value = self._get_relation_value(column_name)
                     for i in xrange(record_count):
                         old_id = old_id_list[i]
                         deleted = deleted_list[i] == "1"
                         relation_variable = relation_variable_list[i]
+                        if issubclass(ref_class, Ordered_DB_Model):
+                            index = index_list[i]
                         ref_obj = None
                         for child in relation_value:
                             if isinstance(child, DB_Model):
@@ -486,6 +501,8 @@ class DB_Model(Base):
                             ref_obj = ref_class()
                             ref_obj.assign_from_dict(relation_variable)
                             getattr(self, column_name).append(ref_obj)
+                        if issubclass(ref_class, Ordered_DB_Model):
+                            ref_obj._index = index
                         if deleted:
                             getattr(self, column_name).remove(ref_obj)
                             ref_obj.trash()
@@ -847,7 +864,11 @@ class DB_Model(Base):
                 relation_metadata = self._get_relation_metadata(column_name)
                 if relation_metadata.uselist:
                     # one to many
-                    ref_obj = self._get_relation_class(column_name)()
+                    ref_class = self._get_relation_class(column_name)
+                    ref_obj = ref_class()
+                    # determine if the model is ordered
+                    is_ordered = isinstance(ref_obj, Ordered_DB_Model)
+                    # column name
                     if column_name in self.__detail_column_label__:
                         custom_label = self.__detail_column_label__[column_name]
                     else:
@@ -874,21 +895,57 @@ class DB_Model(Base):
                     input_element += '<thead>'
                     input_element += '<tr>'
                     input_element += ref_obj.generated_html
+                    if is_ordered:
+                        input_element += '<th>Order</th>'
                     input_element += '<th>Delete</th>'
                     input_element += '</tr>'
                     input_element += '</thead>'
+                    # body
+                    input_element += '<tbody id="_' + column_name + '_tbody">'
+                    row_index = 0
+                    for child in getattr(self, column_name):
+                        child.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name), parent_column_name = column_name)
+                        input_element += '<tr>'
+                        input_element += child.generated_html
+                        if is_ordered:
+                            input_element += '<td>'
+                            input_element += '<input class="_'+column_name+'_index" id="_'+column_name+'_index_'+str(row_index)+'" type="hidden" name="_'+column_name+'_index[]" value="'+str(row_index)+'" />'
+                            input_element += '<a class="_'+column_name+'_up" row-index="'+str(row_index)+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-up"></i></a>'
+                            input_element += '<a class="_'+column_name+'_down" row-index="'+str(row_index)+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-down"></i></a>'
+                            input_element += '</td>'
+                        input_element += '<td>'
+                        input_element += '    <input type="hidden" name="_' + column_name + '_id[]" value="' + str(child.id) + '" />'
+                        input_element += '    <input class="deleted" type="hidden" name="_' + column_name + '_delete[]" value="0" />'
+                        input_element += '    <label><input type="checkbox" class="_' + column_name + '_delete"></label>'
+                        input_element += '</td>'
+                        input_element += '</tr>'
+                        row_index +=1
+                    input_element += '</tbody>'
+                    input_element += '</table>'
                     # what should be added when add row clicked
                     ref_obj.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name), parent_column_name = column_name)
-                    new_row  = '<tr>'
+                    new_row  = '\'<tr>'
                     new_row += ref_obj.generated_html
+                    # order column
+                    last_index_varname = '_' + column_name + '_last_index'
+                    if is_ordered:
+                        concat_last_index_varname = '\' + ' + last_index_varname + '+ \''
+                        new_row += '<td>'
+                        new_row += '<input class="_'+column_name+'_index" id="_'+column_name+'_index_'+concat_last_index_varname+'" type="hidden" name="_'+column_name+'_index[]" value="'+concat_last_index_varname+'" />'
+                        new_row += '<a class="_'+column_name+'_up" row-index="'+concat_last_index_varname+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-up"></i></a>'
+                        new_row += '<a class="_'+column_name+'_down" row-index="'+concat_last_index_varname+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-down"></i></a>'
+                        new_row += '</td>'
                     # delete column
                     new_row += '<td>'
                     new_row += '    <input type="hidden" name="_' + column_name + '_id[]" value="" />'
                     new_row += '    <input class="deleted" type="hidden" name="_' + column_name + '_delete[]" value="0" />'
                     new_row += '    <label><input type="checkbox" class="_' + column_name + '_delete"></label>'
                     new_row += '</td>'
-                    new_row += '</tr>'
+                    new_row += '</tr>\''
                     script  = '<script type="text/javascript">'
+                    if is_ordered:
+                        script += 'var ' + last_index_varname + ' = ' + str(row_index) + ';'
+                    # delete event
                     script += '$("._' + column_name + '_delete").live("click", function(event){'
                     script += '    var input = $(this).parent().parent().children(".deleted");'
                     script += '    if($(this).prop("checked")){'
@@ -897,29 +954,50 @@ class DB_Model(Base):
                     script += '        input.val("0");'
                     script += '    }'
                     script += '});'
+                    # add event
                     script += '$("#_' + column_name + '_add").click(function(event){'
-                    script += '    $("#_' + column_name + '_tbody").append(\'' + new_row + '\');'
+                    script += '    $("#_' + column_name + '_tbody").append(' + new_row + ');'
                     script += '    $("#_div_control_' + column_name + '").addClass("pull-right");'
                     script += '    $("#_div_empty_' + column_name + '").hide();'
                     script += '    $("#_table_' + column_name + '").show();'
+                    script += '    '+last_index_varname+'++;'
+                    script += '    event.preventDefault();'
+                    script += '});'
+                    # up event
+                    script += '$("a._'+column_name+'_up").live("click",function(event){'
+                    script += '    var row_index = $(this).attr("row-index");'
+                    script += '    var current_tr = $(this).parent().parent();'
+                    script += '    var prev_tr = current_tr.prev();'
+                    script += '    if(prev_tr.length > 0){'
+                    script += '        current_tr.insertBefore(prev_tr);'
+                    script += '        current_element = current_tr.find("td ._'+column_name+'_index");'
+                    script += '        prev_element = prev_tr.find("td ._'+column_name+'_index");'
+                    script += '        current_element_val = current_element.val();'
+                    script += '        prev_element_val = prev_element.val();'
+                    script += '        prev_element.val(current_element_val);'
+                    script += '        current_element.val(prev_element_val);'
+                    script += '    }'
+                    script += '    event.preventDefault();'
+                    script += '});'
+                    # down event
+                    script += '$("a._'+column_name+'_down").live("click",function(event){'
+                    script += '    var row_index = $(this).attr("row-index");'
+                    script += '    var current_tr = $(this).parent().parent();'
+                    script += '    var next_tr = current_tr.next();'
+                    script += '    if(next_tr.length > 0){'
+                    script += '        current_tr.insertAfter(next_tr);'
+                    script += '        current_element = current_tr.find("td ._'+column_name+'_index");'
+                    script += '        next_element = next_tr.find("td ._'+column_name+'_index");'
+                    script += '        current_element_val = current_element.val();'
+                    script += '        next_element_val = next_element.val();'
+                    script += '        next_element.val(current_element_val);'
+                    script += '        current_element.val(next_element_val);'
+                    script += '    }'
                     script += '    event.preventDefault();'
                     script += '});'
                     script += '</script>'
                     self.generated_script += script
-                    # body
-                    input_element += '<tbody id="_' + column_name + '_tbody">'
-                    for child in getattr(self, column_name):
-                        child.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name), parent_column_name = column_name)
-                        input_element += '<tr>'
-                        input_element += child.generated_html
-                        input_element += '<td>'
-                        input_element += '    <input type="hidden" name="_' + column_name + '_id[]" value="' + str(child.id) + '" />'
-                        input_element += '    <input class="deleted" type="hidden" name="_' + column_name + '_delete[]" value="0" />'
-                        input_element += '    <label><input type="checkbox" class="_' + column_name + '_delete"></label>'
-                        input_element += '</td>'
-                        input_element += '</tr>'
-                    input_element += '</tbody>'
-                    input_element += '</table>'
+                    
                 else:
                     # many to one
                     ref_class = self._get_relation_class(column_name)
@@ -1204,16 +1282,20 @@ class Ordered_DB_Model(DB_Model):
     __abstract__    = True
     
     def save(self, already_saved_object):
-        classobj = self.__class__
-        # get maxid
-        query = self.session.query(func.max(classobj._index).label("max_index")).filter(getattr(classobj, self.__group_by__)==getattr(self, self.__group_by__)).one()
-        max_index = query.max_index
-        if max_index is None:
-            max_index = 0
-        else:
-            max_index = int(max_index)
-        self._index = max_index
+        print 'Before doing anything ', self.quick_preview()
+        if self._real_id is not None and self._index is not None:
+            classobj = self.__class__
+            # get maxid
+            query = self.session.query(func.max(classobj._index).label("max_index")).filter(getattr(classobj, self.__group_by__)==getattr(self, self.__group_by__)).one()
+            max_index = query.max_index
+            if max_index is None:
+                max_index = 0
+            else:
+                max_index = int(max_index)
+            self._index = max_index
+        print 'After doing something ', self.quick_preview()
         DB_Model.save(self, already_saved_object)
+        print 'After save ', self.quick_preview()
     
     @classmethod
     def get(cls, *criterion, **kwargs):
