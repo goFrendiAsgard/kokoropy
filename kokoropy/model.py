@@ -154,9 +154,7 @@ class DB_Model(Base):
             column_list = self._get_actual_column_names() + self._get_relation_names()
             new_column_list = []
             for column_name in column_list:
-                if column_name in ['_real_id', '_created_at', '_updated_at', '_trashed']:
-                    continue
-                if column_name[:3] == 'fk_':
+                if column_name[:1] == '_' or column_name[:3] == 'fk_':
                     continue
                 new_column_list.append(column_name)
             column_list = new_column_list
@@ -785,7 +783,18 @@ class DB_Model(Base):
         pass
     
     def build_label(self, column_name, **kwargs):
-        custom_label = self.build_custom_label(column_name, **kwargs)
+        ''' DON'T OVERRIDE THIS UNLESS YOU KNOW WHAT YOU DO
+        This method is used to generate label
+        '''
+        # get custom_input if exists
+        if hasattr(self, 'build_label_'+column_name):
+            # call any "certain" custom_label
+            function = getattr(self, 'build_label_'+column_name)
+            custom_label = function(**kwargs)
+        else:
+            # call build_custom_label
+            custom_label = self.build_custom_label(column_name, **kwargs)
+        # return custom label or generate default one
         if custom_label is not None:
             return custom_label
         else:
@@ -804,8 +813,8 @@ class DB_Model(Base):
         return html
     
     def build_input(self, column_name, **kwargs):
-        '''
-            * input_attribute
+        ''' DON'T OVERRIDE THIS UNLESS YOU KNOW WHAT YOU DO
+        This method is used to generate input
         '''
         # adjust kwargs
         input_attribute = kwargs.pop('input_attribute', {})
@@ -817,8 +826,15 @@ class DB_Model(Base):
             input_attribute['class'] = []
         kwargs['input_attribute'] = input_attribute
         tabular = kwargs.pop('tabular', False)
-        # call build_custom_input
-        custom_input = self.build_custom_input(column_name, **kwargs)
+        # get custom_input if exists
+        if hasattr(self, 'build_input_'+column_name):
+            # call any "certain" custom_input
+            function = getattr(self, 'build_input_'+column_name)
+            custom_input = function(**kwargs)
+        else:
+            # call build_custom_input
+            custom_input = self.build_custom_input(column_name, **kwargs)
+        # return custom_input or build the default inputs
         if custom_input is not None:
             return custom_input
         else:
@@ -979,7 +995,18 @@ class DB_Model(Base):
         return html
     
     def build_representation(self, column_name, **kwargs):
-        custom_representation = self.build_custom_representation(column_name, **kwargs)
+        ''' DON'T OVERRIDE THIS UNLESS YOU KNOW WHAT YOU DO
+        This method is used to generate representation
+        '''
+        # get custom_input if exists
+        if hasattr(self, 'build_representation_'+column_name):
+            # call any "certain" custom_representation
+            function = getattr(self, 'build_representation_'+column_name)
+            custom_representation = function(**kwargs)
+        else:
+            # call build_custom_representation
+            custom_representation = self.build_custom_representation(column_name, **kwargs)
+        # return custom representation or generate default one
         if custom_representation is not None:
             return custom_representation
         else:
@@ -1179,7 +1206,7 @@ class Ordered_DB_Model(DB_Model):
     def save(self, already_saved_object):
         classobj = self.__class__
         # get maxid
-        query = self.session.query(func.max(classobj.index).label("max_index")).filter(getattr(classobj, self.__group_by__)==getattr(self.__group_by__)).one()
+        query = self.session.query(func.max(classobj._index).label("max_index")).filter(getattr(classobj, self.__group_by__)==getattr(self, self.__group_by__)).one()
         max_index = query.max_index
         if max_index is None:
             max_index = 0

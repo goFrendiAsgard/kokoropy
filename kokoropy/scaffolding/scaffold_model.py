@@ -12,11 +12,15 @@ DB_Model.metadata = MetaData()
 
 '''
     DB_Model has several commonly overriden property and methods:
-    * __excluded_shown_column__       : list, hidden columns on "show detail" (e.g: ["id"])
-    * __excluded_insert_column__      : list, hidden columns on "insert form" (e.g: ["id"])
-    * __excluded_update_column__      : list, hidden columns on "edit form" (e.g: ["id"])
-    * __prefix_of_id__                : string, prefix id (e.g: "%Y-")
-    * __digit_num_of_id__             : integer, digit count after prefix id (e.g: 4)
+    * __excluded_shown_column__           : list, hidden columns on "show detail" (e.g: ["id"])
+    * __excluded_insert_column__          : list, hidden columns on "insert form" (e.g: ["id"])
+    * __excluded_update_column__          : list, hidden columns on "edit form" (e.g: ["id"])
+    * __prefix_of_id__                    : string, prefix id (e.g: "%Y-")
+    * __digit_num_of_id__                 : integer, digit count after prefix id (e.g: 4)
+    * __column_label__                    : dictionary, label of columns
+    * build_input_COLUMN_NAME             : function with one parameter, **kwargs build column input for COLUMN_NAME
+    * build_representation_COLUMN_NAME    : function with one parameter, **kwargs build column representation for COLUMN_NAME
+    * build_label_COLUMN_NAME             : function with one parameter, **kwargs build column label for COLUMN_NAME
 '''
 
 # g_structure

@@ -2,7 +2,7 @@ from sqlalchemy import or_, and_, create_engine, MetaData, Column, ForeignKey, f
     Integer, String, Date, DateTime, Boolean, Text
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
 from sqlalchemy.ext.associationproxy import association_proxy
-from kokoropy.model import DB_Model, auto_migrate
+from kokoropy.model import DB_Model, Ordered_DB_Model, auto_migrate
 from ..configs.db import connection_string
 
 engine = create_engine(connection_string, echo=False)
@@ -61,8 +61,10 @@ class Country(DB_Model):
     cities = relationship("City", foreign_keys="City.fk_country")
     fk_political_view = Column(Integer, ForeignKey("political_view._real_id"))
     political_view = relationship("Political_View", foreign_keys="Country.fk_political_view")
+    
+    
 
-class Country_Friends(DB_Model):
+class Country_Friends(Ordered_DB_Model):
     __session__ = session
     # Fields Declarations
     fk_left_country = Column(Integer, ForeignKey("country._real_id"))

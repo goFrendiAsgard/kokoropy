@@ -35,6 +35,7 @@
                         var message_html    = '';
                         if(success){
                             message_html += '<b>Success</b> ' + error_message;
+                            $('#__message_div').html(message_html);
                             $('#__message_div').addClass('alert alert-success');
                             // also change button
                             var button_html = '<a class="btn btn-default" href="{{ url_list["new"] }}"> ' +
@@ -44,11 +45,14 @@
                                     '<i class="glyphicon glyphicon-th"></i> Back to List ' +
                                 '</a>';
                             $('#__button_div').html(button_html);
+                            $('html, body').animate({ scrollTop: $('#__button_div').offset().top }, 'slow');
                         }else{
-                            message_html += '<b>Error</b> ' + error_message;
+                            _unblock_form('#__main_form');
+                            message_html  += '<b>Error</b> ' + error_message;
+                            $('#__message_div').html(message_html);
                             $('#__message_div').addClass('alert alert-danger');
+                            $('html, body').animate({ scrollTop: $('#__message_div').offset().top }, 'slow');
                         }
-                        $('#__message_div').html(message_html);
                     },
                 error : function(jqXHR, textStatus, errorThrown ){
                         _unblock_form('#__main_form');
