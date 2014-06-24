@@ -30,7 +30,7 @@ else:
 ###################################################################################################
 # Import things
 ###################################################################################################
-import bottle, threading, time, tempfile, re, beaker.middleware, types
+import bottle, tempfile, re, beaker.middleware, types
 from bottle import default_app, debug, run, static_file,\
     response, request, TEMPLATE_PATH, route, get,\
     post, put, delete, error, hook, Bottle, redirect
