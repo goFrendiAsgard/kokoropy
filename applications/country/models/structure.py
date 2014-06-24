@@ -2,7 +2,7 @@ from sqlalchemy import or_, and_, create_engine, MetaData, Column, ForeignKey, f
     Integer, String, Date, DateTime, Boolean, Text
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
 from sqlalchemy.ext.associationproxy import association_proxy
-from kokoropy.model import DB_Model, auto_migrate
+from kokoropy.model import DB_Model, Ordered_DB_Model, auto_migrate
 from ..configs.db import connection_string
 
 engine = create_engine(connection_string, echo=False)
@@ -82,13 +82,14 @@ class Country_Enemies(DB_Model):
     left_country = relationship("Country", foreign_keys="Country_Enemies.fk_left_country")
     right_country = relationship("Country", foreign_keys="Country_Enemies.fk_right_country")
 
-class Commodity(DB_Model):
+class Commodity(Ordered_DB_Model):
     __session__ = session
     # Fields Declarations
     name = Column(String(50))
 
-class Country_Commodities(DB_Model):
+class Country_Commodities(Ordered_DB_Model):
     __session__ = session
+    __group_by__ = 'fk_country'
     # Fields Declarations
     fk_country = Column(Integer, ForeignKey("country._real_id"))
     fk_commodity = Column(Integer, ForeignKey("commodity._real_id"))

@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, Column, func, BIGINT, BigInteger, BINARY, Binary,\
     BOOLEAN, Boolean, DATE, Date, DATETIME, DateTime, FLOAT, Float,\
     INTEGER, Integer, VARCHAR, String, TEXT, Text, MetaData
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from alembic.migration import MigrationContext
@@ -383,7 +384,7 @@ class DB_Model(Base):
         if order_by is None:
             result = query.filter(*criterion).limit(limit).offset(offset).all()
         else:
-            result = query.filter(*criterion).limit(limit).offset(offset).order_by(order_by).all()
+            result = query.filter(*criterion).order_by(order_by).limit(limit).offset(offset).all()
         # as json
         if as_json:
             kwargs = {'include_relation' : include_relation, 'isoformat' : True}
@@ -960,7 +961,8 @@ class DB_Model(Base):
                     script += '    $("#_div_control_' + column_name + '").addClass("pull-right");'
                     script += '    $("#_div_empty_' + column_name + '").hide();'
                     script += '    $("#_table_' + column_name + '").show();'
-                    script += '    '+last_index_varname+'++;'
+                    if is_ordered:
+                        script += '    '+last_index_varname+'++;'
                     script += '    event.preventDefault();'
                     script += '});'
                     # up event
@@ -1276,38 +1278,134 @@ class DB_Model(Base):
         self.generated_html = html
 
 class Ordered_DB_Model(DB_Model):
-    _index          = Column(Integer)
+    _index          = Column(Integer, index=True)
     # properties
-    __group_by__    = 'id'
+    __group_by__    = None
     __abstract__    = True
     
-    def save(self, already_saved_object):
-        print 'Before doing anything ', self.quick_preview()
-        if self._real_id is not None and self._index is not None:
-            classobj = self.__class__
+    def save(self, already_saved_object = []):
+        classobj = self.__class__
+        index = self._index
+        real_id = self._real_id
+        if self.__group_by__ is not None and hasattr(classobj, self.__group_by__):
+            group_by_field = getattr(classobj, self.__group_by__)
+        else:
+            group_by_field = None
+        # get new_index
+        if self._index is None:
             # get maxid
-            query = self.session.query(func.max(classobj._index).label("max_index")).filter(getattr(classobj, self.__group_by__)==getattr(self, self.__group_by__)).one()
+            query = self.session.query(func.max(classobj._index).label("max_index"))
+            if group_by_field is None:
+                query = query.one()
+            else:
+                group_by_value = getattr(self, self.__group_by__)
+                query = query.filter(group_by_field==group_by_value).one()
             max_index = query.max_index
             if max_index is None:
                 max_index = 0
             else:
                 max_index = int(max_index)
-            self._index = max_index
-        print 'After doing something ', self.quick_preview()
+            index = max_index+1
+        # increase self._index if index is collide
+        while True:
+            query = self.session.query(func.count(classobj._index).label("duplicate_count"))
+            if group_by_field is not None:
+                group_by_value = getattr(self, self.__group_by__)
+                query = query.filter(group_by_field==group_by_value, classobj._index == index, classobj._real_id != real_id)
+            else:
+                query = query.filter(classobj._index == index, classobj._real_id != real_id)
+            query = query.one()
+            duplicate_count = query.duplicate_count
+            if duplicate_count == 0:
+                break
+            else:
+                index += 1
+        self._index = index
         DB_Model.save(self, already_saved_object)
-        print 'After save ', self.quick_preview()
     
     @classmethod
     def get(cls, *criterion, **kwargs):
         if 'order_by' not in kwargs:
             kwargs['order_by'] = cls._index
-        DB_Model.get(cls, *criterion, **kwargs)
+        return super(Ordered_DB_Model, cls).get(*criterion, **kwargs)
     
     def move_up(self):
-        pass
+        if self._real_id is None or self._index is None:
+            pass
+        classobj = self.__class__
+        if self.__group_by__ is not None and hasattr(classobj, self.__group_by__):
+            group_by_field = getattr(classobj, self.__group_by__)
+        else:
+            group_by_field = None
+        # get max_index of record with index less than this object
+        query = self.session.query(func.max(classobj._index).label("max_index"))
+        if group_by_field is None:
+            query = query.filter(classobj._index < self._index).one()
+        else:
+            group_by_value = getattr(self, self.__group_by__)
+            query = query.filter(classobj._index < self._index, group_by_field==group_by_value).one()
+        max_index = query.max_index
+        if max_index is None:
+            max_index = 0
+        else:
+            max_index = int(max_index)
+        # get object with index =  max_index
+        query = self.session.query(classobj)
+        if group_by_field is not None:
+            group_by_value = getattr(self, self.__group_by__)
+            query = query.filter(group_by_field == group_by_value, classobj._index == max_index)
+        else:
+            query = query.filter(classobj._index == max_index)
+        # neighbor
+        try:
+            neighbor = query.one()
+            current_index = self._index
+            self._index = neighbor._index
+            neighbor._index = current_index
+            DB_Model.save(self)
+            DB_Model.save(neighbor)
+            return True
+        except NoResultFound, _:
+            return False
     
     def move_down(self):
-        pass
+        if self._real_id is None or self._index is None:
+            pass
+        classobj = self.__class__
+        if self.__group_by__ is not None and hasattr(classobj, self.__group_by__):
+            group_by_field = getattr(classobj, self.__group_by__)
+        else:
+            group_by_field = None
+        # get min_index of record with index less than this object
+        query = self.session.query(func.min(classobj._index).label("min_index"))
+        if group_by_field is None:
+            query = query.filter(classobj._index > self._index).one()
+        else:
+            group_by_value = getattr(self, self.__group_by__)
+            query = query.filter(classobj._index > self._index, group_by_field==group_by_value).one()
+        min_index = query.min_index
+        if min_index is None:
+            min_index = 0
+        else:
+            min_index = int(min_index)
+        # get object with index =  min_index
+        query = self.session.query(classobj)
+        if group_by_field is not None:
+            group_by_value = getattr(self, self.__group_by__)
+            query = query.filter(group_by_field == group_by_value, classobj._index == min_index)
+        else:
+            query = query.filter(classobj._index == min_index)
+        # neighbor
+        try:
+            neighbor = query.one()
+            current_index = self._index
+            self._index = neighbor._index
+            neighbor._index = current_index
+            DB_Model.save(self)
+            DB_Model.save(neighbor)
+            return True
+        except NoResultFound, _:
+            return False
 
 def auto_migrate(engine):
     print('    %s%s WARNING %s%s%s : You are using auto_migrate()\n    Note that not all operation supported. Be prepared to do things manually.\n    Using auto_migration in production mode is not recommended.%s%s' %(Fore.BLACK, Back.GREEN, Fore.RESET, Back.RESET, Fore.GREEN, Fore.RESET, Fore.MAGENTA))
