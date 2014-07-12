@@ -6,9 +6,8 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-import datetime, time, json
+import datetime, time, json, sys, os, asset
 from kokoropy import Fore, Back, base_url
-import asset
 
 # initialize logger
 import logging
@@ -100,6 +99,11 @@ class DB_Model(Base):
         table_name = self.__tablename__
         return table_name.replace('_', ' ').title()
     
+    @declared_attr
+    def __application_name__(self):
+        path = sys.modules[self.__module__].__file__
+        return os.path.dirname(os.path.dirname(path)).split('/')[-1]
+    
     @property
     def state(self):
         if self.__state__ is None:
@@ -109,6 +113,9 @@ class DB_Model(Base):
                 self.__state__ = 'update'
         return self.__state__
     
+    def set_state_list(self):
+        self._set_state('list')
+        
     def _set_state(self, state):
         self.__state__ = state
     
@@ -123,6 +130,21 @@ class DB_Model(Base):
     
     def set_state_delete(self):
         self._set_state('delete')
+    
+    def is_list_state(self):
+        return self.state == 'list'
+    
+    def is_show_state(self):
+        return self.state == 'show'
+    
+    def is_insert_state(self):
+        return self.state == 'insert'
+    
+    def is_update_state(self):
+        return self.state == 'update'
+    
+    def is_delete_staet(self):
+        return self.state == 'delete'
     
     @property
     def _column_list(self):

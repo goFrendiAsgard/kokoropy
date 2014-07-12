@@ -700,9 +700,10 @@ def kokoro_init(**kwargs):
     # controller_dict_list is a dictionary with application name as key 
     # and array of controller as value
     controller_dict_list = {}
+    model_dict_list = {}
     for application in application_list:
         for file_name in os.listdir(os.path.join(APPLICATION_PATH, application, "controllers")):
-            # get application inside application"s controller
+            # get application inside application's controller
             file_name_segments = file_name.split(".")
             first_segment = file_name_segments[0]
             last_segment = file_name_segments[-1]
@@ -713,7 +714,7 @@ def kokoro_init(**kwargs):
                 continue
             if not application in controller_dict_list:
                 controller_dict_list[application] = []
-            controller_dict_list[application].append(module_name)   
+            controller_dict_list[application].append(module_name)
     ###################################################################################################
     # some predefined routes
     ###################################################################################################
@@ -733,6 +734,20 @@ def kokoro_init(**kwargs):
         if os.path.isfile(os.path.join(APPLICATION_PATH, application, "routes.py")):
             print(Fore.YELLOW + "* Register Routes : " + Fore.BLUE + application + Fore.RESET)
             import_routes(APPLICATION_PACKAGE + "." + application + ".routes")
+    ###################################################################################################
+    # Load models
+    ###################################################################################################
+    for application in application_list:
+        for file_name in os.listdir(os.path.join(APPLICATION_PATH, application, "models")):
+            # get application inside application's model
+            file_name_segments = file_name.split(".")
+            first_segment = file_name_segments[0]
+            last_segment = file_name_segments[-1]
+            if (first_segment == "__init__") or (not last_segment == "py"):
+                continue
+            module_name = inspect.getmodulename(file_name)
+            print(Fore.YELLOW + "* Find Model : "+ Fore.BLUE + application + ".models." + module_name + Fore.RESET)
+            __import__(APPLICATION_PACKAGE+'.'+application+'.models.'+module_name, globals(), locals())
     ###################################################################################################
     # Load Autoroute inside controller modules
     ###################################################################################################

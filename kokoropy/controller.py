@@ -1,7 +1,7 @@
 from kokoropy import load_view, base_url, request, publish_methods, load_template, \
     application_path, file_get_contents
 from sqlalchemy.ext.declarative import declared_attr
-import math, random, os, json
+import math, random, os, json, sys
 from model import DB_Model
 from operator import and_, or_
 from kokoropy import var_dump
@@ -18,9 +18,8 @@ class Multi_Language_Controller(object):
         return self.preprocess_content(content)
 
 class Crud_Controller(Multi_Language_Controller):
-    __model__               = None
-    __application_name__    = ''
-    __view_directory__      = ''
+    __model__       = None
+    __base_view__   = None
     
     def search_input(self):
         return self._load_view('search')
@@ -72,6 +71,11 @@ class Crud_Controller(Multi_Language_Controller):
         return criterion
     
     @declared_attr
+    def __application_name__(self):
+        path = sys.modules[self.__module__].__file__
+        return os.path.dirname(os.path.dirname(path)).split('/')[-1]
+    
+    @declared_attr
     def __url_list__(self):
         view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
         url = base_url(self.__application_name__+'/' + self.__model_name__) + '/'
@@ -79,6 +83,12 @@ class Crud_Controller(Multi_Language_Controller):
         for view in view_list:
             url_list[view] = url + view
         return url_list
+    
+    @declared_attr
+    def __view_directory__(self):
+        if self.__model__ is not None:
+            return self.__model__.__name__.lower()
+        return ''
     
     @declared_attr
     def __model_name__(self):
@@ -117,7 +127,8 @@ class Crud_Controller(Multi_Language_Controller):
         self._fill_url_list()
         self._view_parameter = {
                 'url_list'      : self.__url_list__,
-                'caption'       : self.__caption__
+                'caption'       : self.__caption__,
+                'base_view'     : self.__base_view__
             }
     
     def _set_view_parameter(self, key, value):
@@ -212,6 +223,8 @@ class Crud_Controller(Multi_Language_Controller):
         offset = (current_page-1) * limit
         # get the data
         data_list = self.__model__.get(and_(self.default_criterion(), self.search_criterion()), limit = limit, offset = offset)
+        for data in data_list:
+            data.set_state_list()
         # calculate page count
         page_count = int(math.ceil(float(self.__model__.count(and_(self.default_criterion(), self.search_criterion()))/float(limit))))
         # serialized get

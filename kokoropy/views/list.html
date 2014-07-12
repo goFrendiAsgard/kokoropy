@@ -1,4 +1,4 @@
-% rebase('g_application_name/views/base')
+% rebase('g_application_name/views/base') if base_view is None else rebase(base_view)
 {% block content %}
     <h2>{{ caption }} List</h2>
     <div class="{{ 'container' if len(g_table_name_list) == 0 else ''}}">
@@ -36,7 +36,7 @@
                         <!-- data -->
                         <td>
                             <a href="{{ url_list["show"] }}/{{ g_table_name.id }}">
-                                {{ g_table_name.quick_preview() }}</a>
+                                {{! g_table_name.quick_preview() }}</a>
                         </td>
                         <!-- action -->
                         <td>
