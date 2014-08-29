@@ -217,12 +217,13 @@ class Crud_Controller(Multi_Language_Controller):
     def list(self):
         ''' Show table '''
         # get page index
-        current_page = int(request.GET['page'] if 'page' in request.GET else 1)
+        current_page    = int(request.GET['page'] if 'page' in request.GET else 1)
+        only_trashed    = True if 'trash' in request.GET and request.GET['trash'] == '1' else False
         # determine limit and offset
-        limit = self.__row_per_page__
-        offset = (current_page-1) * limit
+        limit   = self.__row_per_page__
+        offset  = (current_page-1) * limit
         # get the data
-        data_list = self.__model__.get(and_(self.default_criterion(), self.search_criterion()), limit = limit, offset = offset)
+        data_list = self.__model__.get(and_(self.default_criterion(), self.search_criterion()), limit = limit, offset = offset, only_trashed = only_trashed)
         for data in data_list:
             data.set_state_list()
         # calculate page count
@@ -242,11 +243,12 @@ class Crud_Controller(Multi_Language_Controller):
         self._set_view_parameter('page_count', page_count)
         self._set_view_parameter('search_input', self.search_input())
         self._set_view_parameter('serialized_get', get_pair)
+        self._set_view_parameter('only_trashed', only_trashed)
         return self._load_view('list')
     
     def show(self, id=None):
         ''' Show One Record '''
-        data = self.__model__.find(id)
+        data = self.__model__.find(id, include_trashed = True)
         if data is not None:
             data.set_state_show()
         # load the view
@@ -382,7 +384,7 @@ class Crud_Controller(Multi_Language_Controller):
     
     def delete(self, id=None):
         ''' Delete Form '''
-        data = self.__model__.find(id)
+        data = self.__model__.find(id, include_trashed = True)
         # load the view
         self._setup_view_parameter()
         self._set_view_parameter(self.__model_name__, data)

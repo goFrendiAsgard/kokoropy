@@ -1,9 +1,13 @@
 % rebase('g_application_name/views/base') if base_view is None else rebase(base_view)
 {% block content %}
-    <h2>{{ caption }} List</h2>
+    % if G_Table_Name.allow_trash and only_trashed:
+        <h2>{{ caption }} Trash</h2>
+    % else:
+        <h2>{{ caption }} List</h2>
+    % end
     <div class="{{ 'container' if len(g_table_name_list) == 0 else ''}}">
         % if len(g_table_name_list) > 0:
-            <ul class="pagination">
+            <ul class="pull-left pagination">
             % for i in range(page_count):
                 % page = str(i+1)
                 <li class="{{ 'active' if str(current_page) == page else ''}}">
@@ -16,7 +20,19 @@
             <form action="{{ url_list['list']}}" method="get" class="form-inline">
                 {{! search_input }}
                 <button class="btn btn-default"><i class="glyphicon glyphicon-search"></i> Search</button>
-                % if G_Table_Name.allow_new:
+                % if G_Table_Name.allow_trash:
+                    % new_serialized_get = serialized_get.replace('trash=1','')
+                    % if not only_trashed:
+                        <a class="btn btn-default" href="{{ url_list['list'] + '?trash=1' + ('&' + new_serialized_get if new_serialized_get != '' else '') }}">
+                            <i class="glyphicon glyphicon-trash"></i> Show Trash
+                        </a>
+                    % else:
+                        <a class="btn btn-default" href="{{ url_list['list'] + ('?' + new_serialized_get if new_serialized_get != '' else '') }}">
+                            Back
+                        </a>
+                    % end
+                % end
+                % if G_Table_Name.allow_new and not (G_Table_Name.allow_trash and only_trashed):
                     <a class="btn btn-default" href="{{ url_list["new"] }}">
                         <i class="glyphicon glyphicon-plus"></i> New {{ caption }}
                     </a>
@@ -40,14 +56,14 @@
                         </td>
                         <!-- action -->
                         <td>
-                            % if G_Table_Name.allow_edit:
+                            % if g_table_name.allow_edit:
                                 <a class="btn btn-default" href="{{ url_list["edit"] }}/{{ g_table_name.id }}">
                                     <i class="glyphicon glyphicon-pencil"></i> Edit
                                 </a>
                             % end
-                            % if G_Table_Name.allow_trash:
+                            % if G_Table_Name.allow_trash and not only_trashed:
                                 <a class="btn btn-default" href="{{ url_list["trash"] }}/{{ g_table_name.id }}">
-                                    <i class="glyphicon glyphicon-trash"></i> Trash
+                                    <i class="glyphicon glyphicon-trash"></i> Move to Trash
                                 </a>
                             % end
                             % if G_Table_Name.allow_delete:

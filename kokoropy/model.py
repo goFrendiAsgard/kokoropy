@@ -148,26 +148,26 @@ class DB_Model(Base):
     
     @property
     def _column_list(self):
-        column_list = []
-        excluded_column_list = []
-        virtual_column_list = []
+        column_list             = []
+        excluded_column_list    = []
+        virtual_column_list     = []
         state = self.state
         # set priorities
-        column_list_priorities = []
+        column_list_priorities          = []
         excluded_column_list_priorities = []
-        virtual_column_list_priorities = []
+        virtual_column_list_priorities  = []
         if state == 'insert':
-            column_list_priorities = [self.__insert_column__, self.__form_column__, self.__shown_column__]
+            column_list_priorities          = [self.__insert_column__, self.__form_column__, self.__shown_column__]
             excluded_column_list_priorities = [self.__excluded_insert_column__, self.__excluded_form_column__]
-            virtual_column_list_priorities = [self.__virtual_insert_column__, self.__virtual_form_column__]
+            virtual_column_list_priorities  = [self.__virtual_insert_column__, self.__virtual_form_column__]
         elif state == 'update':
-            column_list_priorities = [self.__update_column__, self.__form_column__, self.__shown_column__]
+            column_list_priorities          = [self.__update_column__, self.__form_column__, self.__shown_column__]
             excluded_column_list_priorities = [self.__excluded_update_column__, self.__excluded_form_column__]
-            virtual_column_list_priorities = [self.__virtual_update_column__, self.__virtual_form_column__]
+            virtual_column_list_priorities  = [self.__virtual_update_column__, self.__virtual_form_column__]
         else:
-            column_list_priorities = [self.__shown_column__]
+            column_list_priorities          = [self.__shown_column__]
             excluded_column_list_priorities = [self.__excluded_shown_column__]
-            virtual_column_list_priorities = [self.__virtual_shown_column__]
+            virtual_column_list_priorities  = [self.__virtual_shown_column__]
         # assign default value to column_list
         for config_list in column_list_priorities:
             if config_list is not None:
@@ -198,26 +198,26 @@ class DB_Model(Base):
     
     @property
     def _tabular_column_list(self):
-        column_list = []
+        column_list          = []
         excluded_column_list = []
-        virtual_column_list = []
+        virtual_column_list  = []
         state = self.state
         # set priorities
-        column_list_priorities = []
+        column_list_priorities          = []
         excluded_column_list_priorities = []
-        virtual_column_list_priorities = []
+        virtual_column_list_priorities  = []
         if state == 'insert':
-            column_list_priorities = [self.__tabular_insert_column__, self.__tabular_form_column__, self.__tabular_shown_column__]
+            column_list_priorities          = [self.__tabular_insert_column__, self.__tabular_form_column__, self.__tabular_shown_column__]
             excluded_column_list_priorities = [self.__tabular_excluded_insert_column__, self.__tabular_excluded_form_column__]
-            virtual_column_list_priorities = [self.__tabular_virtual_insert_column__, self.__tabular_virtual_form_column__]
+            virtual_column_list_priorities  = [self.__tabular_virtual_insert_column__, self.__tabular_virtual_form_column__]
         elif state == 'update':
-            column_list_priorities = [self.__tabular_update_column__, self.__tabular_form_column__, self.__tabular_shown_column__]
+            column_list_priorities          = [self.__tabular_update_column__, self.__tabular_form_column__, self.__tabular_shown_column__]
             excluded_column_list_priorities = [self.__tabular_excluded_update_column__, self.__tabular_excluded_form_column__]
-            virtual_column_list_priorities = [self.__tabular_virtual_update_column__, self.__tabular_virtual_form_column__]
+            virtual_column_list_priorities  = [self.__tabular_virtual_update_column__, self.__tabular_virtual_form_column__]
         else:
-            column_list_priorities = [self.__tabular_shown_column__]
+            column_list_priorities          = [self.__tabular_shown_column__]
             excluded_column_list_priorities = [self.__tabular_excluded_column__]
-            virtual_column_list_priorities = [self.__tabular_virtual_column__]
+            virtual_column_list_priorities  = [self.__tabular_virtual_column__]
         # assign default value to column_list
         for config_list in column_list_priorities:
             if config_list is not None:
@@ -387,12 +387,13 @@ class DB_Model(Base):
             DB_Model.get(DB_Model.name=="whatever", limit=1000, offset=0, include_trashed=True, as_json=True, include_relation=True)
         '''
         # get kwargs parameters
-        limit = kwargs.pop('limit', 1000)
-        offset = kwargs.pop('offset', 0)
-        include_trashed = kwargs.pop('include_trashed', False)
-        as_json = kwargs.pop('as_json', False)
-        include_relation = kwargs.pop('include_relation', False)
-        order_by = kwargs.pop('order_by', None)
+        limit               = kwargs.pop('limit', 1000)
+        offset              = kwargs.pop('offset', 0)
+        only_trashed        = kwargs.pop('only_trashed', False)
+        include_trashed     = kwargs.pop('include_trashed', False)
+        as_json             = kwargs.pop('as_json', False)
+        include_relation    = kwargs.pop('include_relation', False)
+        order_by            = kwargs.pop('order_by', None)
         # get / make session if not exists
         if hasattr(cls,'__session__ '):
             session = cls.__session__
@@ -400,8 +401,12 @@ class DB_Model(Base):
             obj = cls()
             session = obj.session
         query = session.query(cls)
-        if include_trashed == False:
-            query = query.filter(cls._trashed == False)
+        # define "where" for trashed
+        if only_trashed == True:
+            query = query.filter(cls._trashed == True)
+        else:
+            if include_trashed == False:
+                query = query.filter(cls._trashed == False)
         # run the query
         if order_by is None:
             result = query.filter(*criterion).limit(limit).offset(offset).all()
@@ -442,8 +447,8 @@ class DB_Model(Base):
         return query.count()
         
     @classmethod
-    def find(cls, id_value):
-        result = cls.get(cls.id == id_value)
+    def find(cls, id_value, include_trashed = False):
+        result = cls.get(cls.id == id_value, include_trashed = include_trashed)
         if len(result)>0:
             row =  result[0]
         else:
@@ -546,12 +551,19 @@ class DB_Model(Base):
     def allow_new(cls):
         return cls.__allow_new__
     
+    @property
     def allow_edit(self):
+        if self._trashed == True:
+            return False
         return self.__allow_edit__
     
+    @property
     def allow_trash(self):
+        if self._trashed == True:
+            return False
         return self.__allow_trash__
     
+    @property
     def allow_delete(self):
         return self.__allow_delete__
     
