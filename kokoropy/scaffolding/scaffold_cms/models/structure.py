@@ -80,12 +80,18 @@ class Page(DB_Model):
             self.page_order = max_page_order
     
     def build_input_static_content(self, **kwargs):
+        input_attribute = kwargs.pop('input_attribute', {})
+        if 'name' not in input_attribute:
+            input_attribute['name'] = 'static_content'
         value = self.static_content if self.static_content is not None else ''
-        return '<textarea id="field_static_content" name="static_content" class="form-control" placeholder="Content">'+value+'</textarea>'
+        return '<textarea id="field_static_content" name="' + input_attribute['name'] + '" class="form-control" placeholder="Content">'+value+'</textarea>'
 
     def build_input_meta_description(self, **kwargs):
+        input_attribute = kwargs.pop('input_attribute', {})
+        if 'name' not in input_attribute:
+            input_attribute['name'] = 'meta_description'
         value = self.meta_description if self.meta_description is not None else ''
-        return '<textarea id="field_meta_description" name="meta_description" class="form-control" placeholder="Meta Description">'+value+'</textarea>'
+        return '<textarea id="field_meta_description" name="' + input_attribute['name'] + '" class="form-control" placeholder="Meta Description">'+value+'</textarea>'
 
 
 class Page_Groups(DB_Model):
@@ -98,14 +104,18 @@ class Page_Groups(DB_Model):
 
 class Theme(DB_Model):
     __session__ = session
+    __detail_excluded_form_column__ = {'custom_layout' : ['id']}
     # fields declaration
     name = Column(String(50))
     content = Column(Text)
     custom_layout = relationship("Layout", foreign_keys="Layout.fk_theme")
     
     def build_input_content(self, **kwargs):
+        input_attribute = kwargs.pop('input_attribute', {})
+        if 'name' not in input_attribute:
+            input_attribute['name'] = 'content'
         value = self.content if self.content is not None else ''
-        return '<textarea id="field_content" name="content" class="form-control" placeholder="Content">'+value+'</textarea>'
+        return '<textarea id="field_content" name="' + input_attribute['name'] + '" class="form-control" placeholder="Content">'+value+'</textarea>'
 
 
 class Layout(DB_Model):
@@ -116,8 +126,11 @@ class Layout(DB_Model):
     content = Column(Text)
     
     def build_input_content(self, **kwargs):
+        input_attribute = kwargs.pop('input_attribute', {})
+        if 'name' not in input_attribute:
+            input_attribute['name'] = 'content'
         value = self.content if self.content is not None else ''
-        return '<textarea id="field_content" name="content" class="form-control" placeholder="Content">'+value+'</textarea>'
+        return '<textarea id="field_content" name="' + input_attribute['name']  +'" class="form-control" placeholder="Content">'+value+'</textarea>'
 
 class Widget(DB_Model):
     __session__ = session
@@ -138,8 +151,11 @@ class Widget(DB_Model):
     active = Column(Boolean)
     
     def build_input_static_content(self, **kwargs):
+        input_attribute = kwargs.pop('input_attribute', {})
+        if 'name' not in input_attribute:
+            input_attribute['name'] = 'content'
         value = self.static_content if self.static_content is not None else ''
-        return '<textarea id="field_static_content" name="static_content" class="form-control" placeholder="Content">'+value+'</textarea>'
+        return '<textarea id="field_static_content" name="' + input_attribute['name'] + '" class="form-control" placeholder="Content">'+value+'</textarea>'
 
 
 class Widget_Groups(DB_Model):
@@ -219,8 +235,11 @@ class Language(DB_Model):
     detail = relationship("Language_Detail", foreign_keys="Language_Detail.fk_language")
     
     def build_input_description(self, **kwargs):
+        input_attribute = kwargs.pop('input_attribute', {})
+        if 'name' not in input_attribute:
+            input_attribute['name'] = 'description'
         value = self.description if self.description is not None else ''
-        return '<textarea id="field_description" name="description" class="form-control" placeholder="Language Description">'+value+'</textarea>'
+        return '<textarea id="field_description" name="' + input_attribute['name'] + '" class="form-control" placeholder="Language Description">'+value+'</textarea>'
 
 class Language_Detail(DB_Model):
     __session__ = session
@@ -236,8 +255,11 @@ class Configuration(DB_Model):
     value = Column(Text)
     
     def build_input_description(self, **kwargs):
+        input_attribute = kwargs.pop('input_attribute', {})
+        if 'name' not in input_attribute:
+            input_attribute['name'] = 'description'
         value = self.value if self.value is not None else ''
-        return '<textarea id="field_value" name="value" class="form-control" placeholder="Configuration Value">'+value+'</textarea>'
+        return '<textarea id="field_value" name="' + input_attribute['name'] + '" class="form-control" placeholder="Configuration Value">'+value+'</textarea>'
 
 
 
