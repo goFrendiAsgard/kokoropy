@@ -113,7 +113,6 @@
                             </ul>
                         </li>
                         <li><a href="#kokoropy_directory_structure">Directory Structure</a></li>
-                        <li><a href="#configuration">Configuration</a></li>
                     </ul>
                 </li>
                 <li><a href="#rossian">Rossian</a></li>
@@ -208,7 +207,6 @@
         <p>
             Just like every MVC framework, kokoropy has a typical directory structure.
             At the development stage, you only need to pay attention to <strong>/applications</strong> directory (this is where your applications laid)
-            and <strong>start.py</strong> file (this is where you put your configuration)
         </p>
         <pre>
             kokoropy
@@ -269,24 +267,6 @@
             You should also put an <b>__init__.py</b> inside each of them.
         </p>
 
-        <h2 id="configuration">Configuration</h2>
-        <p class="alert alert-info"><b>Don't worry</b> You will only need to fiddle up with configuration if port 8080 is already used by other application. Otherwise, you can skip this part safely</p>
-        <p>
-            If you don't find anything wrong on the installation step, you can just ignore this part and go directly to installation.
-            Otherwise, if you find port 8080 already used another program (let's say django or web2py), you can change the port to 8081, 8082, or any different number.
-            To modify the configuration, open up start.py and look for these lines:
-        </p>
-        <pre>
-            HOST                = 'localhost'               # the server name
-            PORT                = 8080                      # http port
-            DEBUG               = True                      # True or False
-            RELOADER            = False                     # True or False
-            SERVER              = 'kokoro'                  # or wsgiref or whatever
-            APP_DIRECTORY       = 'applications'            # applications package
-            RUNTIME_PATH        = '.development_runtime'    # runtime path
-            BASE_URL            = '/kokoropy'               # base url, start with '/'
-        </pre>
-
         <h1 id="rossian">Rossian (Script generator and more)</h1>
         <p>
             Building everything from scratch is such a pain. Therefore, some frameworks provide generator scripts.
@@ -303,36 +283,42 @@
         <p>to see how it works.</p>
         <p>Currently, here is a list of commands that might be useful</p>
         <pre>
-             VERSION: 0.0.1
+              VERSION: 0.0.1
 
-             USAGE:
+              USAGE:
 
-             * Help
+              * Help
                  python rossian.py help
 
-             * Run Server
-                 python rossian.py start
+              * Run Server
+                 python rossian.py start [--host=localhost --port=8080 --server=kokoro --baseurl=/ --runtimepath=.runtime --debug --reload]
 
-             * Scaffold Application
+              * Scaffold Application
                  python rossian.py scaffold-application APPLICATION-NAME
 
-             * Scaffold Migration
-                 python rossian.py scaffold-migration APPLICATION-NAME MIGRATION-NAME [table-name] [column-name:type] ...
+              * Scaffold Migration
+                 python rossian.py scaffold-migration APPLICATION-NAME MIGRATION-NAME [table-name] [column-name:type] ... 
 
-             * Scaffold Model
-                 python rossian.py scaffold-model APPLICATION-NAME [table-name] [column-name:type] ...
+              * Scaffold Model
+                 python rossian.py scaffold-model APPLICATION-NAME [table-name] [column-name:type] ... 
 
-             * Scaffold CRUD
-                 python rossian.py scaffold-crud APPLICATION-NAME [table-name] [column-name:type] ...
+              * Scaffold CRUD
+                 python rossian.py scaffold-crud APPLICATION-NAME [table-name] [column-name:type] ... 
 
-             * Migration upgrade (to the newest version)
+              * Scaffold View (to make custom CRUD view)
+                 python rossian.py scaffold-view APPLICATION-NAME [table-name] [view]
+
+              * Scaffold CMS
+                 python rossian.py scaffold-cms 
+
+              * Migration upgrade (to the newest version)
                  python rossian.py migration-upgrade [APPLICATION-NAME]
 
-             * Migration downgrade (to the previous version)
+              * Migration downgrade (to the previous version)
                  python rossian.py migration-downgrade APPLICATION-NAME
 
-             * List of migration applied
-                 python rossian.py migration-log [APPLICATION-NAME]
+              * List of migration applied
+                 python rossian.py migration-log
 
         </pre>
         <p>
@@ -447,13 +433,13 @@
         <textarea class="language-python" readonly="readonly">
             from sqlalchemy import create_engine, Column, ForeignKey, func, Integer, String, DateTime, Boolean
             from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
-            from kokoropy.model import Model
+            from kokoropy.model import DB_Model
             from ..configs.db import connection_string
 
             engine = create_engine(connection_string, echo=False)
             session = scoped_session(sessionmaker(bind=engine))
 
-            class Pokemon(Model):
+            class Pokemon(DB_Model):
                 __tablename__ = 'pokemon'
                 __session__ = session
                 name = Column(String)

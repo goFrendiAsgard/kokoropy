@@ -1,19 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-###########################################################################
-# CONFIGURATION (Feel free to modify it)
-###########################################################################
-HOST                = 'localhost'               # the server name
-PORT                = 8080                      # http port
-DEBUG               = True                      # True or False
-RELOADER            = False                     # True or False
-SERVER              = 'kokoro'                  # or wsgiref or whatever
-RUNTIME_PATH        = '.development_runtime'    # runtime path
-BASE_URL            = '/'               # base url, start with '/'
-
-###########################################################################
-# DON'T TOUCH FOLLOWING CODES
-###########################################################################
 import subprocess, signal, time, datetime, os, sys, getopt, kokoropy
 
 from kokoropy import Fore, Back, scaffold
@@ -60,12 +46,40 @@ def run_server_once():
                          host=host, server=server, base_url=base_url, runtime_path=runtime_path)
 
 def _run_server_as_subprocess():
+    args = sys.argv[2:]
+    # pass arguments
+    options, remainder = getopt.getopt(args, '', ['debug', 'reload', 'host=', 'port=', 'server=', 
+                                                  'baseurl=', 'runtimepath='])
+    host = 'localhost'
+    port = 8080 
+    debug = True
+    reloader = False
+    server = 'kokoro'
+    runtime_path = '.runtime/'
+    base_url = '/'
+    for opt, arg in options:
+        if opt[0:2] == '--':
+            opt = opt[2:]
+        if opt == 'debug':
+            debug = True
+        elif opt == 'reload':
+            reloader = True
+        elif opt == 'host':
+            host = arg
+        elif opt == 'port':
+            port = arg
+        elif opt == 'server':
+            server = arg
+        elif opt == 'runtimepath':
+            runtime_path = arg
+        elif opt == 'baseurl':
+            base_url = arg
     SCRIPT_PATH = os.path.abspath(__file__)
     RUN_COMMAND = '%s %s' %(sys.executable, SCRIPT_PATH)
-    ARGUMENTS = 'run_server_once --host=%s --port=%d --server=%s --baseurl=%s --runtimepath=%s' %(HOST, PORT, SERVER, BASE_URL, RUNTIME_PATH)
-    if RELOADER:
+    ARGUMENTS = 'run_server_once --host=%s --port=%d --server=%s --baseurl=%s --runtimepath=%s' %(host, port, server, base_url, runtime_path)
+    if reloader:
         ARGUMENTS += ' --reload'
-    if DEBUG:
+    if debug:
         ARGUMENTS += ' --debug'
     RUN_COMMAND = RUN_COMMAND + ' ' + ARGUMENTS
     if hasattr(os, 'setsid'):
@@ -244,7 +258,7 @@ def info():
     print(' * Help')
     print('     %spython %s%s help%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.RESET))
     print(' * Run Server')
-    print('     %spython %s%s start%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.RESET))
+    print('     %spython %s%s start %s[--host=localhost --port=8080 --server=kokoro --baseurl=/ --runtimepath=.runtime --debug --reload]%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
     print(' * Scaffold Application')
     print('     %spython %s%s scaffold-application %sAPPLICATION-NAME%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
     print(' * Scaffold Migration')
