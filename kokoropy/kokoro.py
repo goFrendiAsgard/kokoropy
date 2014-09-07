@@ -1,12 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
-Repo: https://github.com/goFrendiAsgard/kokoropy
-'''
-__author__  = 'Go Frendi Gunawan'
-__version__ = 'development'
-__license__ = 'MIT'
-
 ###################################################################################################
 # Add package directory to sys.path
 ###################################################################################################
