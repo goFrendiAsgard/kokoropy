@@ -104,7 +104,7 @@ def add_detail_column_label_to_structure(structure, table_name, column_name, det
         structure[table_name]['__detail_column_label__'][column_name] = {}
     structure[table_name]['__detail_column_label__'][column_name][detail_column_name] = label
 
-def _structure_to_script(structure):
+def _structure_to_script(structure, table = None):
     '''
     example of data structure:
         structure = [
@@ -118,8 +118,15 @@ def _structure_to_script(structure):
             }
         ]
     '''
+    if table != None:
+        table_list = [table]
+        if '__column_label__' in structure[table]:
+            for key in structure[table]['__column_label__']:
+                table_list.append(key)
+    else:
+        table_list = structure['__list']
     script = ''
-    for table_name in structure['__list__']:
+    for table_name in table_list:
         ucase_table_name = table_name.title()
         script += 'class ' + ucase_table_name + '(DB_Model):\n'
         script += '    __session__ = session\n'
@@ -143,7 +150,7 @@ def _structure_to_script(structure):
         # column's label
         if '__column_label__' in structure[table_name]:
             script += '    # Column\'s Labels\n'
-            script += '    __column_label__ = {\n        '
+            script += '    __column_label__ = {\n            '
             pair_list = []
             for column_name in structure[table_name]['__column_label__']:
                 label = structure[table_name]['__column_label__'][column_name]
@@ -167,6 +174,8 @@ def _structure_to_script(structure):
         script += '    # Fields Declarations\n'
         for column_name in structure[table_name]['__list__']:
             content = structure[table_name][column_name]
+            while len(column_name) < 20 :
+                column_name += ' '
             script += '    ' + column_name + ' = ' + content + '\n'
         script += '\n'
     return script
@@ -243,7 +252,7 @@ def _scaffold_model(structure, table_name, *columns):
                 rel_col_name = add_column_to_structure(structure, table_name, rel_col_name, coltype)
                 # proxy
                 coltype = 'association_proxy("' + rel_col_name + '", "' + fk_col_name_right + '",'+\
-                    ' creator=lambda _val: ' + ucase_association_table_name +\
+                    ' creator = lambda _val : ' + ucase_association_table_name +\
                     '(' + rel_col_name_right + ' = _val))'
                 add_column_to_structure(structure, table_name, colname, coltype)
                 # add detail excluded shown column
@@ -262,7 +271,7 @@ def _scaffold_model(structure, table_name, *columns):
                 coltype_element = coltype.split('-')
                 if len(coltype_element)>1:
                     coltype = coltype_element[0] + '(' + ', '.join(coltype_element[1:]) + ')'
-                # in case of string is not defined
+                # in case of length is not defined
                 if coltype == 'String':
                     coltype = 'String(50)'
             else:
@@ -270,7 +279,6 @@ def _scaffold_model(structure, table_name, *columns):
             add_column_to_structure(structure, table_name, colname, 'Column('+coltype+')')
 
 def scaffold_model(application_name, table_name, *columns):
-    # define structure
     structure = {'__list__' : []}
     # prototype_structure
     table_list = [table_name]
@@ -292,19 +300,35 @@ def scaffold_model(application_name, table_name, *columns):
             else:
                 continue
         column_list[table].append(column)
-    # add prototype_structure to structure
-    for table in table_list:
-        table_column_list = column_list[table]
-        _scaffold_model(structure, table, *table_column_list)
-    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_model.py'))
-    # replace content
-    content = content.replace('# g_structure', _structure_to_script(structure))
     # make application if not exists
     if not os.path.exists(application_path(application_name)):
         scaffold_application(application_name)
-    # determine file name
-    filename = 'structure.py'
-    filename = application_path(os.path.join(application_name, 'models', filename))
+    # add prototype_structure
+    for table in table_list:
+        # define structure
+        table_column_list = column_list[table]
+        _scaffold_model(structure, table, *table_column_list)
+    import_str = ''
+    for table in table_list:
+        content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_model.py'))
+        # replace content
+        content = content.replace('# g_structure', _structure_to_script(structure, table))        
+        # determine file name
+        filename = table+'.py'
+        filename = application_path(os.path.join(application_name, 'models', filename))        
+        # write file
+        write_and_backup(filename, content)
+        # assembly import
+        class_list = [table.title()]
+        if '__column_label__' in structure[table]:
+            for key in structure[table]['__column_label__']:
+                class_list.append(key.title())
+        import_str += 'from ' + table + ' import ' + ', '.join(class_list) + '\n'
+    # create _structure
+    content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_structure.py'))
+    # replace content
+    content = content.replace('# g_import', import_str)
+    filename = application_path(os.path.join(application_name, 'models', '_structure.py'))        
     # write file
     write_and_backup(filename, content)
     return structure
