@@ -409,3 +409,12 @@ def scaffold_cms():
     source = os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_cms')
     destination = application_path('cms')
     copytree(source, destination)
+
+
+def scaffold_project(project_name):
+    source = os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_application')
+    destination = os.path.join(os.getcwd, project_name)
+    copytree(source, destination)
+    # copy rossian.py
+    source_dir = os.path.dirname(os.path.dirname(__file__))
+    shutil.copyfile(os.path.join(source_dir, 'rossian.py'), os.path.join(destination, 'rossian.py'))

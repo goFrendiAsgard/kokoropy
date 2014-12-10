@@ -4,9 +4,8 @@ __version__ = '0.0.0'
 ###################################################################################################
 # Add package directory to sys.path
 ###################################################################################################
-import os, inspect, sys, shutil
+import os, inspect, sys, shutil, time
 from datetime import datetime
-import time
 if os.path.dirname(__file__) not in sys.path:
     sys.path.append(os.path.join(os.path.dirname(__file__),'packages'))
 
