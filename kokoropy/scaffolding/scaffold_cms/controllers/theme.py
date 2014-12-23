@@ -1,7 +1,7 @@
 from kokoropy.controller import Crud_Controller
-from ..models.structure import Theme
+from ..models._structure import Theme
 
 class Theme_Controller(Crud_Controller):
-    __model__               = Theme
+    __model__       = Theme
 
 Theme_Controller.publish_route()

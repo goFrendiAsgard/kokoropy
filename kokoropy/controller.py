@@ -77,7 +77,7 @@ class Crud_Controller(Multi_Language_Controller):
     
     @declared_attr
     def __url_list__(self):
-        view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'remove', 'delete', 'destroy']
+        view_list = ['list', 'show', 'new', 'create', 'edit', 'update', 'trash', 'untrash', 'remove', 'delete', 'destroy']
         url = base_url(self.__application_name__+'/' + self.__model_name__) + '/'
         url_list = {'index' : url}
         for view in view_list:
@@ -239,6 +239,7 @@ class Crud_Controller(Multi_Language_Controller):
         self._setup_view_parameter()
         self._set_view_parameter(self.__model_name__+'_list', data_list)
         self._set_view_parameter(self.__model_name__.title(), self.__model__)
+        self._set_view_parameter('__token', self._set_token())
         self._set_view_parameter('current_page', current_page)
         self._set_view_parameter('page_count', page_count)
         self._set_view_parameter('search_input', self.search_input())
@@ -381,6 +382,36 @@ class Crud_Controller(Multi_Language_Controller):
             self._set_view_parameter('__token', token)
             return self._get_view_parameter_as_json()
         return self._load_view('remove')
+
+    def untrash(self, id = None):
+        token = request.POST.pop('__token', '')
+        if not self._is_token_match(token):
+            success = False
+            error_message = 'Invalid Token'
+            data = None
+        else:
+            data = self.__model__.find(id, True)
+            if data is not None:
+                data.untrash()
+                success = data.success
+                error_message = data.error_message
+            else:
+                success = False
+                error_message = 'Data Not Found'
+        # load the view
+        self._setup_view_parameter()
+        self._set_view_parameter(self.__model_name__, data)
+        self._set_view_parameter('success', success)
+        self._set_view_parameter('error_message', error_message)
+        # if ajax request (or explicitly request response to be json)
+        if request.is_xhr or request.POST.pop('__as_json', False):
+            if success:
+                token = self._set_token()
+            else:
+                token = self._get_token()
+            self._set_view_parameter('__token', token)
+            return self._get_view_parameter_as_json()
+        return self._load_view('untrash')
     
     def delete(self, id=None):
         ''' Delete Form '''

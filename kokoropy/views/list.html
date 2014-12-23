@@ -61,10 +61,18 @@
                                     <i class="glyphicon glyphicon-pencil"></i> Edit
                                 </a>
                             % end
-                            % if G_Table_Name.allow_trash and not only_trashed:
+                            % if g_table_name.allow_trash and not only_trashed:
                                 <a class="btn btn-default" href="{{ url_list["trash"] }}/{{ g_table_name.id }}">
                                     <i class="glyphicon glyphicon-trash"></i> Move to Trash
                                 </a>
+                            % end
+                            % if g_table_name.allow_untrash and only_trashed:
+                                <form action="{{ url_list["untrash"] }}/{{ g_table_name.id }}" method="post" style="display:inline;">
+                                    <input id="__token" type="hidden" name="__token" value="{{ __token }}" />
+                                    <button class="btn btn-default">
+                                        <i class="glyphicon glyphicon-repeat"></i> Restore
+                                    </button>
+                                </form>
                             % end
                             % if G_Table_Name.allow_delete:
                                 <a class="btn btn-danger" href="{{ url_list["delete"] }}/{{ g_table_name.id }}">

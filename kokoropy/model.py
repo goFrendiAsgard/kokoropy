@@ -32,9 +32,9 @@ class DB_Model(Base):
     # configurations
     __abstract__            = True
     __connection_string__   = ''
-    __echo__ = True
-    __prefix_of_id__        = '%Y%m%d-'
-    __digit_num_of_id__     = 5
+    __echo__                = True
+    __id_prefix__           = '%Y%m%d-'
+    __id_digit__     = 5
     # columns to be shown
     __shown_column__            = None
     __form_column__             = None
@@ -77,7 +77,7 @@ class DB_Model(Base):
     # label
     __column_label__                    = {}
     __detail_column_label__             = {}
-    # automatic assigned columns
+    # automatic assigned columns (when read data from controller)
     __automatic_assigned_column__        = None
     __automatic_assigned_insert_column__ = None
     __automatic_assigned_update_column__ = None
@@ -87,6 +87,7 @@ class DB_Model(Base):
     __allow_edit__      = True
     __allow_new__       = True
     __allow_trash__     = True
+    __allow_untrash__   = True
     __allow_delete__    = True
     
     @declared_attr
@@ -113,11 +114,12 @@ class DB_Model(Base):
                 self.__state__ = 'update'
         return self.__state__
     
-    def set_state_list(self):
-        self._set_state('list')
         
     def _set_state(self, state):
         self.__state__ = state
+
+    def set_state_list(self):
+        self._set_state('list')
     
     def set_state_show(self):
         self._set_state('show')
@@ -379,6 +381,18 @@ class DB_Model(Base):
     @success.setter
     def success(self, val):
         self._success = val
+
+    @property
+    def created_at(self):
+        return self._created_at
+
+    @property
+    def updated_at(self):
+        return self._updated_at
+
+    @property
+    def trashed(self):
+        return self._trashed
     
     @classmethod
     def get(cls, *criterion, **kwargs):
@@ -566,6 +580,12 @@ class DB_Model(Base):
     @property
     def allow_delete(self):
         return self.__allow_delete__
+
+    @property
+    def allow_untrash(self):
+        if self._trashed == False:
+            return False
+        return self.__allow_untrash__
     
     def before_save(self):
         self.success = True
@@ -738,7 +758,7 @@ class DB_Model(Base):
                         child.delete()
     
     def generate_prefix_id(self):
-        return datetime.datetime.fromtimestamp(time.time()).strftime(self.__prefix_of_id__)
+        return datetime.datetime.fromtimestamp(time.time()).strftime(self.__id_prefix__)
     
     def generate_id(self):
         if self.id is None:
@@ -753,7 +773,7 @@ class DB_Model(Base):
                 # get number part of maxid
                 number = int(maxid[len(prefix):])
             # create newid
-            newid = prefix + str(number+1).zfill(self.__digit_num_of_id__)
+            newid = prefix + str(number+1).zfill(self.__id_digit__)
             self.id = newid
     
     def to_dict(self, **kwargs):

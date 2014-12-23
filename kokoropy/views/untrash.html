@@ -1,0 +1,18 @@
+% rebase('g_application_name/views/base') if base_view is None else rebase(base_view)
+
+{% block content %}
+    <h4>Restore {{ caption }}</h4>
+    <div class="alert {{ 'alert-success' if success else 'alert-danger' }}">
+        % if error_message != '':
+            <b>Error : </b>
+            {{ error_message }}
+        % else:
+            <b>Success !!!</b>
+        % end
+    </div>
+    <div>
+        <a href="{{ url_list['list'] }}" class="btn btn-default">
+            <i class="glyphicon glyphicon-th"></i> Back to List
+        </a>
+    </div>
+{% endblock %}

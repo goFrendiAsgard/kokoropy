@@ -1,6 +1,6 @@
 import re, getpass
 from kokoropy import request
-from structure import *
+from _structure import *
 
 def do_login(identity, password):
     user_list = User.get(and_(or_(User.username == identity, User.email == identity), User.encrypted_password == encrypt_password(password)))
