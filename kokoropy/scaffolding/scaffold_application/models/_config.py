@@ -1,7 +1,7 @@
-from sqlalchemy import create_engine, MetaData
-from sqlalchemy.orm import scoped_session, sessionmaker
+from kokoropy.model import create_engine, MetaData, scoped_session, sessionmaker
 from ..configs.db import connection_string
 
+# singleton class Config
 class Config:
     __single = None
     def __init__( self, connection_string, *args, **kwargs):

@@ -129,7 +129,7 @@ def _structure_to_script(structure, table = None):
     for table_name in table_list:
         ucase_table_name = table_name.title()
         script += 'class ' + ucase_table_name + '(DB_Model):\n'
-        script += '    __session__ = session\n'
+        script += '    __session__          = session\n'
         # excluded column
         if '__detail_excluded_shown_column__' in structure[table_name]:
             script += '    # Excluded Columns\n'
@@ -197,7 +197,7 @@ def _scaffold_model(structure, table_name, *columns):
                 fk_col_name = 'fk_' + table_name
                 fk_col_name = add_column_to_structure(structure, other_table_name, fk_col_name, coltype)
                 # relationship
-                coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_other_table_name + '.' + fk_col_name + '")'
+                coltype = 'relationship("' + ucase_other_table_name + '", uselist = True, foreign_keys = "' + ucase_other_table_name + '.' + fk_col_name + '")'
                 add_column_to_structure(structure, table_name, colname, coltype)
             elif relationship == 'manytoone' or relationship == 'manytone' or relationship == 'many_to_one' or relationship == 'many-to-one':
                 # other table
@@ -207,7 +207,7 @@ def _scaffold_model(structure, table_name, *columns):
                 fk_col_name = 'fk_' + colname
                 fk_col_name = add_column_to_structure(structure, table_name, fk_col_name, coltype)
                 # relationship
-                coltype = 'relationship("' + ucase_other_table_name + '", foreign_keys="' + ucase_table_name + '.' + fk_col_name + '")'
+                coltype = 'relationship("' + ucase_other_table_name + '", uselist = False, foreign_keys="' + ucase_table_name + '.' + fk_col_name + '")'
                 add_column_to_structure(structure, table_name, colname, coltype)
             elif relationship == 'manytomany' or relationship == 'many_to_many' or relationship == 'many-to-many':
                 # other table
@@ -238,20 +238,20 @@ def _scaffold_model(structure, table_name, *columns):
                     fk_col_name_right, coltype)
                 # relationship (from association table to table)
                 coltype = 'relationship("' + ucase_table_name + '",' +\
-                    ' foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_left + '")'
+                    ' uselist = False, foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_left + '")'
                 rel_col_name_left = add_column_to_structure(structure, association_table_name, 
                     rel_col_name_left, coltype)
                 # relationship (from association table to other table)
                 coltype = 'relationship("' + ucase_other_table_name + '",' +\
-                    ' foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_right + '")'
+                    ' uselist = False, foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_right + '")'
                 rel_col_name_right = add_column_to_structure(structure, association_table_name, 
                     rel_col_name_right, coltype)
                 # relationship (from table to association table)
                 coltype = 'relationship("' + ucase_association_table_name + '",' +\
-                    ' foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_left + '")'
+                    ' uselist = True, foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_left + '")'
                 rel_col_name = add_column_to_structure(structure, table_name, rel_col_name, coltype)
                 # proxy
-                coltype = 'association_proxy("' + rel_col_name + '", "' + fk_col_name_right + '",'+\
+                coltype = 'association_proxy("' + rel_col_name + '", "' + rel_col_name_right + '",'+\
                     ' creator = lambda _val : ' + ucase_association_table_name +\
                     '(' + rel_col_name_right + ' = _val))'
                 add_column_to_structure(structure, table_name, colname, coltype)

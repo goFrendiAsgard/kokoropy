@@ -70,7 +70,7 @@
 
 {% block content %}
     % if g_table_name is not None:
-        <h4>Editing {{ caption }} : {{ g_table_name.quick_preview() }}</h4>
+        <h4>Editing {{ caption }} : {{! g_table_name.quick_preview() }}</h4>
         <form id="__main_form" action="{{ url_list['update'] }}/{{ g_table_name.id }}" method="post" enctype="multipart/form-data" class="form-horizontal" role="form">
             <input id="__token" type="hidden" name="__token" value="{{ __token }}" />
             <!-- Form Control -->

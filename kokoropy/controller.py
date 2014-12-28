@@ -430,7 +430,7 @@ class Crud_Controller(Multi_Language_Controller):
             error_message = 'Invalid Token'
             data = None
         else:
-            data = self.__model__.find(id)
+            data = self.__model__.find(id, include_trashed = True)
             if data is not None:
                 data.delete()
                 success = data.success

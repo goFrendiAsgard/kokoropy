@@ -68,7 +68,7 @@
 
 {% block content %}
     % if g_table_name is not None:
-        <h4>Are you sure to delete {{ g_table_name.quick_preview() }}?</h4>
+        <h4>Are you sure to delete {{! g_table_name.quick_preview() }}?</h4>
         <div class="alert alert-danger">
             <b>Warning</b> This action is unrecoverable
         </div>

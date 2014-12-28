@@ -1,5 +1,5 @@
 from kokoropy.controller import Crud_Controller
-from ..models.structure import Pokemon
+from ..models.pokemon import Pokemon
 
 class Pokemon_Controller(Crud_Controller):
     __model__       = Pokemon

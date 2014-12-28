@@ -1,8 +1,5 @@
-from sqlalchemy import or_, and_, create_engine, MetaData, Column, ForeignKey, func, \
-    Integer, String, Date, DateTime, Boolean, Text
-from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
-from sqlalchemy.ext.associationproxy import association_proxy
-from kokoropy.model import DB_Model, auto_migrate, base_url
+from kokoropy.model import DB_Model, auto_migrate, base_url, Column, or_, and_, create_engine, MetaData, ForeignKey, func, \
+    Integer, String, Date, DateTime, Boolean, Upload, Text, scoped_session, sessionmaker, relationship, backref, association_proxy
 from ..configs.db import connection_string
 from kokoropy import save_uploaded_asset, request
 import os
@@ -19,8 +16,8 @@ class Pokemon(DB_Model):
     __automatic_assigned_column__ = ['id','name']
     # Fields Declarations
     name = Column(String(50))
-    image = Column(String(50))
-    
+    image = Column(Upload(50, is_image = True))
+    '''
     def before_save(self):
         upload =  request.files.get('image')
         if upload is not None:
@@ -28,23 +25,11 @@ class Pokemon(DB_Model):
             if ext in ('.png','.jpg','.jpeg'):
                 save_uploaded_asset('image', path='uploads', application_name = self.__application_name__)
                 self.image = upload.filename
-    
-    def build_input_image(self, **kwargs):
-        value = self.build_representation_image()
-        return self.build_representation_image() + '<br /><input type="file" name="image" class="_file-input">'
-    
-    def build_representation_image(self, **kwargs):
-        value = self.image
-        if value is None:
-            value = 'images/pokemon-no-image.png'
-        else:
-            value = 'uploads/'+value
-        return '<img src="' + base_url(self.__application_name__+ '/assets/' + value) + '" style="max-width:100px;" />'
-    
+    '''
     def quick_preview(self):
         print self.state
         if self.is_list_state():
-            return self.build_representation_image() + '<br />' + self.name
+            return self.build_representation('image') + '<br />' + self.name
         return self.name
 
 

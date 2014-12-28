@@ -1,6 +1,6 @@
-from sqlalchemy import create_engine, MetaData
-from sqlalchemy.orm import scoped_session, sessionmaker
+from kokoropy.model import create_engine, MetaData, scoped_session, sessionmaker
 from ..configs.db import connection_string
+import hashlib
 
 class Config:
     __single = None
@@ -25,3 +25,14 @@ config = create_config(connection_string, echo=False)
 engine   = config.engine
 session  = config.session
 metadata = config.metadata
+
+authorization_options = {
+    'everyone'          : 'Everyone', 
+    'authenticated'     : 'Logged in user', 
+    'unauthenticated'   : 'Not logged in user',
+    'authorized'        : 'Specified member of group and super admin', 
+    'strict_authorized' : 'Only specified member of group'
+}
+
+def encrypt_password(password):
+    return hashlib.md5(hashlib.md5(password).hexdigest()).hexdigest()

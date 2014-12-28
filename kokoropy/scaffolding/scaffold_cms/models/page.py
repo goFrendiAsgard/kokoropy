@@ -1,13 +1,11 @@
-from sqlalchemy import or_, and_, Column, ForeignKey, func, Integer, String, Date, DateTime, Boolean, Text
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.associationproxy import association_proxy
-from kokoropy.model import DB_Model
-from _config import session, metadata
+from kokoropy.model import DB_Model, or_, and_, Column, ForeignKey, func,\
+    Integer, String, Date, DateTime, Boolean, Text, Option, relationship, backref, association_proxy
+from _config import session, metadata, authorization_options
 
 DB_Model.metadata = metadata
 
 class Page(DB_Model):
-    __session__ = session
+    __session__          = session
     __id_prefix__        = 'Page-'
     # Excluded Columns
     __detail_excluded_shown_column__ = {
@@ -29,12 +27,12 @@ class Page(DB_Model):
     static               = Column(Boolean)
     url                  = Column(String(255))
     static_content       = Column(Text)
-    authorization        = Column(Integer)
+    authorization        = Column(Option(50, options = authorization_options))
     page_order           = Column(Integer)
     page_groups          = relationship("Page_Groups", foreign_keys="Page_Groups.fk_page")
-    groups               = association_proxy("page_groups", "fk_group", creator = lambda _val : Page_Groups(group = _val))
+    groups               = association_proxy("page_groups", "group", creator = lambda _val : Page_Groups(group = _val))
     fk_page              = Column(Integer, ForeignKey("page._real_id"))
-    parent               = relationship("Page", foreign_keys="Page.fk_page")
+    parent               = relationship("Page", uselist = False, foreign_keys="Page.fk_page")
     fk_theme             = Column(Integer, ForeignKey("theme._real_id"))
     theme                = relationship("Theme", foreign_keys="Page.fk_theme")
     fk_layout            = Column(Integer, ForeignKey("layout._real_id"))
@@ -48,24 +46,10 @@ class Page(DB_Model):
             if max_page_order is None:
                 max_page_order = 0
             self.page_order = max_page_order
-    
-    def build_input_static_content(self, **kwargs):
-        input_attribute = kwargs.pop('input_attribute', {})
-        if 'name' not in input_attribute:
-            input_attribute['name'] = 'static_content'
-        value = self.static_content if self.static_content is not None else ''
-        return '<textarea id="field_static_content" name="' + input_attribute['name'] + '" class="form-control" placeholder="Content">'+value+'</textarea>'
-
-    def build_input_meta_description(self, **kwargs):
-        input_attribute = kwargs.pop('input_attribute', {})
-        if 'name' not in input_attribute:
-            input_attribute['name'] = 'meta_description'
-        value = self.meta_description if self.meta_description is not None else ''
-        return '<textarea id="field_meta_description" name="' + input_attribute['name'] + '" class="form-control" placeholder="Meta Description">'+value+'</textarea>'
-
 
 class Page_Groups(DB_Model):
-    __session__ = session
+    __session__          = session
+    __id_prefix__        = 'PGroup-'
     # Fields Declarations
     fk_page              = Column(Integer, ForeignKey("page._real_id"))
     fk_group             = Column(Integer, ForeignKey("group._real_id"))

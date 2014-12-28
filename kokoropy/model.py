@@ -1,13 +1,17 @@
-from sqlalchemy import create_engine, Column, func, BIGINT, BigInteger, BINARY, Binary,\
+from sqlalchemy import or_, and_, ForeignKey, create_engine, func,\
+    BIGINT, BigInteger, BINARY, Binary,\
     BOOLEAN, Boolean, DATE, Date, DATETIME, DateTime, FLOAT, Float,\
-    INTEGER, Integer, VARCHAR, String, TEXT, Text, MetaData
+    INTEGER, Integer, VARCHAR, String, TEXT, Text, MetaData, util
+from sqlalchemy import Column as SA_Column
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.types import TypeDecorator, Unicode
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
+from kokoropy import Fore, Back, base_url, request, save_uploaded_asset, var_dump
 import datetime, time, json, sys, os, asset
-from kokoropy import Fore, Back, base_url
 
 # initialize logger
 import logging
@@ -16,6 +20,66 @@ logger = logging.getLogger(__name__)
 
 # create Base
 Base = declarative_base()
+
+# override sqlAlchemy's Column class, add coltype property
+class Column(SA_Column):
+    def __init__(self, *args, **kwargs):
+        args_type = None
+        kwargs_type = None
+        # get type from kwargs
+        if 'type_' in kwargs:
+            kwargs_type = kwargs['type_']
+        # get type from args
+        args = list(args)
+        if args:
+            if len(args) > 0:
+                if isinstance(args[0], util.string_types) and len(args) > 1:
+                    args_type = args[1]
+                else:
+                    args_type = args[0]
+        # set coltype
+        if kwargs_type is not None:
+            coltype = kwargs_type
+        else:
+            coltype = args_type
+        # save the coltype so that it can be fetched later
+        self._coltype = coltype
+        super(Column, self).__init__(*args, **kwargs)
+
+    def is_type_match(self, cls):
+        return isinstance(self._coltype, cls)
+
+
+# TODO: make custom type
+class Password(TypeDecorator):
+    impl = Unicode
+
+class Upload(TypeDecorator):
+    impl = Unicode
+    def __init__(self, *args, **kwargs):
+        self.is_image = kwargs.pop('is_image', False)
+        super(Upload, self).__init__(*args, **kwargs)
+
+class Option(TypeDecorator):
+    impl = Unicode
+    def __init__(self, *args, **kwargs):
+        # take options parameter
+        self.options = kwargs.pop('options',{})
+        if isinstance(self.options, list):
+            new_options = {}
+            for option in self.options:
+                new_options[option] = option
+            self.options = new_options
+        self.multiselect = kwargs.pop('multiselect', False)
+        super(Option, self).__init__(*args, **kwargs)
+
+class RichText(TypeDecorator):
+    impl = Text
+
+class Code(TypeDecorator):
+    impl = Text
+
+
         
 class DB_Model(Base):
     '''
@@ -36,18 +100,18 @@ class DB_Model(Base):
     __id_prefix__           = '%Y%m%d-'
     __id_digit__     = 5
     # columns to be shown
-    __shown_column__            = None
-    __form_column__             = None
-    __insert_column__           = None
-    __update_column__           = None
-    __virtual_shown_column__    = None
-    __virtual_form_column__     = None
-    __virtual_insert_column__   = None
-    __virtual_update_column__   = None
-    __excluded_shown_column__   = None
-    __excluded_form_column__    = None
-    __excluded_insert_column__  = None
-    __excluded_update_column__  = None
+    __shown_column__                    = None
+    __form_column__                     = None
+    __insert_column__                   = None
+    __update_column__                   = None
+    __virtual_shown_column__            = None
+    __virtual_form_column__             = None
+    __virtual_insert_column__           = None
+    __virtual_update_column__           = None
+    __excluded_shown_column__           = None
+    __excluded_form_column__            = None
+    __excluded_insert_column__          = None
+    __excluded_update_column__          = None
     # columns to be shown on tabular
     __tabular_shown_column__            = None
     __tabular_form_column__             = None
@@ -218,8 +282,8 @@ class DB_Model(Base):
             virtual_column_list_priorities  = [self.__tabular_virtual_update_column__, self.__tabular_virtual_form_column__]
         else:
             column_list_priorities          = [self.__tabular_shown_column__]
-            excluded_column_list_priorities = [self.__tabular_excluded_column__]
-            virtual_column_list_priorities  = [self.__tabular_virtual_column__]
+            excluded_column_list_priorities = [self.__tabular_excluded_shown_column__]
+            virtual_column_list_priorities  = [self.__tabular_virtual_shown_column__]
         # assign default value to column_list
         for config_list in column_list_priorities:
             if config_list is not None:
@@ -261,8 +325,8 @@ class DB_Model(Base):
             virtual_column_list_priorities = [self.__detail_virtual_update_column__, self.__detail_virtual_form_column__]
         else:
             column_list_priorities = [self.__detail_shown_column__]
-            excluded_column_list_priorities = [self.__detail_excluded_column__]
-            virtual_column_list_priorities = [self.__detail_virtual_column__]
+            excluded_column_list_priorities = [self.__detail_excluded_shown_column__]
+            virtual_column_list_priorities = [self.__detail_virtual_shown_column__]
         # assign default value to column_list
         for config_list in column_list_priorities:
             if column_name in config_list and len(config_list[column_name]) > 0:
@@ -653,13 +717,23 @@ class DB_Model(Base):
         return self.__column[column_name]
     
     def _get_actual_column_type(self, column_name):
+        '''
+        get actual sql column type
+        '''
         return self._get_actual_column_metadata(column_name).type
+
+    def is_type_match(self, column_name, cls):
+        colmetadata = self._get_actual_column_metadata(column_name)
+        if hasattr(colmetadata, 'is_type_match'):
+            return colmetadata.is_type_match(cls)
+        else:
+            return False
     
     def _save_detail(self, already_saved_object):
         for relation_name in self._get_relation_names():
             relation_value = self._get_relation_value(relation_name)
             if isinstance(relation_value, DB_Model):
-                # one to many
+                # many to one
                 if relation_value not in already_saved_object:
                     relation_value.save(already_saved_object)
             elif isinstance(relation_value, list):
@@ -695,6 +769,14 @@ class DB_Model(Base):
             #before update
             self.before_update()
         self.before_save()
+        # also upload the file
+        for column_name in self._get_actual_column_names():            
+            colmetadata = self._get_actual_column_metadata(column_name)
+            coltype = colmetadata._coltype
+            upload =  request.files.get('image')
+            if self.is_type_match(column_name, Upload) and upload is not None:
+                save_uploaded_asset(column_name, path='uploads', application_name = self.__application_name__)
+                setattr(self, column_name, upload.filename)
         # save
         self._commit()
         # generate id if not exists
@@ -818,33 +900,6 @@ class DB_Model(Base):
         dictionary = self.to_dict(**kwargs)
         return json.dumps(dictionary)
     
-    def build_custom_label(self, column_name, **kwargs):
-        '''
-        Custom label if defined, override this if needed, but promise me 3 things:
-        * add any additional css into self.generated_style
-        * add any additional script into self.generated_script
-        * return your HTML as string
-        '''
-        return None
-    
-    def build_custom_input(self, column_name, **kwargs):
-        '''
-        Custom input if defined, override this if needed, but promise me 3 things:
-        * add any additional css into self.generated_style
-        * add any additional script into self.generated_script
-        * return your HTML as string
-        '''
-        return None
-    
-    def build_custom_representation(self, column_name, **kwargs):
-        '''
-        Custom representation if defined, override this if needed, but promise me 3 things:
-        * add any additional css into self.generated_style
-        * add any additional script into self.generated_script
-        * return your HTML as string
-        '''
-        pass
-    
     def build_custom_tabular_footer(self, column_name, **kwargs):
         '''
         Custom tabular last row if defined, override this if needed, but promise me 3 things:
@@ -864,8 +919,7 @@ class DB_Model(Base):
             function = getattr(self, 'build_label_'+column_name)
             custom_label = function(**kwargs)
         else:
-            # call build_custom_label
-            custom_label = self.build_custom_label(column_name, **kwargs)
+            custom_label = None
         # return custom label or generate default one
         if custom_label is not None:
             return custom_label
@@ -904,8 +958,7 @@ class DB_Model(Base):
             function = getattr(self, 'build_input_'+column_name)
             custom_input = function(**kwargs)
         else:
-            # call build_custom_input
-            custom_input = self.build_custom_input(column_name, **kwargs)
+            custom_input = None
         # return custom_input or build the default inputs
         if custom_input is not None:
             return custom_input
@@ -1091,9 +1144,41 @@ class DB_Model(Base):
                     value = ''
                 label = self.build_label(column_name, **kwargs)
                 # check type
-                column_type = self._get_actual_column_type(column_name)
-                if isinstance(column_type, Boolean):
-                    input_attribute['type'] = 'checkbox'
+                actual_column_type = self._get_actual_column_type(column_name)
+                # get metadata and coltype
+                colmetadata = self._get_actual_column_metadata(column_name)
+                coltype = colmetadata._coltype
+                # Option
+                if self.is_type_match(column_name, Option):
+                    input_attribute['class'].append('form-control')
+                    input_attribute['placeholder'] = label
+                    if coltype.multiselect:
+                        input_attribute['multiselect'] = 'multiselect'
+                    input_element  = '<select ' + self._encode_input_attribute(input_attribute) + '>'
+                    # add options
+                    for key in coltype.options:
+                        selected = ' selected' if key == value else ''
+                        input_element += '<option value="' + key + '"' + selected + '>' + coltype.options[key] + '</option>'
+                    input_element += '</select>'
+                # Upload
+                elif self.is_type_match(column_name, Upload):
+                    input_attribute['type'] = 'file'
+                    input_attribute['class'].append('form-control')
+                    input_attribute['placeholder'] = label
+                    input_element = ''
+                    if value is not None:
+                        input_element += self.build_representation(column_name)
+                    input_element += '<input ' + self._encode_input_attribute(input_attribute) + '/>'
+                # Password
+                elif self.is_type_match(column_name, Password):
+                    input_attribute['type']  = 'password'
+                    input_attribute['value'] = value
+                    input_attribute['class'].append('form-control')
+                    input_attribute['placeholder'] = label
+                    input_element = '<input ' + self._encode_input_attribute(input_attribute) + ' />'
+                # Boolean
+                elif isinstance(actual_column_type, Boolean):
+                    input_attribute['type']  = 'checkbox'
                     input_attribute['value'] = '1'
                     if value:
                         input_attribute['checked'] = 'checked'
@@ -1101,12 +1186,16 @@ class DB_Model(Base):
                         input_attribute.pop('checked', None)
                     input_element = '<input type="hidden" name="' + input_attribute['name'] + '" value="0" />'
                     input_element += '<input ' + self._encode_input_attribute(input_attribute) + ' />'
+                elif isinstance(actual_column_type, Text):
+                    input_attribute['placeholder'] = label
+                    input_attribute['class'].append('form-control')
+                    input_element = '<textarea ' + self._encode_input_attribute(input_attribute) + '>' + value + '</textarea>'
                 else:
                     value = str(value)
                     # build additional_class
-                    if isinstance(column_type, Date):
+                    if isinstance(actual_column_type, Date):
                         input_attribute['class'].append('_date-input')
-                    elif isinstance(column_type, Integer):
+                    elif isinstance(actual_column_type, Integer):
                         input_attribute['class'].append('_integer-input')
                         if value == '':
                             value = '0'
@@ -1138,8 +1227,7 @@ class DB_Model(Base):
             function = getattr(self, 'build_representation_'+column_name)
             custom_representation = function(**kwargs)
         else:
-            # call build_custom_representation
-            custom_representation = self.build_custom_representation(column_name, **kwargs)
+            custom_representation = None
         # return custom representation or generate default one
         if custom_representation is not None:
             return custom_representation
@@ -1148,6 +1236,9 @@ class DB_Model(Base):
                 value = getattr(self, column_name)
             else:
                 value = ''
+            # strip out html
+            if isinstance(value, unicode) or isinstance(value, str):
+                value = value.replace('<','&lt;').replace('>','&gt;').replace(' ','&nbsp;').replace('\r\n','<br />').replace('\n','<br />')
             # if it is relation, retrieve it
             if column_name in self._get_relation_names():
                 relation_metadata = self._get_relation_metadata(column_name)
@@ -1189,6 +1280,24 @@ class DB_Model(Base):
                 elif isinstance(value, DB_Model):
                     obj = getattr(self, column_name)
                     value = obj.quick_preview()
+            else:
+                # get metadata and coltype
+                colmetadata = self._get_actual_column_metadata(column_name)
+                coltype = colmetadata._coltype
+                if value is None:
+                    value = 'Not available'
+                elif self.is_type_match(column_name, Upload):
+                    if coltype.is_image:
+                        new_value = ''
+                        if not self.is_list_state():
+                            new_value += '<a target="blank" href="' + base_url(self.__application_name__ + '/assets/uploads/' + value) + '">'
+                        new_value += '<img src="' + base_url(self.__application_name__+ '/assets/uploads/' + value) + '" style="max-width:100px;" />'
+                        if not self.is_list_state():
+                            new_value += '</a>'
+                        value = new_value
+                    else:
+                        if not self.is_list_state():
+                            value = '<a target="blank" href="' + base_url(self.__application_name__ + '/assets/uploads/' + value) + '">' + value + '</a>'
             # None or empty children
             if value is None or (isinstance(value,list) and len(value)==0):
                 value = 'Not available'
