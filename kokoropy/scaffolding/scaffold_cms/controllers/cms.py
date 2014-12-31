@@ -1,5 +1,5 @@
 from kokoropy.controller import Crud_Controller
-from ..models._structure import Cms
+from ..models._all import Cms
 
 class Cms_Controller(Crud_Controller):
     __model__       = Cms

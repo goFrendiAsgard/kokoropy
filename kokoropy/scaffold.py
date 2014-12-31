@@ -193,21 +193,21 @@ def _scaffold_model(structure, table_name, *columns):
                 # other table
                 add_column_to_structure(structure, other_table_name)
                 # foreign key
-                coltype = 'Column(Integer, ForeignKey("' + table_name + '._real_id"))'
+                coltype = 'fk_column("' + table_name + '._real_id")'
                 fk_col_name = 'fk_' + table_name
                 fk_col_name = add_column_to_structure(structure, other_table_name, fk_col_name, coltype)
                 # relationship
-                coltype = 'relationship("' + ucase_other_table_name + '", uselist = True, foreign_keys = "' + ucase_other_table_name + '.' + fk_col_name + '")'
+                coltype = 'one_to_many("' + ucase_other_table_name + '", "' + ucase_other_table_name + '.' + fk_col_name + '")'
                 add_column_to_structure(structure, table_name, colname, coltype)
             elif relationship == 'manytoone' or relationship == 'manytone' or relationship == 'many_to_one' or relationship == 'many-to-one':
                 # other table
                 add_column_to_structure(structure, other_table_name)
                 # foreign key
-                coltype = 'Column(Integer, ForeignKey("' + other_table_name + '._real_id"))'
+                coltype = 'fk_column("' + other_table_name + '._real_id")'
                 fk_col_name = 'fk_' + colname
                 fk_col_name = add_column_to_structure(structure, table_name, fk_col_name, coltype)
                 # relationship
-                coltype = 'relationship("' + ucase_other_table_name + '", uselist = False, foreign_keys="' + ucase_table_name + '.' + fk_col_name + '")'
+                coltype = 'many_to_one("' + ucase_other_table_name + '", "' + ucase_table_name + '.' + fk_col_name + '")'
                 add_column_to_structure(structure, table_name, colname, coltype)
             elif relationship == 'manytomany' or relationship == 'many_to_many' or relationship == 'many-to-many':
                 # other table
@@ -229,31 +229,30 @@ def _scaffold_model(structure, table_name, *columns):
                     rel_col_name_right = other_table_name
                 rel_col_name = table_name + '_' + colname
                 # foreign key 1 (to this table)
-                coltype = 'Column(Integer, ForeignKey("' + table_name + '._real_id"))'
+                coltype = 'fk_column("' + table_name + '._real_id")'
                 fk_col_name_left = add_column_to_structure(structure, association_table_name, 
                     fk_col_name_left, coltype)
                 # foreign key 2 (to other table)
-                coltype = 'Column(Integer, ForeignKey("' + other_table_name + '._real_id"))'
+                coltype = 'fk_column("' + other_table_name + '._real_id")'
                 fk_col_name_right = add_column_to_structure(structure, association_table_name, 
                     fk_col_name_right, coltype)
                 # relationship (from association table to table)
-                coltype = 'relationship("' + ucase_table_name + '",' +\
-                    ' uselist = False, foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_left + '")'
+                coltype = 'many_to_one("' + ucase_table_name + '", "' +\
+                    ucase_association_table_name + '.' + fk_col_name_left + '")'
                 rel_col_name_left = add_column_to_structure(structure, association_table_name, 
                     rel_col_name_left, coltype)
                 # relationship (from association table to other table)
-                coltype = 'relationship("' + ucase_other_table_name + '",' +\
-                    ' uselist = False, foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_right + '")'
+                coltype = 'many_to_one("' + ucase_other_table_name + '", "' +\
+                    ucase_association_table_name + '.' + fk_col_name_right + '")'
                 rel_col_name_right = add_column_to_structure(structure, association_table_name, 
                     rel_col_name_right, coltype)
                 # relationship (from table to association table)
-                coltype = 'relationship("' + ucase_association_table_name + '",' +\
-                    ' uselist = True, foreign_keys="' + ucase_association_table_name + '.' + fk_col_name_left + '")'
+                coltype = 'one_to_many("' + ucase_association_table_name + '", "' +\
+                    ucase_association_table_name + '.' + fk_col_name_left + '")'
                 rel_col_name = add_column_to_structure(structure, table_name, rel_col_name, coltype)
                 # proxy
-                coltype = 'association_proxy("' + rel_col_name + '", "' + rel_col_name_right + '",'+\
-                    ' creator = lambda _val : ' + ucase_association_table_name +\
-                    '(' + rel_col_name_right + ' = _val))'
+                coltype = 'lookup_proxy("' + rel_col_name + '", "' +\
+                    ucase_association_table_name + '.' + rel_col_name_right + '")'
                 add_column_to_structure(structure, table_name, colname, coltype)
                 # add detail excluded shown column
                 add_detail_excluded_shown_column_to_structure(structure, table_name, 
@@ -328,7 +327,7 @@ def scaffold_model(application_name, table_name, *columns):
     content = file_get_contents(os.path.join(os.path.dirname(__file__), 'scaffolding', 'scaffold_structure.py'))
     # replace content
     content = content.replace('# g_import', import_str)
-    filename = application_path(os.path.join(application_name, 'models', '_structure.py'))        
+    filename = application_path(os.path.join(application_name, 'models', '_all.py'))        
     # write file
     write_and_backup(filename, content)
     return structure

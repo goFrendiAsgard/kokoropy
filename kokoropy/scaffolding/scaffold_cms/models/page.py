@@ -1,5 +1,7 @@
 from kokoropy.model import DB_Model, or_, and_, Column, ForeignKey, func,\
-    Integer, String, Date, DateTime, Boolean, Text, Option, relationship, backref, association_proxy
+    Integer, String, Date, DateTime, Boolean, Text, Upload, Option,\
+    relationship, backref, association_proxy, creator_maker, fk_column,\
+    one_to_many, many_to_one, lookup_proxy
 from _config import session, metadata, authorization_options
 
 DB_Model.metadata = metadata
@@ -9,10 +11,10 @@ class Page(DB_Model):
     __id_prefix__        = 'Page-'
     # Excluded Columns
     __detail_excluded_shown_column__ = {
-            "page_groups" : ["page"]
+            "page_groups" : ["id", "page"]
         }
     __detail_excluded_form_column__ = {
-            "page_groups" : ["page"]
+            "page_groups" : ["id", "page"]
         }
     # Column's Labels
     __column_label__ = {
@@ -29,14 +31,14 @@ class Page(DB_Model):
     static_content       = Column(Text)
     authorization        = Column(Option(50, options = authorization_options))
     page_order           = Column(Integer)
-    page_groups          = relationship("Page_Groups", foreign_keys="Page_Groups.fk_page")
-    groups               = association_proxy("page_groups", "group", creator = lambda _val : Page_Groups(group = _val))
-    fk_page              = Column(Integer, ForeignKey("page._real_id"))
-    parent               = relationship("Page", uselist = False, foreign_keys="Page.fk_page")
-    fk_theme             = Column(Integer, ForeignKey("theme._real_id"))
-    theme                = relationship("Theme", foreign_keys="Page.fk_theme")
-    fk_layout            = Column(Integer, ForeignKey("layout._real_id"))
-    layout               = relationship("Layout", foreign_keys="Page.fk_layout")
+    page_groups          = one_to_many("Page_Groups.fk_page")
+    groups               = lookup_proxy("page_groups", "Page_Groups.group")
+    fk_page              = fk_column('page._real_id')
+    parent               = many_to_one("Page", "Page.fk_page")
+    fk_theme             = fk_column("theme._real_id")
+    theme                = many_to_one("Theme", "Page.fk_theme")
+    fk_layout            = fk_column("layout._real_id")
+    layout               = many_to_one("Layout", "Page.fk_layout")
     active               = Column(Boolean)
 
     def after_save(self):

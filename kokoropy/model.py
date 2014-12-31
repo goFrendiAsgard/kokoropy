@@ -11,6 +11,7 @@ from sqlalchemy.types import TypeDecorator, Unicode
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from kokoropy import Fore, Back, base_url, request, save_uploaded_asset, var_dump
+from kokoropy import html as HTML
 import datetime, time, json, sys, os, asset
 
 # initialize logger
@@ -20,6 +21,137 @@ logger = logging.getLogger(__name__)
 
 # create Base
 Base = declarative_base()
+
+def creator_maker(class_name, relation_name):
+    '''
+    return lambda function for association_proxy's creator parameter
+    '''
+    return eval('lambda _val: ' + class_name + '(' + relation_name + ' = _val)')
+
+def fk_column(fk, **kwargs):
+    '''
+    usage:
+        fk_column('theme._real_id')
+    or:
+        fk_column('theme._real_id', unique = False, nullable = True)
+    is a shortcut for
+        Column(Integer, ForeignKey('theme._real_id), index = True, unique = False, nullable = True)
+    '''
+    return SA_Column(Integer, ForeignKey(fk), **kwargs)
+
+def _rel(*args, **kwargs):
+    args = list(args)
+    fk = args.pop()
+    if len(args) == 0:
+        class_name = '.'.join(fk.split('.')[0:-1])
+    else:
+        class_name = args.pop()
+    args.insert(0, class_name)
+    args = tuple(args)
+    kwargs['foreign_keys'] = fk
+    return relationship(*args, **kwargs)
+
+def one_to_many(*args, **kwargs):
+    '''
+    usage:
+        one_to_many('Page', 'Page_Group.fk_page')
+        one_to_many('Page_Group.fk_page')
+    is a shortcut to:
+        relationship('Page_Group', foreign_keys='Page_Group.fk_page', uselist = True)
+    '''
+    kwargs['uselist'] = True
+    return _rel(*args, **kwargs)
+
+def many_to_one(*args, **kwargs):
+    '''
+    usage:
+        many_to_one('Theme', 'Page.fk_theme')
+    is a shortcut to:
+        relationship("Theme", foreign_keys="Page.fk_theme", uselist = False)
+    '''
+    kwargs['uselist'] = False
+    return _rel(*args, **kwargs)
+
+def lookup_proxy(*args, **kwargs):
+    '''
+    usage:
+        lookup_proxy('page_groups', lookup='Page_Group.group')
+    or:
+        lookup_proxy('page_groups', 'Page_Group.group')
+    is a shortcut to
+        lookup_proxy('page_groups', 'group', creator = lambda _val: Page_Group(group = _val))
+
+    example:
+
+    class Page(DB_Model):
+        __session__ = session
+        page_groups = relationship("Page_Group", foreign_keys="Page_Group.fk_page")
+        groups      = lookup_proxy(page_groups, lookup='Page_Group.group')
+
+    class Page_Group(DB_Model):
+        __session__ = session
+        fk_page     = Column(Integer, ForeignKey("page._real_id"))
+        fk_group    = Column(Integer, ForeignKey("group._real_id"))
+        page        = relationship("Page", foreign_keys="Page_Groups.fk_page")
+        group       = relationship("Group", foreign_keys="Page_Groups.fk_group")
+
+    class Group(DB_Model):
+        __session__ = session
+        name        = Column(String(20))
+    '''
+    args = list(args)
+    if 'lookup' in kwargs:
+        lookup = kwargs.pop("lookup",'')
+    elif len(args) > 1:
+        lookup = args.pop() 
+    else:
+        lookup = ''   
+    lookup_part = lookup.split('.')
+    relation_name = lookup_part[-1]
+    class_name = '.'.join(lookup_part[0:-1])
+    kwargs['creator'] = creator_maker(class_name, relation_name)    
+    if len(args) == 1:
+        args.append(relation_name)
+    return association_proxy(*args, **kwargs)
+
+class BaseConfig:
+    __property = {}
+
+    def __init__( self, connection_string, *args, **kwargs):
+        engine = create_engine(connection_string, *args, **kwargs)
+        session = scoped_session(sessionmaker(bind=self.engine))
+        metadata = MetaData()
+        metadata.bind = engine
+        self.set_property('engine', engine)
+        self.set_property('session', session)
+        self.set_property('metadata', metadata)
+
+    @property
+    def engine(self):
+        return self.get_property('engine')
+
+    @property
+    def session(self):
+        return self.get_property('session')
+
+    @property
+    def metadata(self):
+        return self.get_property('metadata')
+
+    @declared_attr
+    def application_name(self):
+        path = sys.modules[self.__module__].__file__
+        return os.path.dirname(os.path.dirname(path)).split('/')[-1]
+    
+    def set_property(self, key, value):
+        key = self.application_name + key
+        if key not in BaseConfig.__property:
+            BaseConfig.__property[key] = value
+    
+    def get_property(self, key):
+        key = self.application_name + key
+        if key in BaseConfig.__property:
+            return BaseConfig.__property[key]
 
 # override sqlAlchemy's Column class, add coltype property
 class Column(SA_Column):
@@ -70,7 +202,7 @@ class Option(TypeDecorator):
             for option in self.options:
                 new_options[option] = option
             self.options = new_options
-        self.multiselect = kwargs.pop('multiselect', False)
+        self.multiple = kwargs.pop('multiple', False)
         super(Option, self).__init__(*args, **kwargs)
 
 class RichText(TypeDecorator):
@@ -259,7 +391,8 @@ class DB_Model(Base):
                 excluded_column_list = config_list
                 break
         for column_name in excluded_column_list:
-            column_list.remove(column_name)
+            if column_name in column_list:
+                column_list.remove(column_name)
         return column_list
     
     @property
@@ -303,7 +436,8 @@ class DB_Model(Base):
                 excluded_column_list = config_list
                 break
         for column_name in excluded_column_list:
-            column_list.remove(column_name)
+            if column_name in column_list:
+                column_list.remove(column_name)
         return column_list
     
     def _get_detail_column_list(self, column_name):
@@ -348,7 +482,8 @@ class DB_Model(Base):
                 excluded_column_list = config_list[column_name]
                 break
         for item in excluded_column_list:
-            column_list.remove(item)
+            if item in column_list:
+                column_list.remove(item)
         return column_list
     
     @property
@@ -772,8 +907,7 @@ class DB_Model(Base):
         # also upload the file
         for column_name in self._get_actual_column_names():            
             colmetadata = self._get_actual_column_metadata(column_name)
-            coltype = colmetadata._coltype
-            upload =  request.files.get('image')
+            upload =  request.files.get(column_name)
             if self.is_type_match(column_name, Upload) and upload is not None:
                 save_uploaded_asset(column_name, path='uploads', application_name = self.__application_name__)
                 setattr(self, column_name, upload.filename)
@@ -900,33 +1034,18 @@ class DB_Model(Base):
         dictionary = self.to_dict(**kwargs)
         return json.dumps(dictionary)
     
-    def build_custom_tabular_footer(self, column_name, **kwargs):
-        '''
-        Custom tabular last row if defined, override this if needed, but promise me 3 things:
-        * add any additional css into self.generated_style
-        * add any additional script into self.generated_script
-        * return your HTML as string
-        '''
-        pass
-    
     def build_label(self, column_name, **kwargs):
         ''' DON'T OVERRIDE THIS UNLESS YOU KNOW WHAT YOU DO
         This method is used to generate label
         '''
         # get custom_input if exists
         if hasattr(self, 'build_label_'+column_name):
-            # call any "certain" custom_label
-            function = getattr(self, 'build_label_'+column_name)
-            custom_label = function(**kwargs)
-        else:
-            custom_label = None
-        # return custom label or generate default one
-        if custom_label is not None:
-            return custom_label
-        else:
-            if column_name in self.__column_label__:
-                return self.__column_label__[column_name]
-            return column_name.replace('_', ' ').title()
+            return getattr(self, 'build_label_'+column_name)(**kwargs)
+        # look at __column_label__ property        
+        if column_name in self.__column_label__:
+            return self.__column_label__[column_name]
+        # generate default label by replace '_' with ' ' in the column_name and make the first letter capitalized
+        return column_name.replace('_', ' ').title()
     
     def _encode_input_attribute(self, attribute):
         html = ' '
@@ -937,382 +1056,400 @@ class DB_Model(Base):
                 html += key + ' = "' + attribute[key] + '" '
         html += ' '
         return html
+
+    def _build_input_many_to_one(self, column_name, **kwargs):
+        value = getattr(self, column_name) \
+            if hasattr(self, column_name) and getattr(self, column_name) is not None \
+            else ''
+        kwargs          = self._build_input_attribute(column_name, kwargs)
+        tabular         = kwargs.pop('tabular', False)
+        input_attribute = kwargs.pop('input_attribute', {})
+        input_name      = input_attribute.pop('name')
+        input_id        = input_attribute.pop('id')
+        input_class     = input_attribute.pop('class')
+        # assemble input_selector
+        input_selector  = '#' + input_id
+        if input_class != '':
+            input_selector += '.' + input_class
+        # many to one
+        ref_class = self._get_relation_class(column_name)
+        option_obj = ref_class.get()
+        option_count = ref_class.count()
+        input_element = ''
+        if option_count == 0:
+            input_element += 'No option available'
+        else:
+            input_selector += '.form-control'
+            options = {'': 'None'}
+            for obj in option_obj:
+                options[obj.id] = obj.quick_preview()
+            value =  value.id if hasattr(value,'id') else ''
+            input_element = HTML.select(input_selector, input_name, options, value)
+        return input_element
+
+    def _build_input_one_to_many(self, column_name, **kwargs):
+        # one to many
+        ref_class = self._get_relation_class(column_name)
+        ref_obj = ref_class()
+        # determine if the model is ordered
+        is_ordered = isinstance(ref_obj, Ordered_DB_Model)
+        # column name
+        if column_name in self.__detail_column_label__:
+            custom_label = self.__detail_column_label__[column_name]
+        else:
+            custom_label = {}
+        ref_obj.generate_tabular_label(state = 'form', shown_column = self._get_detail_column_list(column_name), custom_label = custom_label)
+        
+        # define several HTML DOM's properties
+        div_empty_selector      = '#_div_empty_' + column_name
+        div_empty_style         = '' 
+        div_control_selector    = '#_div_control_' + column_name
+        a_new_selector          = '#_' + column_name + '_add' + '.btn .btn-default ._new_row'
+        a_new_caption           = 'New ' + self.build_label(column_name)
+        table_selector          = '#_table_' + column_name + '.table'
+        table_style             = ''
+        tbody_selector          = '#_' + column_name + '_tbody'
+        # only one should be shown, table or div_empty
+        if len(getattr(self, column_name)) == 0:
+            table_style = 'display:none;'
+        else:
+            div_empty_style = 'display:none;'
+            div_control_selector += '.pull-right'
+
+        # div empty
+        div_empty   = HTML.div(div_empty_selector, 'No Data', style = div_empty_style)
+        # div control
+        div_control = HTML.div(div_control_selector, 
+                HTML.a(a_new_selector, '#', HTML.tag('i.glyphicon.glyphicon-plus') + a_new_caption)
+            )
+        
+        # thead
+        th = ref_obj.generated_html
+        if is_ordered:
+            th += HTML.th('Order', style="width:50px;")
+        th += HTML.th('Delete', style="width:50px;")
+        thead = HTML.thead(HTML.tr(th))
+
+        # tbody
+        tr = ''
+        for row_index, child in enumerate(getattr(self, column_name)):
+            child.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name), parent_column_name = column_name)
+            # td
+            td = child.generated_html
+            # add ordering
+            if is_ordered:
+                input_selector  = '._' + column_name + '_index #_' + column_name + '_index_' + str(row_index) 
+                input_name      = '_'+column_name+'_index[]'
+                a_up_selector   = '._' + column_name + '_up'
+                a_down_selector = '._' + column_name + '_down'
+                a_property      = {'row-index' : str(row_index)}
+                td += HTML.td(
+                        HTML.input_hidden(input_selector, input_name, str(row_index)) +\
+                        HTML.a(a_up_selector, '#', HTML.tag('i.glyphicon.glyphicon-arrow-up'), **a_property ) +\
+                        HTML.a(a_down_selector, '#', HTML.tag('i.glyphicon.glyphicon-arrow-down'), **a_property )
+                    )
+            # add control
+            input_id_selector         = '._' + column_name + '_id'
+            input_id_name             = '_' + column_name + '_id[]'
+            input_deleted_name        = '_' + column_name + '_delete[]'
+            checkbox_property         = {'class' : '_' + column_name + '_delete'}
+            td += HTML.td(
+                    HTML.input_hidden(input_id_selector, input_id_name, str(child.id)) +
+                    HTML.input_hidden('.deleted', input_deleted_name, '0') +
+                    HTML.label(
+                            HTML.input_checkbox(**checkbox_property)
+                        )
+                )
+            # add to tr
+            tr += HTML.tr(td)
+        tbody = HTML.tbody(tbody_selector, tr)
+
+        # table
+        table = HTML.table(table_selector, thead + tbody, style = table_style)
+
+        # input element
+        input_element  = div_empty + div_control + table
+
+        # what should be added when add row clicked
+        ref_obj.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name), parent_column_name = column_name)
+        new_row  = '\'<tr>'
+        new_row += ref_obj.generated_html
+        # order column
+        last_index_varname = '_' + column_name + '_last_index'
+        if is_ordered:
+            concat_last_index_varname = '\' + ' + last_index_varname + '+ \''
+            new_row += '<td>'
+            new_row += '<input class="_'+column_name+'_index" id="_'+column_name+'_index_'+concat_last_index_varname+'" type="hidden" name="_'+column_name+'_index[]" value="'+concat_last_index_varname+'" />'
+            new_row += '<a class="_'+column_name+'_up" row-index="'+concat_last_index_varname+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-up"></i></a>'
+            new_row += '<a class="_'+column_name+'_down" row-index="'+concat_last_index_varname+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-down"></i></a>'
+            new_row += '</td>'
+        # delete column
+        new_row += '<td>'
+        new_row += '    <input type="hidden" name="_' + column_name + '_id[]" value="" />'
+        new_row += '    <input class="deleted" type="hidden" name="_' + column_name + '_delete[]" value="0" />'
+        new_row += '    <label><input type="checkbox" class="_' + column_name + '_delete"></label>'
+        new_row += '</td>'
+        new_row += '</tr>\''
+        script  = '<script type="text/javascript">'
+        if is_ordered:
+            script += 'var ' + last_index_varname + ' = ' + str(row_index) + ';'
+        # delete event
+        script += '$("._' + column_name + '_delete").live("click", function(event){'
+        script += '    var input = $(this).parent().parent().children(".deleted");'
+        script += '    if($(this).prop("checked")){'
+        script += '        input.val("1");'
+        script += '    }else{'
+        script += '        input.val("0");'
+        script += '    }'
+        script += '});'
+        # add event
+        script += '$("#_' + column_name + '_add").click(function(event){'
+        script += '    $("#_' + column_name + '_tbody").append(' + new_row + ');'
+        script += '    $("#_div_control_' + column_name + '").addClass("pull-right");'
+        script += '    $("#_div_empty_' + column_name + '").hide();'
+        script += '    $("#_table_' + column_name + '").show();'
+        if is_ordered:
+            script += '    '+last_index_varname+'++;'
+        script += '    event.preventDefault();'
+        script += '});'
+        # up event
+        script += '$("a._'+column_name+'_up").live("click",function(event){'
+        script += '    var row_index = $(this).attr("row-index");'
+        script += '    var current_tr = $(this).parent().parent();'
+        script += '    var prev_tr = current_tr.prev();'
+        script += '    if(prev_tr.length > 0){'
+        script += '        current_tr.insertBefore(prev_tr);'
+        script += '        current_element = current_tr.find("td ._'+column_name+'_index");'
+        script += '        prev_element = prev_tr.find("td ._'+column_name+'_index");'
+        script += '        current_element_val = current_element.val();'
+        script += '        prev_element_val = prev_element.val();'
+        script += '        prev_element.val(current_element_val);'
+        script += '        current_element.val(prev_element_val);'
+        script += '    }'
+        script += '    event.preventDefault();'
+        script += '});'
+        # down event
+        script += '$("a._'+column_name+'_down").live("click",function(event){'
+        script += '    var row_index = $(this).attr("row-index");'
+        script += '    var current_tr = $(this).parent().parent();'
+        script += '    var next_tr = current_tr.next();'
+        script += '    if(next_tr.length > 0){'
+        script += '        current_tr.insertAfter(next_tr);'
+        script += '        current_element = current_tr.find("td ._'+column_name+'_index");'
+        script += '        next_element = next_tr.find("td ._'+column_name+'_index");'
+        script += '        current_element_val = current_element.val();'
+        script += '        next_element_val = next_element.val();'
+        script += '        next_element.val(current_element_val);'
+        script += '        current_element.val(next_element_val);'
+        script += '    }'
+        script += '    event.preventDefault();'
+        script += '});'
+        script += '</script>'
+        self.generated_script += script
+        return input_element
+
+    def _build_input_column(self, column_name, **kwargs):
+        value = getattr(self, column_name) \
+            if hasattr(self, column_name) and getattr(self, column_name) is not None \
+            else ''
+        kwargs          = self._build_input_attribute(column_name, kwargs)
+        tabular         = kwargs.pop('tabular', False)
+        input_attribute = kwargs.pop('input_attribute', {})
+        input_name      = input_attribute.pop('name')
+        input_id        = input_attribute.pop('id')
+        input_class     = input_attribute.pop('class')
+        # assemble input_selector
+        input_selector  = '#' + input_id
+        if input_class != '':
+            input_selector += '.' + input_class
+        # get placeholder
+        placeholder = self.build_label(column_name, **kwargs)
+        input_element = ''
+        # check type
+        actual_column_type = self._get_actual_column_type(column_name)
+        # get metadata and coltype
+        colmetadata = self._get_actual_column_metadata(column_name)
+        coltype = colmetadata._coltype
+        # Option
+        if self.is_type_match(column_name, Option):
+            input_selector += '.form-control'
+            if coltype.multiple:
+                value = value.split(', ')
+            input_element = HTML.select(input_selector, input_name, coltype.options, value, coltype.multiple)
+        # Upload
+        elif self.is_type_match(column_name, Upload):
+            input_selector += '._file-input'
+            input_element = HTML.div(self.build_representation(column_name)) if value is not None else ''
+            input_element += HTML.input_file(input_selector, input_name)
+        # Password
+        elif self.is_type_match(column_name, Password):
+            input_selector += '.form-control'
+            input_element = HTML.input_password(input_selector, input_name, value, placeholder)
+        # Boolean
+        elif isinstance(actual_column_type, Boolean):
+            input_element = HTML.input_hidden(input_name, 0) +\
+                HTML.input_checkbox(input_selector, input_name, 1, bool(value))
+        # Text
+        elif isinstance(actual_column_type, Text):
+            input_selector += '.form-control'
+            input_element = HTML.textarea(input_selector, input_name, value, placeholder)
+        # Others
+        else:
+            value = str(value)
+            # build additional_class
+            input_selector += '.form-control'
+            if isinstance(actual_column_type, Date):
+                input_selector += '._date-input'
+            elif isinstance(actual_column_type, Integer):
+                input_selector += '._integer_input'
+                value = '0' if value == '' else value
+            input_element = HTML.input_text(input_selector, input_name, value, placeholder)
+        return input_element
+
+
+    def _build_input_attribute(self, column_name, kwargs):
+        kwargs['tabular']           = kwargs.pop('tabular', False)
+        input_attribute             = kwargs.pop('input_attribute', {})
+        input_attribute['name']     = input_attribute['name'] if 'name' in input_attribute else column_name
+        input_attribute['id']       = input_attribute['id'] if 'id' in input_attribute else 'field_' + column_name
+        input_attribute['class']    = input_attribute['class'] if 'class' in input_attribute else ''
+        kwargs['input_attribute']   = input_attribute
+        return kwargs
     
     def build_input(self, column_name, **kwargs):
         ''' DON'T OVERRIDE THIS UNLESS YOU KNOW WHAT YOU DO
         This method is used to generate input
         '''
-        # adjust kwargs
-        input_attribute = kwargs.pop('input_attribute', {})
-        if 'name' not in input_attribute:
-            input_attribute['name'] = column_name
-        if 'id' not in input_attribute and  input_attribute['name'][-2:] != '[]':
-            input_attribute['id'] = 'field_' + column_name
-        if 'class' not in input_attribute:
-            input_attribute['class'] = []
-        kwargs['input_attribute'] = input_attribute
-        tabular = kwargs.pop('tabular', False)
-        # get custom_input if exists
+                
+        # return custom input if user has already define the function
         if hasattr(self, 'build_input_'+column_name):
-            # call any "certain" custom_input
-            function = getattr(self, 'build_input_'+column_name)
-            custom_input = function(**kwargs)
-        else:
-            custom_input = None
-        # return custom_input or build the default inputs
-        if custom_input is not None:
-            return custom_input
-        else:
-            if hasattr(self, column_name):
-                value = getattr(self, column_name)
+            kwargs = self._build_input_attribute(column_name, kwargs)
+            return getattr(self, 'build_input_'+column_name)(**kwargs)
+        # otherwise, return default input
+        
+        html = ''
+        if column_name in self._get_relation_names():
+            relation_metadata = self._get_relation_metadata(column_name)
+            if relation_metadata.uselist:
+                html = self._build_input_one_to_many(column_name, **kwargs)               
             else:
-                value = ''
-            html = ''
-            if column_name in self._get_relation_names():
-                relation_metadata = self._get_relation_metadata(column_name)
-                if relation_metadata.uselist:
-                    # one to many
-                    ref_class = self._get_relation_class(column_name)
-                    ref_obj = ref_class()
-                    # determine if the model is ordered
-                    is_ordered = isinstance(ref_obj, Ordered_DB_Model)
-                    # column name
-                    if column_name in self.__detail_column_label__:
-                        custom_label = self.__detail_column_label__[column_name]
-                    else:
-                        custom_label = {}
-                    ref_obj.generate_tabular_label(state = 'form', shown_column = self._get_detail_column_list(column_name), custom_label = custom_label)
-                    if len(getattr(self, column_name)) == 0:
-                        div_empty_style = ''
-                        table_style = 'style="display:none;"'
-                        div_control_class = ''
-                    else:
-                        div_empty_style = 'style="display:none;"'
-                        table_style = ''
-                        div_control_class = 'pull-right'
-                    # div empty
-                    input_element  = '<div id="_div_empty_'+column_name+'" '+div_empty_style+'>No data</div>'
-                    # div control
-                    input_element += '<div id="_div_control_'+column_name+'" class="'+div_control_class+'">'
-                    input_element += '<a id="_' + column_name + '_add" class="btn btn-default _new_row" href="#">'
-                    input_element += '<i class="glyphicon glyphicon-plus"></i> New ' + self.build_label(column_name)
-                    input_element += '</a>'
-                    input_element += '</div>'
-                    # table
-                    input_element += '<table id="_table_'+column_name+'" class="table" '+table_style+'>'
-                    input_element += '<thead>'
-                    input_element += '<tr>'
-                    input_element += ref_obj.generated_html
-                    if is_ordered:
-                        input_element += '<th>Order</th>'
-                    input_element += '<th>Delete</th>'
-                    input_element += '</tr>'
-                    input_element += '</thead>'
-                    # body
-                    input_element += '<tbody id="_' + column_name + '_tbody">'
-                    row_index = 0
-                    for child in getattr(self, column_name):
-                        child.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name), parent_column_name = column_name)
-                        input_element += '<tr>'
-                        input_element += child.generated_html
-                        if is_ordered:
-                            input_element += '<td>'
-                            input_element += '<input class="_'+column_name+'_index" id="_'+column_name+'_index_'+str(row_index)+'" type="hidden" name="_'+column_name+'_index[]" value="'+str(row_index)+'" />'
-                            input_element += '<a class="_'+column_name+'_up" row-index="'+str(row_index)+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-up"></i></a>'
-                            input_element += '<a class="_'+column_name+'_down" row-index="'+str(row_index)+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-down"></i></a>'
-                            input_element += '</td>'
-                        input_element += '<td>'
-                        input_element += '    <input type="hidden" name="_' + column_name + '_id[]" value="' + str(child.id) + '" />'
-                        input_element += '    <input class="deleted" type="hidden" name="_' + column_name + '_delete[]" value="0" />'
-                        input_element += '    <label><input type="checkbox" class="_' + column_name + '_delete"></label>'
-                        input_element += '</td>'
-                        input_element += '</tr>'
-                        row_index +=1
-                    input_element += '</tbody>'
-                    input_element += '</table>'
-                    # what should be added when add row clicked
-                    ref_obj.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name), parent_column_name = column_name)
-                    new_row  = '\'<tr>'
-                    new_row += ref_obj.generated_html
-                    # order column
-                    last_index_varname = '_' + column_name + '_last_index'
-                    if is_ordered:
-                        concat_last_index_varname = '\' + ' + last_index_varname + '+ \''
-                        new_row += '<td>'
-                        new_row += '<input class="_'+column_name+'_index" id="_'+column_name+'_index_'+concat_last_index_varname+'" type="hidden" name="_'+column_name+'_index[]" value="'+concat_last_index_varname+'" />'
-                        new_row += '<a class="_'+column_name+'_up" row-index="'+concat_last_index_varname+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-up"></i></a>'
-                        new_row += '<a class="_'+column_name+'_down" row-index="'+concat_last_index_varname+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-down"></i></a>'
-                        new_row += '</td>'
-                    # delete column
-                    new_row += '<td>'
-                    new_row += '    <input type="hidden" name="_' + column_name + '_id[]" value="" />'
-                    new_row += '    <input class="deleted" type="hidden" name="_' + column_name + '_delete[]" value="0" />'
-                    new_row += '    <label><input type="checkbox" class="_' + column_name + '_delete"></label>'
-                    new_row += '</td>'
-                    new_row += '</tr>\''
-                    script  = '<script type="text/javascript">'
-                    if is_ordered:
-                        script += 'var ' + last_index_varname + ' = ' + str(row_index) + ';'
-                    # delete event
-                    script += '$("._' + column_name + '_delete").live("click", function(event){'
-                    script += '    var input = $(this).parent().parent().children(".deleted");'
-                    script += '    if($(this).prop("checked")){'
-                    script += '        input.val("1");'
-                    script += '    }else{'
-                    script += '        input.val("0");'
-                    script += '    }'
-                    script += '});'
-                    # add event
-                    script += '$("#_' + column_name + '_add").click(function(event){'
-                    script += '    $("#_' + column_name + '_tbody").append(' + new_row + ');'
-                    script += '    $("#_div_control_' + column_name + '").addClass("pull-right");'
-                    script += '    $("#_div_empty_' + column_name + '").hide();'
-                    script += '    $("#_table_' + column_name + '").show();'
-                    if is_ordered:
-                        script += '    '+last_index_varname+'++;'
-                    script += '    event.preventDefault();'
-                    script += '});'
-                    # up event
-                    script += '$("a._'+column_name+'_up").live("click",function(event){'
-                    script += '    var row_index = $(this).attr("row-index");'
-                    script += '    var current_tr = $(this).parent().parent();'
-                    script += '    var prev_tr = current_tr.prev();'
-                    script += '    if(prev_tr.length > 0){'
-                    script += '        current_tr.insertBefore(prev_tr);'
-                    script += '        current_element = current_tr.find("td ._'+column_name+'_index");'
-                    script += '        prev_element = prev_tr.find("td ._'+column_name+'_index");'
-                    script += '        current_element_val = current_element.val();'
-                    script += '        prev_element_val = prev_element.val();'
-                    script += '        prev_element.val(current_element_val);'
-                    script += '        current_element.val(prev_element_val);'
-                    script += '    }'
-                    script += '    event.preventDefault();'
-                    script += '});'
-                    # down event
-                    script += '$("a._'+column_name+'_down").live("click",function(event){'
-                    script += '    var row_index = $(this).attr("row-index");'
-                    script += '    var current_tr = $(this).parent().parent();'
-                    script += '    var next_tr = current_tr.next();'
-                    script += '    if(next_tr.length > 0){'
-                    script += '        current_tr.insertAfter(next_tr);'
-                    script += '        current_element = current_tr.find("td ._'+column_name+'_index");'
-                    script += '        next_element = next_tr.find("td ._'+column_name+'_index");'
-                    script += '        current_element_val = current_element.val();'
-                    script += '        next_element_val = next_element.val();'
-                    script += '        next_element.val(current_element_val);'
-                    script += '        current_element.val(next_element_val);'
-                    script += '    }'
-                    script += '    event.preventDefault();'
-                    script += '});'
-                    script += '</script>'
-                    self.generated_script += script
-                    
-                else:
-                    # many to one
-                    ref_class = self._get_relation_class(column_name)
-                    option_obj = ref_class.get()
-                    option_count = ref_class.count()
-                    input_element = ''
-                    if option_count == 0:
-                        input_element += 'No option available'
-                    elif option_count <= 3 and not tabular:
-                        xs_width = sm_width = str(12/option_count)
-                        md_width = lg_width = str(9/option_count)
-                        for obj in option_obj:
-                            input_attribute['type'] = 'radio'
-                            input_attribute['value'] = obj.id
-                            if value == obj:
-                                input_attribute['checked'] = 'checked'
-                            else:
-                                input_attribute.pop('checked', None)
-                            input_element += '<div class="col-xs-' + xs_width + ' col-sm-' + sm_width + ' col-md-' + md_width + ' col-lg-' + lg_width+ '">'
-                            input_element += '<label><input ' + self._encode_input_attribute(input_attribute) + ' /> ' + obj.quick_preview() + '</label>'
-                            input_element += '</div>'
-                    else:
-                        input_attribute['class'].append('form-control')
-                        input_element += '<select ' + self._encode_input_attribute(input_attribute) + '>'
-                        input_element += '<option value="">None</option>'
-                        for obj in option_obj:
-                            if value == obj:
-                                selected = 'selected'
-                            else:
-                                selected = ''
-                            input_element += '<option ' + selected + ' value="' + obj.id + '">' + obj.quick_preview() + '</option>'
-                        input_element += '</select>'
-            else:
-                if value is None:
-                    value = ''
-                label = self.build_label(column_name, **kwargs)
-                # check type
-                actual_column_type = self._get_actual_column_type(column_name)
-                # get metadata and coltype
-                colmetadata = self._get_actual_column_metadata(column_name)
-                coltype = colmetadata._coltype
-                # Option
-                if self.is_type_match(column_name, Option):
-                    input_attribute['class'].append('form-control')
-                    input_attribute['placeholder'] = label
-                    if coltype.multiselect:
-                        input_attribute['multiselect'] = 'multiselect'
-                    input_element  = '<select ' + self._encode_input_attribute(input_attribute) + '>'
-                    # add options
-                    for key in coltype.options:
-                        selected = ' selected' if key == value else ''
-                        input_element += '<option value="' + key + '"' + selected + '>' + coltype.options[key] + '</option>'
-                    input_element += '</select>'
-                # Upload
-                elif self.is_type_match(column_name, Upload):
-                    input_attribute['type'] = 'file'
-                    input_attribute['class'].append('form-control')
-                    input_attribute['placeholder'] = label
-                    input_element = ''
-                    if value is not None:
-                        input_element += self.build_representation(column_name)
-                    input_element += '<input ' + self._encode_input_attribute(input_attribute) + '/>'
-                # Password
-                elif self.is_type_match(column_name, Password):
-                    input_attribute['type']  = 'password'
-                    input_attribute['value'] = value
-                    input_attribute['class'].append('form-control')
-                    input_attribute['placeholder'] = label
-                    input_element = '<input ' + self._encode_input_attribute(input_attribute) + ' />'
-                # Boolean
-                elif isinstance(actual_column_type, Boolean):
-                    input_attribute['type']  = 'checkbox'
-                    input_attribute['value'] = '1'
-                    if value:
-                        input_attribute['checked'] = 'checked'
-                    else:
-                        input_attribute.pop('checked', None)
-                    input_element = '<input type="hidden" name="' + input_attribute['name'] + '" value="0" />'
-                    input_element += '<input ' + self._encode_input_attribute(input_attribute) + ' />'
-                elif isinstance(actual_column_type, Text):
-                    input_attribute['placeholder'] = label
-                    input_attribute['class'].append('form-control')
-                    input_element = '<textarea ' + self._encode_input_attribute(input_attribute) + '>' + value + '</textarea>'
-                else:
-                    value = str(value)
-                    # build additional_class
-                    if isinstance(actual_column_type, Date):
-                        input_attribute['class'].append('_date-input')
-                    elif isinstance(actual_column_type, Integer):
-                        input_attribute['class'].append('_integer-input')
-                        if value == '':
-                            value = '0'
-                    input_attribute['type'] = 'text'
-                    input_attribute['value'] = value
-                    input_attribute['placeholder'] = label
-                    input_attribute['class'].append('form-control')
-                    input_element = '<input ' + self._encode_input_attribute(input_attribute) + ' />'
-            html += input_element
-            return html
+                html = self._build_input_many_to_one(column_name, **kwargs)
+        else:
+            html = self._build_input_column(column_name, **kwargs)
+        return html
     
     def build_labeled_input(self, column_name, **kwargs):
         label = self.build_label(column_name, **kwargs)
-        html  = '<div class="form-group">'
-        html += '<label for="field_' + column_name + '" class="col-xs-12 col-sm-12 col-md-3 col-lg-3 control-label">' + label + '</label>'
-        html += '<div class="col-xs-12 col-sm-12 col-md-9 col-lg-9">'
-        html += self.build_input(column_name, **kwargs)
-        html += '</div>'
-        html += '</div>'
-        return html
+        return HTML.div('.form-group .row .container .col-xs-12 .col-sm-12 .col-md-12 .col-lg-12',
+                    HTML.label('.col-xs-12 .col-sm-12 .col-md-3 .col-lg-3 .control-label', label) +\
+                    HTML.div('.col-xs-12 .col-sm-12 .col-md-9 .col-lg-9',
+                            self.build_input(column_name, **kwargs)
+                        )
+                )
+
+    def _build_one_to_many_representation(self, column_name, **kwargs):
+        value = getattr(self, column_name) if hasattr(self, column_name) else None
+        if isinstance(value, list):
+            if len(value) == 0:
+                value = None
+            else:
+                # get children
+                children = getattr(self,column_name)
+                # ref_obj and custom_label
+                ref_obj = self._get_relation_class(column_name)()
+                custom_label = self.__detail_column_label__[column_name]\
+                    if column_name in self.__detail_column_label__ else {}
+                # generate thead
+                ref_obj.generate_tabular_label(state = 'view',
+                    shown_column = self._get_detail_column_list(column_name), 
+                    custom_label = custom_label)
+                thead = HTML.thead(HTML.tr(ref_obj.generated_html))
+                # generate tbody
+                tr = []
+                for child in children:
+                    child.generate_tabular_representation(state = 'view', 
+                        shown_column = self._get_detail_column_list(column_name))
+                    tr.append(HTML.tr(child.generated_html))
+                tbody = HTML.tbody(tr)
+                # generate tfoot
+                if(hasattr(self, 'build_tabular_footer_'+column_name)):
+                    tfoot = HTML.tfoot(
+                            getattr(self,'build_tabular_footer_'+column_name)(state = 'view')
+                        )
+                else:
+                    tfoot = ''
+                # generate table
+                value = HTML.table('.table', [thead, tbody, tfoot])
+        return value
+
+    def _build_many_to_one_representation(self, column_name, **kwargs):
+        value = getattr(self, column_name) if hasattr(self, column_name) else None
+        if isinstance(value, DB_Model):
+            value = value.quick_preview()
+        return value
+
+    def _build_column_representation(self, column_name, **kwargs):
+        # get value      
+        value = getattr(self, column_name) if hasattr(self, column_name) else None
+        if isinstance(value, unicode) or isinstance(value, str):
+            value = HTML.presented_html_code(value)
+        colmetadata = self._get_actual_column_metadata(column_name)
+        coltype = colmetadata._coltype
+        if value is None:
+            value = 'Not available'
+        elif self.is_type_match(column_name, Upload):
+            # get inner value
+            if coltype.is_image:
+                inner_html = HTML.img(
+                        base_url(self.__application_name__+ '/assets/uploads/' + value),
+                        style = 'max-width:100px;'
+                    )
+            else:
+                inner_html = value
+            # generate link if necessary
+            if self.is_list_state():
+                value = inner_html
+            else:
+                value = HTML.a(
+                        base_url(self.__application_name__ + '/assets/uploads/' + value),
+                        inner_html,
+                        target = 'blank'
+                    )
+        return value
+
     
     def build_representation(self, column_name, **kwargs):
         ''' DON'T OVERRIDE THIS UNLESS YOU KNOW WHAT YOU DO
         This method is used to generate representation
-        '''
-        # get custom_input if exists
+        '''        
+        value = None        
+        # return custom_representation if exists
         if hasattr(self, 'build_representation_'+column_name):
-            # call any "certain" custom_representation
-            function = getattr(self, 'build_representation_'+column_name)
-            custom_representation = function(**kwargs)
-        else:
-            custom_representation = None
-        # return custom representation or generate default one
-        if custom_representation is not None:
-            return custom_representation
-        else:
-            if hasattr(self, column_name):
-                value = getattr(self, column_name)
+            value = getattr(self, 'build_representation_'+column_name)(**kwargs)
+        # if it is relation, retrieve it
+        elif column_name in self._get_relation_names():
+            relation_metadata = self._get_relation_metadata(column_name)
+            # one to many
+            if relation_metadata.uselist:
+                value = self._build_one_to_many_representation(column_name, **kwargs)
+            # many to one
             else:
-                value = ''
-            # strip out html
-            if isinstance(value, unicode) or isinstance(value, str):
-                value = value.replace('<','&lt;').replace('>','&gt;').replace(' ','&nbsp;').replace('\r\n','<br />').replace('\n','<br />')
-            # if it is relation, retrieve it
-            if column_name in self._get_relation_names():
-                relation_metadata = self._get_relation_metadata(column_name)
-                if relation_metadata.uselist:
-                    if isinstance(value, list) and len(value)>0:
-                        children = getattr(self,column_name)
-                        # generate new value
-                        '''
-                        value = '<ul>'
-                        for child in children:
-                            value += '<li>' + child.quick_preview() + '</li>'
-                        value += '<ul>'
-                        '''
-                        
-                        # table
-                        ref_obj = self._get_relation_class(column_name)()
-                        ref_obj = self._get_relation_class(column_name)()
-                        if column_name in self.__detail_column_label__:
-                            custom_label = self.__detail_column_label__[column_name]
-                        else:
-                            custom_label = {}
-                        ref_obj.generate_tabular_label(state = 'view', shown_column = self._get_detail_column_list(column_name), custom_label = custom_label)
-                        value  = '<table class="table">'
-                        value += '<thead><tr>' + ref_obj.generated_html + '</tr></thead>'
-                        value += '<tbody>'
-                        for child in children:
-                            child.generate_tabular_representation(state = 'view', shown_column = self._get_detail_column_list(column_name))
-                            value += '<tr>'
-                            value += child.generated_html
-                            value += '</tr>'
-                        value += '</tbody>'
-                        footer = self.build_custom_tabular_footer(column_name, state = 'view')
-                        if footer is not None:
-                            value += '<tfoot>'
-                            value += footer
-                            value += '</tfoot>'
-                        value += '</table>'
-                # lookup value
-                elif isinstance(value, DB_Model):
-                    obj = getattr(self, column_name)
-                    value = obj.quick_preview()
-            else:
-                # get metadata and coltype
-                colmetadata = self._get_actual_column_metadata(column_name)
-                coltype = colmetadata._coltype
-                if value is None:
-                    value = 'Not available'
-                elif self.is_type_match(column_name, Upload):
-                    if coltype.is_image:
-                        new_value = ''
-                        if not self.is_list_state():
-                            new_value += '<a target="blank" href="' + base_url(self.__application_name__ + '/assets/uploads/' + value) + '">'
-                        new_value += '<img src="' + base_url(self.__application_name__+ '/assets/uploads/' + value) + '" style="max-width:100px;" />'
-                        if not self.is_list_state():
-                            new_value += '</a>'
-                        value = new_value
-                    else:
-                        if not self.is_list_state():
-                            value = '<a target="blank" href="' + base_url(self.__application_name__ + '/assets/uploads/' + value) + '">' + value + '</a>'
-            # None or empty children
-            if value is None or (isinstance(value,list) and len(value)==0):
-                value = 'Not available'
-            value = str(value)
-            return value
+                value = self._build_many_to_one_representation(column_name, **kwargs)
+        else:
+            # get metadata and coltype
+            value = self._build_column_representation(column_name, **kwargs)            
+        # If not available
+        value = str(value) if value is not None else 'Not available'
+        return value
     
     def build_labeled_representation(self, column_name, **kwargs):
         label = self.build_label(column_name, **kwargs)
-        html  = '<div class="form-group row container col-xs-12 col-sm-12 col-md-12 col-lg-12">'
-        html += '<label class="col-xs-12 col-sm-12 col-md-3 col-lg-3 control-label">' + label + '</label>'
-        html += '<div class="col-xs-12 col-sm-12 col-md-9 col-lg-9">'
-        html += self.build_representation(column_name, **kwargs)
-        html += '</div>'
-        html += '</div>'
-        return html
+        return HTML.div('.form-group .row .container .col-xs-12 .col-sm-12 .col-md-12 .col-lg-12',
+                    HTML.label('.col-xs-12 .col-sm-12 .col-md-3 .col-lg-3 .control-label', label) +\
+                    HTML.div('.col-xs-12 .col-sm-12 .col-md-9 .col-lg-9',
+                            self.build_representation(column_name, **kwargs)
+                        )
+                )
     
     def reset_generated(self):
         self._generated_html = ''
@@ -1370,7 +1507,7 @@ class DB_Model(Base):
                 label = custom_label[column_name]
             else:
                 label = self.build_label(column_name)
-            html += '<th>' + label + '</th>'
+            html += HTML.th(label)
         self.generated_html = html
     
     def generate_tabular_representation(self, **kwargs):
@@ -1387,7 +1524,7 @@ class DB_Model(Base):
         for column_name in shown_column:
             if column_name in self._get_relation_names() and self._get_relation_class(column_name) == self.__class__:
                 continue
-            html += '<td>' + self.build_representation(column_name) + '</td>'
+            html += HTML.td(self.build_representation(column_name))
         self.generated_html = html
     
     def generate_tabular_input(self, **kwargs):
@@ -1407,7 +1544,7 @@ class DB_Model(Base):
                 continue
             input_name = parent_column_name + '_' + column_name + '[]' if parent_column_name != '' else column_name+'[]'
             input_attribute = {'name': input_name}
-            html += '<td>' + self.build_input(column_name, input_attribute = input_attribute, tabular = True) + '</td>'
+            html += HTML.td(self.build_input(column_name, input_attribute = input_attribute, tabular = True))
         self.generated_html = html
     
     def generate_input_components(self, state = None, include_resource = False, **kwargs):
@@ -1434,11 +1571,10 @@ class DB_Model(Base):
         if include_resource:
             self._include_default_resource()
         # build html
-        html = '<div class="row container">'
+        html = ''
         for column_name in self._column_list:
             html += self.build_labeled_representation(column_name)
-        html += '</div>'
-        self.generated_html = html
+        self.generated_html = HTML.div('.row .container', html)
 
 class Ordered_DB_Model(DB_Model):
     _index          = Column(Integer, index=True)

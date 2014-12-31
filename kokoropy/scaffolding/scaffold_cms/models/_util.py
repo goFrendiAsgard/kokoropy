@@ -3,12 +3,9 @@ from kokoropy import request
 from kokoropy.model import DB_Model, or_, and_, Column, ForeignKey, func,\
     Integer, String, Date, DateTime, Boolean, Text, relationship, backref, association_proxy
 from _config import session, encrypt_password
-from _structure import engine, Cms, Group, Third_Party_Authenticator, Page, Page_Groups,\
+from _all import engine, Cms, Group, Third_Party_Authenticator, Page, Page_Groups,\
     Theme, Layout, Widget, Widget_Groups, User, User_Third_Party_Identities, User_Groups,\
     Language, Language_Detail, Configuration
-
-def _have_intersection(a, b):
-     return len(set(a) & set(b)) > 0
 
 def do_login(identity, password):
     user_list = User.get(and_(or_(User.username == identity, User.email == identity), User.encrypted_password == encrypt_password(password)))

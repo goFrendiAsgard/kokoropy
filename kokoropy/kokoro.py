@@ -361,7 +361,8 @@ def load_view(application_name, *args, **kwargs):
     return load_template(content, *args, **kwargs)
 
 def load_template(template, *args, **kwargs):
-    import_asset = '% from kokoropy.asset import JQUI_BOOTSTRAP_STYLE, JQUI_BOOTSTRAP_SCRIPT, KOKORO_CRUD_STYLE, KOKORO_CRUD_SCRIPT, HTML'
+    import_asset = '% from kokoropy.asset import JQUI_BOOTSTRAP_STYLE, JQUI_BOOTSTRAP_SCRIPT, KOKORO_CRUD_STYLE, KOKORO_CRUD_SCRIPT\n' +\
+    '% from kokoropy import html as HTML'
     # modify kwargs
     if 'BASE_URL' in request and request.BASE_URL is not None:
         kwargs['BASE_URL']  = request.BASE_URL

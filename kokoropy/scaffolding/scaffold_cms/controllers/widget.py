@@ -1,5 +1,5 @@
 from kokoropy.controller import Crud_Controller
-from ..models._structure import Widget
+from ..models._all import Widget
 
 class Widget_Controller(Crud_Controller):
     __model__       = Widget

@@ -1,5 +1,7 @@
 from kokoropy.model import DB_Model, or_, and_, Column, ForeignKey, func,\
-    Integer, String, Date, DateTime, Boolean, Text, Option, relationship, backref, association_proxy
+    Integer, String, Date, DateTime, Boolean, Text, Upload, Option,\
+    relationship, backref, association_proxy, creator_maker, fk_column,\
+    one_to_many, many_to_one, lookup_proxy
 from _config import session, metadata, authorization_options
 
 DB_Model.metadata = metadata
@@ -9,10 +11,10 @@ class Widget(DB_Model):
     __id_prefix__        = 'Widget-'
     # Excluded Columns
     __detail_excluded_shown_column__ = {
-            "widget_groups" : ["widget"]
+            "widget_groups" : ["id", "widget"]
         }
     __detail_excluded_form_column__ = {
-            "widget_groups" : ["widget"]
+            "widget_groups" : ["id", "widget"]
         }
     # Column's Labels
     __column_label__ = {
@@ -24,16 +26,16 @@ class Widget(DB_Model):
     url                  = Column(String(255))
     static_content       = Column(Text)
     authorization        = Column(Option(50, options = authorization_options))
-    widget_groups        = relationship("Widget_Groups", foreign_keys="Widget_Groups.fk_widget")
-    groups               = association_proxy("widget_groups", "fk_group", creator = lambda _val : Widget_Groups(group = _val))
+    widget_groups        = one_to_many("Widget_Groups", "Widget_Groups.fk_widget")
+    groups               = lookup_proxy("widget_groups", 'Widget_Groups.group')
     active               = Column(Boolean)
 
 class Widget_Groups(DB_Model):
     __session__          = session
     __id_prefix__        = 'WGroup-'
     # Fields Declarations
-    fk_widget            = Column(Integer, ForeignKey("widget._real_id"))
-    fk_group             = Column(Integer, ForeignKey("group._real_id"))
-    widget               = relationship("Widget", foreign_keys="Widget_Groups.fk_widget")
-    group                = relationship("Group", foreign_keys="Widget_Groups.fk_group")
+    fk_widget            = fk_column("widget._real_id")
+    fk_group             = fk_column("group._real_id")
+    widget               = many_to_one("Widget", "Widget_Groups.fk_widget")
+    group                = many_to_one("Group", "Widget_Groups.fk_group")
 

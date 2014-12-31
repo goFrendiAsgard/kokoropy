@@ -12,6 +12,7 @@ function _mutate_input(){
     });
     $("._integer-input").spinner();
 }
+
 function _block_form(selector){
     $(selector + ' input, ' + selector + ' textarea, #__main_form select').prop("readonly", true);
     $(selector + ' input, ' + selector + ' textarea, #__main_form select').prop("disabled", "disabled");
