@@ -1,0 +1,21 @@
+demo
+    village
+        name:String-50
+        clan:clan:many-to-one
+        created:DateTime
+        level:Integer
+        active:Boolean
+        photo:Upload
+        friends:village:many-to-many
+        commodities:resource:many-to-many:ordered
+        villagers:villager:one-to-many
+        important_structure:structure:one-to-many:ordered
+        description:RichText,
+    clan
+        name:String-50,
+    resource
+        name:String-50,
+    villager
+        name:String-50,
+    structure
+        name:String-50

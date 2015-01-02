@@ -17,17 +17,8 @@ class Pokemon(DB_Model):
     # Fields Declarations
     name = Column(String(50))
     image = Column(Upload(50, is_image = True))
-    '''
-    def before_save(self):
-        upload =  request.files.get('image')
-        if upload is not None:
-            _, ext = os.path.splitext(upload.filename)
-            if ext in ('.png','.jpg','.jpeg'):
-                save_uploaded_asset('image', path='uploads', application_name = self.__application_name__)
-                self.image = upload.filename
-    '''
+
     def quick_preview(self):
-        print self.state
         if self.is_list_state():
             return self.build_representation('image') + '<br />' + self.name
         return self.name

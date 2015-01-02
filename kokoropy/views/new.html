@@ -3,12 +3,12 @@
 
 {% block style %}
     {{ !KOKORO_CRUD_STYLE }}
-    {{ !g_table_name.generated_style }}
+    {{ !g_table_name.generated_css.compiled }}
 {% endblock %}
 
 {% block script %}
     {{ !KOKORO_CRUD_SCRIPT }}
-    {{ !g_table_name.generated_script }}
+    {{ !g_table_name.generated_js.compiled }}
     <script type="text/javascript">
         $('#__main_form').ajaxForm({
             dataType: 'json',

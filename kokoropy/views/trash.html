@@ -6,14 +6,14 @@
 {% block style %}
     % if g_table_name is not None:
         {{ !KOKORO_CRUD_STYLE }}
-        {{ !g_table_name.generated_style }}
+        {{ !g_table_name.generated_css.compiled }}
     % end
 {% endblock %}
 
 {% block script %}
     % if g_table_name is not None:
         {{ !KOKORO_CRUD_SCRIPT }}
-        {{ !g_table_name.generated_script }}
+        {{ !g_table_name.generated_js.compiled }}
         <script type="text/javascript">
             $('#__main_form').ajaxForm({
                 dataType: 'json',
@@ -67,7 +67,7 @@
 
 {% block content %}
     % if g_table_name is not None:
-        <h4>Are you sure to remove {{! g_table_name.quick_preview() }}?</h4>
+        <h4>Are you sure to remove {{! g_table_name.as_text() }}?</h4>
         {{! g_table_name.generated_html }}
         <div class="col-md-offset-3 col-lg-offset-3 col-xs-12 col-sm-12 col-md-9 col-lg-9">
             <form id="__main_form" action="{{ url_list['remove'] }}/{{ g_table_name.id }}" method="post">

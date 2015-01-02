@@ -53,8 +53,8 @@ class Page_Groups(DB_Model):
     __session__          = session
     __id_prefix__        = 'PGroup-'
     # Fields Declarations
-    fk_page              = Column(Integer, ForeignKey("page._real_id"))
-    fk_group             = Column(Integer, ForeignKey("group._real_id"))
+    fk_page              = fk_column("page._real_id")
+    fk_group             = fk_column("group._real_id")
     page                 = relationship("Page", foreign_keys="Page_Groups.fk_page")
     group                = relationship("Group", foreign_keys="Page_Groups.fk_group")
 

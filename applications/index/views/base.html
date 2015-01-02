@@ -96,15 +96,6 @@
 
             <!-- content -->
             <div  id="layout-content">
-                <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
-                <!--[if lt IE 9]>
-                        <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-                  <![endif]-->
-                  <!--
-                <script type="text/javascript" src="{{ BASE_URL }}assets/jquery.min.js"></script>
-                <script type="text/javascript" src="{{ BASE_URL }}assets/bootstrap/js/bootstrap.min.js"></script>
-                <script type="text/javascript" src="{{ BASE_URL }}example/assets/js/script.js"></script>
-                -->
                 {{ !base }}
                 {% block content %}No content{% endblock %}
             </div>
@@ -115,6 +106,10 @@
             </div>
         </div>
         {{ !JQUI_BOOTSTRAP_SCRIPT }}
+        <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+        <!--[if lt IE 9]>
+            <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
         {% block script %}{% endblock %}
     </body>
 </html>

@@ -515,3 +515,11 @@ def th(*args, **kwargs):
 def label(*args, **kwargs):
     return _simple_tag('label', *args, **kwargs)
 
+def ul(*args, **kwargs):
+    return _simple_tag('ul', *args, **kwargs)
+
+def ol(*args, **kwargs):
+    return _simple_tag('ol', *args, **kwargs)
+
+def li(*args, **kwargs):
+    return _simple_tag('li', *args, **kwargs)

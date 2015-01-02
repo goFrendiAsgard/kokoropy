@@ -7,7 +7,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.types import TypeDecorator, Unicode
+from sqlalchemy.types import TypeDecorator, Unicode, UnicodeText
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from kokoropy import Fore, Back, base_url, request, save_uploaded_asset, var_dump
@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 
 # create Base
 Base = declarative_base()
+
+if sys.version_info >= (3,0,0):
+    xrange = range
 
 def creator_maker(class_name, relation_name):
     '''
@@ -114,7 +117,81 @@ def lookup_proxy(*args, **kwargs):
         args.append(relation_name)
     return association_proxy(*args, **kwargs)
 
-class BaseConfig:
+class Resource(object):
+    '''
+    usage:
+        x = Resource()
+        x += 'var y = 5;'
+        x.append('javascript.js')
+        print x.compiled
+    output:
+        <script type="text/javascript">var y = 5;</script>
+        <script type="text/javascript" src="javascript.js"></script>
+    '''
+    def __init__(self):
+        self._resource = []
+
+    def append_internal(self, val):
+        if ('internal', val) not in self._resource:
+            self._resource.append(('internal', val))
+
+    def append_external(self, val):
+        if ('external', val) not in self._resource:
+            self._resource.append(('external', val))
+
+    def append_compiled(self, val):
+        if ('compiled', val) not in self._resource:
+            self._resource.append(('compiled', val))
+
+    def __add__(self, val):
+        if isinstance(val, Resource):
+            for res in val._resource:
+                if res not in self._resource:
+                    self._resource.append(res)
+        else:
+            self.append_internal(val)
+        return self
+
+    def append(self, val):
+        self.append_external(val)
+
+    def compile_external_resource(self, res):
+        return '<script type="text/javascript" src="' + res + '"></script>'
+
+    def compile_internal_resource(self, res):
+        return '<script type="text/javascript">' + res + '</script>'
+
+    @property
+    def compiled(self):
+        compilation = ''
+        for (type_,res) in self._resource:
+            if res is None:
+                continue
+            res = str(res)
+            if type_ == 'external':
+                compilation += self.compile_external_resource(res)
+            elif type_ == 'internal':
+                compilation += self.compile_internal_resource(res)
+            else:
+                compilation += res
+        return compilation
+
+class JS_Resource(Resource):
+    pass
+
+class CSS_Resource(Resource):
+    def compile_external_resource(self, res):
+        return '<link rel="stylesheet" type="text/css" href="' + res + '">'
+
+    def compile_internal_resource(self, res):
+        return '<style type="text/css">' + res + '</style>'
+
+
+class BaseConfig(object):
+    '''
+    BaseConfig class, should be inherited in model's _config to ensure there are just
+    one engine, session, and metadata across models
+    '''
     __property = {}
 
     def __init__( self, connection_string, *args, **kwargs):
@@ -178,8 +255,14 @@ class Column(SA_Column):
         self._coltype = coltype
         super(Column, self).__init__(*args, **kwargs)
 
-    def is_type_match(self, cls):
-        return isinstance(self._coltype, cls)
+    def is_coltype_match(self, cls):
+        return isinstance(self._coltype, cls) or self._coltype == cls
+
+    def is_coltype_attr_match(self, attr, value):
+        if not hasattr(self._coltype, attr):
+            return False
+        attr = getattr(self._coltype, attr)
+        return attr == value
 
 
 # TODO: make custom type
@@ -206,12 +289,10 @@ class Option(TypeDecorator):
         super(Option, self).__init__(*args, **kwargs)
 
 class RichText(TypeDecorator):
-    impl = Text
+    impl = UnicodeText
 
 class Code(TypeDecorator):
-    impl = Text
-
-
+    impl = UnicodeText
         
 class DB_Model(Base):
     '''
@@ -470,6 +551,9 @@ class DB_Model(Base):
             obj = self._get_relation_class(column_name)()
             obj._set_state(state)
             column_list = obj._tabular_column_list
+            # remove id from detail column
+            if 'id' in column_list and len(column_list)>1:
+                column_list.remove('id')
         # add virtual_columns
         for config_list in virtual_column_list_priorities:
             if column_name in config_list and len(config_list[column_name]) > 0:
@@ -549,26 +633,26 @@ class DB_Model(Base):
         self._generated_html = val
     
     @property
-    def generated_style(self):
-        if hasattr(self, '_generated_style'):
-            return self._generated_style
+    def generated_css(self):
+        if hasattr(self, '_generated_css'):
+            return self._generated_css
         else:
-            return ''
+            return CSS_Resource()
     
-    @generated_style.setter
-    def generated_style(self, val):
-        self._generated_style = val
+    @generated_css.setter
+    def generated_css(self, val):
+        self._generated_css = val
     
     @property
-    def generated_script(self):
-        if hasattr(self, '_generated_script'):
-            return self._generated_script
+    def generated_js(self):
+        if hasattr(self, '_generated_js'):
+            return self._generated_js
         else:
-            return ''
+            return JS_Resource()
     
-    @generated_script.setter
-    def generated_script(self, val):
-        self._generated_script = val
+    @generated_js.setter
+    def generated_js(self, val):
+        self._generated_js = val
     
     @property
     def success(self):
@@ -681,72 +765,136 @@ class DB_Model(Base):
                 column_type = self._get_actual_column_type(column_name)
                 if column_name in variable and variable[column_name] != '':
                     value = variable[column_name]
-                    if isinstance(column_type, Date): # date
-                        y,m,d = value.split('-')
-                        y,m,d  = int(y), int(m), int(d)
-                        value = datetime.date(y,m,d)
-                    if isinstance(column_type, DateTime): # datetime
-                        value = datetime.datetime(value)
-                    if isinstance(column_type, Boolean):
+                    if self.is_coltype_match(column_name, Upload): # upload
+                        value = value.filename if hasattr(value,'filename') else None
+                    elif isinstance(column_type, Date): # date
+                        if value != '' and value is not None:
+                            y,m,d = value.split('-')
+                            y,m,d  = int(y), int(m), int(d)
+                            value = datetime.date(y,m,d)
+                        else:
+                            value = None
+                    elif isinstance(column_type, DateTime): # datetime
+                        if value != '' and value is not None:
+                            date_part, time_part = value.split(' ')
+                            y,m,d = date_part.split('-')
+                            h,i,s = time_part.split(':')
+                            y,m,d = int(y), int(m), int(d)
+                            h,i,s = int(h), int(i), int(s)
+                            value = datetime.datetime(y,m,d,h,i,s)
+                        else:
+                            value = None
+                    elif isinstance(column_type, Boolean):
                         if value == '0':
                             value = False
                         else:
                             value = True
-                    setattr(self, column_name, value)
+                    if value is not None:
+                        setattr(self, column_name, value)
             elif column_name in self._get_relation_names():
                 relation_metadata = self._get_relation_metadata(column_name)
+                # one to many
                 if relation_metadata.uselist:
                     ref_class = self._get_relation_class(column_name)
-                    # one to many
-                    old_id_list = []
-                    deleted_list = []
-                    relation_variable_list = []
-                    index_list = []
-                    record_count = 0
-                    # by default bottle request doesn't automatically accept 
-                    # POST with [] name
-                    for variable_key in variable:
-                        if hasattr(variable, 'getall') and variable_key[0:len(column_name)] == column_name and variable_key[-2:] == '[]':
-                            # get list value
+
+                    ref_obj = ref_class()
+                    # determine if the model is ordered
+                    is_ordered = isinstance(ref_obj, Ordered_DB_Model)
+                    # column name
+                    custom_label = self.__detail_column_label__[column_name]\
+                        if column_name in self.__detail_column_label__ else {}
+                    shown_column = self._get_detail_column_list(column_name)
+
+                    # if only one column to be shown and it is a relationship
+                    if len(shown_column) == 1 and shown_column[0] in ref_obj._get_relation_names():
+                        list_val       = []
+                        list_lookup    = []
+                        list_old       = []
+                        relation_value = []
+                        lookup_class   = ref_obj._get_relation_class(shown_column[0])
+                        # get list value
+                        variable_key = column_name + '[]'
+                        if hasattr(variable, 'getall') and variable_key in variable:                            
                             list_val = variable.getall(variable_key)
-                            if len(list_val) > record_count:
-                                record_count = len(list_val)
-                                # make list of dictionary (as much as needed)
-                                for i in xrange(record_count):
-                                    relation_variable_list.append({})
-                                    del(i)
-                            new_variable_key = variable_key[len(column_name)+1:-2]
-                            for i in xrange(record_count):
-                                relation_variable_list[i][new_variable_key] = list_val[i]
-                    if hasattr(variable, 'getall'):
-                        old_id_list = variable.getall('_' + column_name + '_id[]')
-                        deleted_list = variable.getall('_' + column_name + '_delete[]')
-                        if issubclass(ref_class, Ordered_DB_Model):
-                            index_list = variable.getall('_' + column_name + '_index[]')
-                    # get relation
-                    relation_value = self._get_relation_value(column_name)
-                    for i in xrange(record_count):
-                        old_id = old_id_list[i]
-                        deleted = deleted_list[i] == "1"
-                        relation_variable = relation_variable_list[i]
-                        if issubclass(ref_class, Ordered_DB_Model):
-                            index = index_list[i]
-                        ref_obj = None
+                        # get list_lookup based on list_val                        
+                        for val in list_val:
+                            list_lookup.append(lookup_class.find(val))
+                        # get old relation_value
+                        relation_value = self._get_relation_value(column_name)
+                        # if old_val not in list_lookup, delete it
                         for child in relation_value:
-                            if isinstance(child, DB_Model):
-                                if child.id == old_id:
-                                    ref_obj = child
-                                    ref_obj.assign_from_dict(relation_variable)
-                                    break
-                        if ref_obj is None:
-                            ref_obj = ref_class()
-                            ref_obj.assign_from_dict(relation_variable)
-                            getattr(self, column_name).append(ref_obj)
-                        if issubclass(ref_class, Ordered_DB_Model):
-                            ref_obj._index = index
-                        if deleted:
-                            getattr(self, column_name).remove(ref_obj)
-                            ref_obj.trash()
+                            old_val = getattr(child, shown_column[0])
+                            list_old.append(old_val)
+                            # delete
+                            if old_val not in list_lookup:
+                                getattr(self, column_name).remove(ref_obj)
+                                child.trash()
+                            # edit ordered
+                            elif is_ordered:
+                                for index, val in enumerate(list_lookup):
+                                    if old_val == val:
+                                        child._index = index
+                                        break
+                        # if list_lookup not in old_val.shown_column[0], add it
+                        for index, val in enumerate(list_lookup):
+                            if val not in list_old:
+                                param = {shown_column[0] : val}
+                                if is_ordered:
+                                    param['_index'] = index
+                                new_record = ref_class(**param)
+                                getattr(self, column_name).append(new_record)
+                    # else, it must be tabular  
+                    else:
+                        # one to many
+                        old_id_list = []
+                        deleted_list = []
+                        relation_variable_list = []
+                        index_list = []
+                        record_count = 0
+                        # by default bottle request doesn't automatically accept 
+                        # POST with [] name
+                        for variable_key in variable:
+                            if hasattr(variable, 'getall') and variable_key[0:len(column_name)] == column_name and variable_key[-2:] == '[]':
+                                # get list value
+                                list_val = variable.getall(variable_key)
+                                if len(list_val) > record_count:
+                                    record_count = len(list_val)
+                                    # make list of dictionary (as much as needed)
+                                    for i in xrange(record_count):
+                                        relation_variable_list.append({})
+                                        del(i)
+                                new_variable_key = variable_key[len(column_name)+1:-2]
+                                for i in xrange(record_count):
+                                    relation_variable_list[i][new_variable_key] = list_val[i]
+                        if hasattr(variable, 'getall'):
+                            old_id_list = variable.getall('_' + column_name + '_id[]')
+                            deleted_list = variable.getall('_' + column_name + '_delete[]')
+                            if issubclass(ref_class, Ordered_DB_Model):
+                                index_list = variable.getall('_' + column_name + '_index[]')
+                        # get relation
+                        relation_value = self._get_relation_value(column_name)
+                        for i in xrange(record_count):
+                            old_id = old_id_list[i]
+                            deleted = deleted_list[i] == "1"
+                            relation_variable = relation_variable_list[i]
+                            if issubclass(ref_class, Ordered_DB_Model):
+                                index = index_list[i]
+                            ref_obj = None
+                            for child in relation_value:
+                                if isinstance(child, DB_Model):
+                                    if child.id == old_id:
+                                        ref_obj = child
+                                        ref_obj.assign_from_dict(relation_variable)
+                                        break
+                            if ref_obj is None:
+                                ref_obj = ref_class()
+                                ref_obj.assign_from_dict(relation_variable)
+                                getattr(self, column_name).append(ref_obj)
+                            if issubclass(ref_class, Ordered_DB_Model):
+                                ref_obj._index = index
+                            if deleted:
+                                getattr(self, column_name).remove(ref_obj)
+                                ref_obj.trash()
                 else:
                     # many to one
                     if column_name in variable and variable[column_name] != '':
@@ -857,10 +1005,17 @@ class DB_Model(Base):
         '''
         return self._get_actual_column_metadata(column_name).type
 
-    def is_type_match(self, column_name, cls):
+    def is_coltype_match(self, column_name, cls):
         colmetadata = self._get_actual_column_metadata(column_name)
-        if hasattr(colmetadata, 'is_type_match'):
-            return colmetadata.is_type_match(cls)
+        if hasattr(colmetadata, 'is_coltype_match'):
+            return colmetadata.is_coltype_match(cls)
+        else:
+            return False
+
+    def is_coltype_attr_match(self, column_name, attr, value):
+        colmetadata = self._get_actual_column_metadata(column_name)
+        if hasattr(colmetadata, 'is_coltype_attr_match'):
+            return colmetadata.is_coltype_attr_match(attr, value)
         else:
             return False
     
@@ -908,7 +1063,7 @@ class DB_Model(Base):
         for column_name in self._get_actual_column_names():            
             colmetadata = self._get_actual_column_metadata(column_name)
             upload =  request.files.get(column_name)
-            if self.is_type_match(column_name, Upload) and upload is not None:
+            if self.is_coltype_match(column_name, Upload) and upload is not None:
                 save_uploaded_asset(column_name, path='uploads', application_name = self.__application_name__)
                 setattr(self, column_name, upload.filename)
         # save
@@ -1057,7 +1212,7 @@ class DB_Model(Base):
         html += ' '
         return html
 
-    def _build_input_many_to_one(self, column_name, **kwargs):
+    def _build_many_to_one_input(self, column_name, **kwargs):
         value = getattr(self, column_name) \
             if hasattr(self, column_name) and getattr(self, column_name) is not None \
             else ''
@@ -1079,176 +1234,237 @@ class DB_Model(Base):
         if option_count == 0:
             input_element += 'No option available'
         else:
-            input_selector += '.form-control'
+            input_selector += '.form-control._chosen'
             options = {'': 'None'}
             for obj in option_obj:
-                options[obj.id] = obj.quick_preview()
+                options[obj.id] = obj.as_text()
             value =  value.id if hasattr(value,'id') else ''
             input_element = HTML.select(input_selector, input_name, options, value)
+            # add mutator
+            self.generated_css.append(base_url('assets/chosen/chosen.min.css'))
+            self.generated_js.append(base_url('assets/chosen/chosen.jquery.min.js'))
+            self.generated_js += self._mutator_js('chosen', 
+                    '$("._chosen").chosen();'
+                )
         return input_element
 
-    def _build_input_one_to_many(self, column_name, **kwargs):
+    def _build_one_to_many_input(self, column_name, **kwargs):
         # one to many
         ref_class = self._get_relation_class(column_name)
         ref_obj = ref_class()
         # determine if the model is ordered
         is_ordered = isinstance(ref_obj, Ordered_DB_Model)
         # column name
-        if column_name in self.__detail_column_label__:
-            custom_label = self.__detail_column_label__[column_name]
-        else:
-            custom_label = {}
-        ref_obj.generate_tabular_label(state = 'form', shown_column = self._get_detail_column_list(column_name), custom_label = custom_label)
-        
-        # define several HTML DOM's properties
-        div_empty_selector      = '#_div_empty_' + column_name
-        div_empty_style         = '' 
-        div_control_selector    = '#_div_control_' + column_name
-        a_new_selector          = '#_' + column_name + '_add' + '.btn .btn-default ._new_row'
-        a_new_caption           = 'New ' + self.build_label(column_name)
-        table_selector          = '#_table_' + column_name + '.table'
-        table_style             = ''
-        tbody_selector          = '#_' + column_name + '_tbody'
-        # only one should be shown, table or div_empty
-        if len(getattr(self, column_name)) == 0:
-            table_style = 'display:none;'
-        else:
-            div_empty_style = 'display:none;'
-            div_control_selector += '.pull-right'
+        custom_label = self.__detail_column_label__[column_name]\
+            if column_name in self.__detail_column_label__ else {}
+        shown_column = self._get_detail_column_list(column_name)
 
-        # div empty
-        div_empty   = HTML.div(div_empty_selector, 'No Data', style = div_empty_style)
-        # div control
-        div_control = HTML.div(div_control_selector, 
-                HTML.a(a_new_selector, '#', HTML.tag('i.glyphicon.glyphicon-plus') + a_new_caption)
-            )
-        
-        # thead
-        th = ref_obj.generated_html
-        if is_ordered:
-            th += HTML.th('Order', style="width:50px;")
-        th += HTML.th('Delete', style="width:50px;")
-        thead = HTML.thead(HTML.tr(th))
-
-        # tbody
-        tr = ''
-        for row_index, child in enumerate(getattr(self, column_name)):
-            child.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name), parent_column_name = column_name)
-            # td
-            td = child.generated_html
-            # add ordering
+        # if only one column to be shown and it is a relationship
+        if len(shown_column) == 1 and shown_column[0] in ref_obj._get_relation_names():
+            input_selector = '#field_' + column_name + '.form-control'
+            input_name = column_name+'[]'
+            # get options
+            options = {}
+            # lookup class is the selection table, while child is association table
+            lookup_class = ref_obj._get_relation_class(shown_column[0])
+            for lookup in lookup_class.get():
+                options[lookup.id] = lookup.as_text()
+            # get values
+            values = []
+            for child in getattr(self, column_name):
+                values.append(getattr(child, shown_column[0]).id)
+            # create combobox
+            style = ''
+            # ordered
             if is_ordered:
-                input_selector  = '._' + column_name + '_index #_' + column_name + '_index_' + str(row_index) 
-                input_name      = '_'+column_name+'_index[]'
-                a_up_selector   = '._' + column_name + '_up'
-                a_down_selector = '._' + column_name + '_down'
-                a_property      = {'row-index' : str(row_index)}
-                td += HTML.td(
-                        HTML.input_hidden(input_selector, input_name, str(row_index)) +\
-                        HTML.a(a_up_selector, '#', HTML.tag('i.glyphicon.glyphicon-arrow-up'), **a_property ) +\
-                        HTML.a(a_down_selector, '#', HTML.tag('i.glyphicon.glyphicon-arrow-down'), **a_property )
+                self.generated_css.append(base_url('assets/multiselect/css/ui.multiselect.css'))
+                self.generated_js.append(base_url('assets/multiselect/js/ui.multiselect.js'))
+                self.generated_js += self._mutator_js('ordered', 
+                        '$("._ordered").multiselect();'
                     )
-            # add control
-            input_id_selector         = '._' + column_name + '_id'
-            input_id_name             = '_' + column_name + '_id[]'
-            input_deleted_name        = '_' + column_name + '_delete[]'
-            checkbox_property         = {'class' : '_' + column_name + '_delete'}
-            td += HTML.td(
-                    HTML.input_hidden(input_id_selector, input_id_name, str(child.id)) +
-                    HTML.input_hidden('.deleted', input_deleted_name, '0') +
-                    HTML.label(
-                            HTML.input_checkbox(**checkbox_property)
-                        )
+                input_selector += '._ordered'
+                style = 'min-height:150px;'
+            # onordered
+            else:
+                self.generated_css.append(base_url('assets/chosen/chosen.min.css'))
+                self.generated_js.append(base_url('assets/chosen/chosen.jquery.min.js'))
+                self.generated_js += self._mutator_js('chosen', 
+                        '$("._chosen").chosen();'
+                    )
+                input_selector += '._chosen'
+            # create input
+            input_element = HTML.select(input_selector, input_name, options, values, True, style = style)
+        # else, it must be tabular  
+        else:
+
+            ref_obj.generate_tabular_label(state = 'form', shown_column = self._get_detail_column_list(column_name), custom_label = custom_label)
+            
+            # define several HTML DOM's properties
+            div_empty_selector      = '#_div_empty_' + column_name
+            div_empty_style         = '' 
+            div_control_selector    = '#_div_control_' + column_name
+            a_new_selector          = '#_' + column_name + '_add' + '.btn .btn-default ._new_row'
+            a_new_caption           = 'New ' + self.build_label(column_name)
+            table_selector          = '#_table_' + column_name + '.table'
+            table_style             = ''
+            tbody_selector          = '#_' + column_name + '_tbody'
+            # only one should be shown, table or div_empty
+            if len(getattr(self, column_name)) == 0:
+                table_style = 'display:none;'
+            else:
+                div_empty_style = 'display:none;'
+                div_control_selector += '.pull-right'
+
+            # div empty
+            div_empty   = HTML.div(div_empty_selector, 'No Data', style = div_empty_style)
+            # div control
+            div_control = HTML.div(div_control_selector, 
+                    HTML.a(a_new_selector, '#', HTML.tag('i.glyphicon.glyphicon-plus') + a_new_caption)
                 )
-            # add to tr
-            tr += HTML.tr(td)
-        tbody = HTML.tbody(tbody_selector, tr)
+            
+            # thead
+            th = ref_obj.generated_html
+            if is_ordered:
+                th += HTML.th('Order', style="width:50px;")
+            th += HTML.th('Delete', style="width:50px;")
+            thead = HTML.thead(HTML.tr(th))
 
-        # table
-        table = HTML.table(table_selector, thead + tbody, style = table_style)
+            # tbody
+            tr = ''
+            new_row_index = 0
+            for row_index, child in enumerate(getattr(self, column_name)):
+                new_row_index += 1
+                child.generate_tabular_input(state = 'form', shown_column = shown_column, parent_column_name = column_name)
+                # td
+                td = child.generated_html
+                # add ordering
+                if is_ordered:
+                    input_selector  = '._' + column_name + '_index #_' + column_name + '_index_' + str(row_index) 
+                    input_name      = '_'+column_name+'_index[]'
+                    a_up_selector   = '._' + column_name + '_up'
+                    a_down_selector = '._' + column_name + '_down'
+                    a_property      = {'row-index' : str(row_index)}
+                    td += HTML.td(
+                            HTML.input_hidden(input_selector, input_name, str(row_index)) +\
+                            HTML.a(a_up_selector, '#', HTML.tag('i.glyphicon.glyphicon-arrow-up'), **a_property ) +\
+                            HTML.a(a_down_selector, '#', HTML.tag('i.glyphicon.glyphicon-arrow-down'), **a_property )
+                        )
+                # add control
+                input_id_selector         = '._' + column_name + '_id'
+                input_id_name             = '_' + column_name + '_id[]'
+                input_deleted_name        = '_' + column_name + '_delete[]'
+                checkbox_property         = {'class' : '_' + column_name + '_delete'}
+                td += HTML.td(
+                        HTML.input_hidden(input_id_selector, input_id_name, str(child.id)) +
+                        HTML.input_hidden('.deleted', input_deleted_name, '0') +
+                        HTML.label(
+                                HTML.input_checkbox(**checkbox_property)
+                            )
+                    )
+                # add to tr
+                tr += HTML.tr(td)
+            tbody = HTML.tbody(tbody_selector, tr)
 
-        # input element
-        input_element  = div_empty + div_control + table
+            # table
+            table = HTML.table(table_selector, thead + tbody, style = table_style)
 
-        # what should be added when add row clicked
-        ref_obj.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name), parent_column_name = column_name)
-        new_row  = '\'<tr>'
-        new_row += ref_obj.generated_html
-        # order column
-        last_index_varname = '_' + column_name + '_last_index'
-        if is_ordered:
-            concat_last_index_varname = '\' + ' + last_index_varname + '+ \''
+            # input element
+            input_element  = div_empty + div_control + table
+
+            # what should be added when add row clicked
+            ref_obj.generate_tabular_input(state = 'form', shown_column = self._get_detail_column_list(column_name), parent_column_name = column_name)
+            new_row  = '\'<tr>'
+            new_row += ref_obj.generated_html
+
+            # merge detail's css & js into main css & js
+            self.generated_js  += ref_obj.generated_js
+            self.generated_css += ref_obj.generated_css
+
+            # order column
+            last_index_varname = '_' + column_name + '_last_index'
+            if is_ordered:
+                concat_last_index_varname = '\' + ' + last_index_varname + '+ \''
+                new_row += '<td>'
+                new_row += '<input class="_'+column_name+'_index" id="_'+column_name+'_index_'+concat_last_index_varname+'" type="hidden" name="_'+column_name+'_index[]" value="'+concat_last_index_varname+'" />'
+                new_row += '<a class="_'+column_name+'_up" row-index="'+concat_last_index_varname+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-up"></i></a>'
+                new_row += '<a class="_'+column_name+'_down" row-index="'+concat_last_index_varname+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-down"></i></a>'
+                new_row += '</td>'
+            # delete column
             new_row += '<td>'
-            new_row += '<input class="_'+column_name+'_index" id="_'+column_name+'_index_'+concat_last_index_varname+'" type="hidden" name="_'+column_name+'_index[]" value="'+concat_last_index_varname+'" />'
-            new_row += '<a class="_'+column_name+'_up" row-index="'+concat_last_index_varname+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-up"></i></a>'
-            new_row += '<a class="_'+column_name+'_down" row-index="'+concat_last_index_varname+'" href="#"><i class="glyphicon glyphicon glyphicon-arrow-down"></i></a>'
+            new_row += '    <input type="hidden" name="_' + column_name + '_id[]" value="" />'
+            new_row += '    <input class="deleted" type="hidden" name="_' + column_name + '_delete[]" value="0" />'
+            new_row += '    <label><input type="checkbox" class="_' + column_name + '_delete"></label>'
             new_row += '</td>'
-        # delete column
-        new_row += '<td>'
-        new_row += '    <input type="hidden" name="_' + column_name + '_id[]" value="" />'
-        new_row += '    <input class="deleted" type="hidden" name="_' + column_name + '_delete[]" value="0" />'
-        new_row += '    <label><input type="checkbox" class="_' + column_name + '_delete"></label>'
-        new_row += '</td>'
-        new_row += '</tr>\''
-        script  = '<script type="text/javascript">'
-        if is_ordered:
-            script += 'var ' + last_index_varname + ' = ' + str(row_index) + ';'
-        # delete event
-        script += '$("._' + column_name + '_delete").live("click", function(event){'
-        script += '    var input = $(this).parent().parent().children(".deleted");'
-        script += '    if($(this).prop("checked")){'
-        script += '        input.val("1");'
-        script += '    }else{'
-        script += '        input.val("0");'
-        script += '    }'
-        script += '});'
-        # add event
-        script += '$("#_' + column_name + '_add").click(function(event){'
-        script += '    $("#_' + column_name + '_tbody").append(' + new_row + ');'
-        script += '    $("#_div_control_' + column_name + '").addClass("pull-right");'
-        script += '    $("#_div_empty_' + column_name + '").hide();'
-        script += '    $("#_table_' + column_name + '").show();'
-        if is_ordered:
-            script += '    '+last_index_varname+'++;'
-        script += '    event.preventDefault();'
-        script += '});'
-        # up event
-        script += '$("a._'+column_name+'_up").live("click",function(event){'
-        script += '    var row_index = $(this).attr("row-index");'
-        script += '    var current_tr = $(this).parent().parent();'
-        script += '    var prev_tr = current_tr.prev();'
-        script += '    if(prev_tr.length > 0){'
-        script += '        current_tr.insertBefore(prev_tr);'
-        script += '        current_element = current_tr.find("td ._'+column_name+'_index");'
-        script += '        prev_element = prev_tr.find("td ._'+column_name+'_index");'
-        script += '        current_element_val = current_element.val();'
-        script += '        prev_element_val = prev_element.val();'
-        script += '        prev_element.val(current_element_val);'
-        script += '        current_element.val(prev_element_val);'
-        script += '    }'
-        script += '    event.preventDefault();'
-        script += '});'
-        # down event
-        script += '$("a._'+column_name+'_down").live("click",function(event){'
-        script += '    var row_index = $(this).attr("row-index");'
-        script += '    var current_tr = $(this).parent().parent();'
-        script += '    var next_tr = current_tr.next();'
-        script += '    if(next_tr.length > 0){'
-        script += '        current_tr.insertAfter(next_tr);'
-        script += '        current_element = current_tr.find("td ._'+column_name+'_index");'
-        script += '        next_element = next_tr.find("td ._'+column_name+'_index");'
-        script += '        current_element_val = current_element.val();'
-        script += '        next_element_val = next_element.val();'
-        script += '        next_element.val(current_element_val);'
-        script += '        current_element.val(next_element_val);'
-        script += '    }'
-        script += '    event.preventDefault();'
-        script += '});'
-        script += '</script>'
-        self.generated_script += script
+            new_row += '</tr>\''
+            script  = ''
+            if is_ordered:
+                script += 'var ' + last_index_varname + ' = ' + str(new_row_index) + ';'
+            # delete event
+            script += '$("._' + column_name + '_delete").live("click", function(event){'
+            script += '    var input = $(this).parent().parent().children(".deleted");'
+            script += '    if($(this).prop("checked")){'
+            script += '        input.val("1");'
+            script += '    }else{'
+            script += '        input.val("0");'
+            script += '    }'
+            script += '});'
+            # add event
+            script += '$("#_' + column_name + '_add").click(function(event){'
+            script += '    $("#_' + column_name + '_tbody").append(' + new_row + ');'
+            script += '    $("#_div_control_' + column_name + '").addClass("pull-right");'
+            script += '    $("#_div_empty_' + column_name + '").hide();'
+            script += '    $("#_table_' + column_name + '").show();'
+            if is_ordered:
+                script += '    '+last_index_varname+'++;'
+            script += '    event.preventDefault();'
+            script += '});'
+            # up event
+            script += '$("a._'+column_name+'_up").live("click",function(event){'
+            script += '    var row_index = $(this).attr("row-index");'
+            script += '    var current_tr = $(this).parent().parent();'
+            script += '    var prev_tr = current_tr.prev();'
+            script += '    if(prev_tr.length > 0){'
+            script += '        current_tr.insertBefore(prev_tr);'
+            script += '        current_element = current_tr.find("td ._'+column_name+'_index");'
+            script += '        prev_element = prev_tr.find("td ._'+column_name+'_index");'
+            script += '        current_element_val = current_element.val();'
+            script += '        prev_element_val = prev_element.val();'
+            script += '        prev_element.val(current_element_val);'
+            script += '        current_element.val(prev_element_val);'
+            script += '    }'
+            script += '    event.preventDefault();'
+            script += '});'
+            # down event
+            script += '$("a._'+column_name+'_down").live("click",function(event){'
+            script += '    var row_index = $(this).attr("row-index");'
+            script += '    var current_tr = $(this).parent().parent();'
+            script += '    var next_tr = current_tr.next();'
+            script += '    if(next_tr.length > 0){'
+            script += '        current_tr.insertAfter(next_tr);'
+            script += '        current_element = current_tr.find("td ._'+column_name+'_index");'
+            script += '        next_element = next_tr.find("td ._'+column_name+'_index");'
+            script += '        current_element_val = current_element.val();'
+            script += '        next_element_val = next_element.val();'
+            script += '        next_element.val(current_element_val);'
+            script += '        current_element.val(next_element_val);'
+            script += '    }'
+            script += '    event.preventDefault();'
+            script += '});'
+            self.generated_js += script
         return input_element
 
-    def _build_input_column(self, column_name, **kwargs):
+    def _mutator_js(self, mutation_name, script):
+        return 'function _mutate_' + mutation_name + '(){ ' +\
+                script +\
+            '}' +\
+            '$(document).ready(function(){ ' +\
+            '    _mutate_' + mutation_name + '(); ' +\
+            '    $("._new_row").live("click", function(event){ ' +\
+            '        _mutate_' + mutation_name + '(); ' +\
+            '    }); ' +\
+            '});'
+
+    def _build_column_input(self, column_name, **kwargs):
         value = getattr(self, column_name) \
             if hasattr(self, column_name) and getattr(self, column_name) is not None \
             else ''
@@ -1271,39 +1487,104 @@ class DB_Model(Base):
         colmetadata = self._get_actual_column_metadata(column_name)
         coltype = colmetadata._coltype
         # Option
-        if self.is_type_match(column_name, Option):
-            input_selector += '.form-control'
+        if self.is_coltype_match(column_name, Option):
+            input_selector += '.form-control._chosen'
             if coltype.multiple:
                 value = value.split(', ')
             input_element = HTML.select(input_selector, input_name, coltype.options, value, coltype.multiple)
+            # add mutator
+            self.generated_css.append(base_url('assets/chosen/chosen.min.css'))
+            self.generated_js.append(base_url('assets/chosen/chosen.jquery.min.js'))
+            self.generated_js += self._mutator_js('chosen', 
+                    '$("._chosen").chosen();'
+                )
         # Upload
-        elif self.is_type_match(column_name, Upload):
+        elif self.is_coltype_match(column_name, Upload):
             input_selector += '._file-input'
             input_element = HTML.div(self.build_representation(column_name)) if value is not None else ''
             input_element += HTML.input_file(input_selector, input_name)
+            # add mutator script
+            self.generated_js.append(base_url('assets/jquery-ui-bootstrap/third-party/jQuery-UI-FileInput/js/enhance.min.js'))
+            self.generated_js.append(base_url('assets/jquery-ui-bootstrap/third-party/jQuery-UI-FileInput/js/fileinput.jquery.js'))
+            self.generated_js += self._mutator_js('file_input', 
+                    '$("._file-input:not(._mutated)").customFileInput({button_position : "right"});' +\
+                    '$("._file-input").addClass("_mutated");'
+                )
+        # RichText
+        elif self.is_coltype_match(column_name, RichText):
+            input_selector += '.form-control._richtext-textarea'
+            input_element = HTML.textarea(input_selector, input_name, value, placeholder)
+            # add mutator script
+            self.generated_js.append(base_url('assets/ckeditor/ckeditor.js'))
+            self.generated_js.append(base_url('assets/ckeditor/adapters/jquery.js'))
+            self.generated_js += self._mutator_js('autosize_textarea', 
+                    '$("._richtext-textarea").ckeditor();'
+                )
         # Password
-        elif self.is_type_match(column_name, Password):
+        elif self.is_coltype_match(column_name, Password):
             input_selector += '.form-control'
-            input_element = HTML.input_password(input_selector, input_name, value, placeholder)
+            input_element = HTML.input_password(input_selector, input_name, value, placeholder)        
         # Boolean
         elif isinstance(actual_column_type, Boolean):
             input_element = HTML.input_hidden(input_name, 0) +\
                 HTML.input_checkbox(input_selector, input_name, 1, bool(value))
         # Text
         elif isinstance(actual_column_type, Text):
-            input_selector += '.form-control'
+            input_selector += '.form-control._autosize-textarea'
             input_element = HTML.textarea(input_selector, input_name, value, placeholder)
-        # Others
+            # add mutator script
+            self.generated_js.append(base_url('assets/autosize/jquery.autosize.min.js'))
+            self.generated_js += self._mutator_js('autosize_textarea', 
+                    '$("._autosize-textarea").autosize();'
+                )
+        # Others (Date, Integer, and normal string)
         else:
             value = str(value)
-            # build additional_class
-            input_selector += '.form-control'
-            if isinstance(actual_column_type, Date):
-                input_selector += '._date-input'
+            # DateTime
+            if isinstance(actual_column_type, DateTime):
+                input_selector += '.form-control._datetime-input'
+                # add mutator script
+                self.generated_js.append(base_url('assets/jquery-ui-timepicker-addon.js'))
+                self.generated_js += self._mutator_js('datetime_input',
+                        '$("._datetime-input").datetimepicker({' +\
+                        '    defaultDate: null,'+\
+                        '    changeMonth: true,'+\
+                        '    changeYear: true,'+\
+                        '    numberOfMonths: 1,'+\
+                        '    dateFormat: "yy-mm-dd",'+\
+                        '    timeFormat: "HH:mm:ss",'+\
+                        '    yearRange: "c-50:c+50",'+\
+                        '});'
+                    )
+            # Date
+            elif isinstance(actual_column_type, Date):
+                input_selector += '.form-control._date-input'
+                # add mutator script
+                self.generated_js += self._mutator_js('date_input', 
+                        '$("._date-input").datepicker({' +\
+                        '    defaultDate: null,'+\
+                        '    changeMonth: true,'+\
+                        '    changeYear: true,'+\
+                        '    numberOfMonths: 1,'+\
+                        '    dateFormat: "yy-mm-dd",'+\
+                        '    yearRange: "c-50:c+50",'+\
+                        '});'
+                    )
+            # Integer
             elif isinstance(actual_column_type, Integer):
-                input_selector += '._integer_input'
+                input_selector += '._integer-input'
                 value = '0' if value == '' else value
+                # add mutator script
+                self.generated_js += self._mutator_js('integer_input', 
+                        '$("._integer-input").spinner();'
+                    )
+            # Normal String
+            else:            
+                input_selector += '.form-control'
+
+            # generate input element
             input_element = HTML.input_text(input_selector, input_name, value, placeholder)
+
         return input_element
 
 
@@ -1331,11 +1612,11 @@ class DB_Model(Base):
         if column_name in self._get_relation_names():
             relation_metadata = self._get_relation_metadata(column_name)
             if relation_metadata.uselist:
-                html = self._build_input_one_to_many(column_name, **kwargs)               
+                html = self._build_one_to_many_input(column_name, **kwargs)               
             else:
-                html = self._build_input_many_to_one(column_name, **kwargs)
+                html = self._build_many_to_one_input(column_name, **kwargs)
         else:
-            html = self._build_input_column(column_name, **kwargs)
+            html = self._build_column_input(column_name, **kwargs)
         return html
     
     def build_labeled_input(self, column_name, **kwargs):
@@ -1355,31 +1636,48 @@ class DB_Model(Base):
             else:
                 # get children
                 children = getattr(self,column_name)
-                # ref_obj and custom_label
+                # ref_obj, custom_label and shown_column
                 ref_obj = self._get_relation_class(column_name)()
                 custom_label = self.__detail_column_label__[column_name]\
                     if column_name in self.__detail_column_label__ else {}
-                # generate thead
-                ref_obj.generate_tabular_label(state = 'view',
-                    shown_column = self._get_detail_column_list(column_name), 
-                    custom_label = custom_label)
-                thead = HTML.thead(HTML.tr(ref_obj.generated_html))
-                # generate tbody
-                tr = []
-                for child in children:
-                    child.generate_tabular_representation(state = 'view', 
-                        shown_column = self._get_detail_column_list(column_name))
-                    tr.append(HTML.tr(child.generated_html))
-                tbody = HTML.tbody(tr)
-                # generate tfoot
-                if(hasattr(self, 'build_tabular_footer_'+column_name)):
-                    tfoot = HTML.tfoot(
-                            getattr(self,'build_tabular_footer_'+column_name)(state = 'view')
-                        )
+                shown_column = self._get_detail_column_list(column_name)
+                # if only one column to be shown
+                if len(shown_column) == 1 and shown_column[0] in ref_obj._get_relation_names():
+                    if len(children) == 0:
+                        value = 'No Data'
+                    elif len(children) == 1:
+                        child = children[0]
+                        value = child.quick_preview()
+                    else:
+                        li = ''
+                        for child in children:
+                            li += HTML.li(child.quick_preview())
+                        if isinstance(ref_obj, Ordered_DB_Model):
+                            value = HTML.ol(li)
+                        else:
+                            value = HTML.ul(li)
                 else:
-                    tfoot = ''
-                # generate table
-                value = HTML.table('.table', [thead, tbody, tfoot])
+                    # generate thead
+                    ref_obj.generate_tabular_label(state = 'view',
+                        shown_column = shown_column, 
+                        custom_label = custom_label)
+                    thead = HTML.thead(HTML.tr(ref_obj.generated_html))
+                    # generate tbody
+                    tr = []
+                    for child in children:
+                        child.generate_tabular_representation(state = 'view', 
+                            shown_column = self._get_detail_column_list(column_name))
+                        tr.append(HTML.tr(child.generated_html))
+                    tbody = HTML.tbody(tr)
+                    # generate tfoot
+                    if(hasattr(self, 'build_tabular_footer_'+column_name)):
+                        tfoot = HTML.tfoot(
+                                getattr(self,'build_tabular_footer_'+column_name)(state = 'view')
+                            )
+                    else:
+                        tfoot = ''
+                    # generate table
+                    value = HTML.table('.table', [thead, tbody, tfoot])
         return value
 
     def _build_many_to_one_representation(self, column_name, **kwargs):
@@ -1394,12 +1692,11 @@ class DB_Model(Base):
         if isinstance(value, unicode) or isinstance(value, str):
             value = HTML.presented_html_code(value)
         colmetadata = self._get_actual_column_metadata(column_name)
-        coltype = colmetadata._coltype
         if value is None:
             value = 'Not available'
-        elif self.is_type_match(column_name, Upload):
+        elif self.is_coltype_match(column_name, Upload):
             # get inner value
-            if coltype.is_image:
+            if self.is_coltype_attr_match(column_name, 'is_image', True):
                 inner_html = HTML.img(
                         base_url(self.__application_name__+ '/assets/uploads/' + value),
                         style = 'max-width:100px;'
@@ -1453,15 +1750,15 @@ class DB_Model(Base):
     
     def reset_generated(self):
         self._generated_html = ''
-        self._generated_script = ''
-        self._generated_css = ''
+        self._generated_js = JS_Resource()
+        self._generated_css = CSS_Resource()
     
     def _include_default_resource(self):
         base_url = base_url()
-        self._generated_script += asset.JQUI_BOOTSTRAP_SCRIPT
-        self._generated_script += asset.KOKORO_CRUD_SCRIPT
-        self._generated_css += asset.JQUI_BOOTSTRAP_STYLE
-        self._generated_css += asset.KOKORO_CRUD_STYLE
+        self._generated_js.append_compiled(asset.JQUI_BOOTSTRAP_SCRIPT)
+        self._generated_js.append_compiled(asset.KOKORO_CRUD_SCRIPT)
+        self._generated_css.append_compiled(asset.JQUI_BOOTSTRAP_STYLE)
+        self._generated_css.append_compiled(asset.KOKORO_CRUD_STYLE)
 
     def quick_preview(self):
         '''
@@ -1469,8 +1766,23 @@ class DB_Model(Base):
         '''
         column_list = self._column_list
         if len(column_list) >1:
-            return getattr(self, column_list[1])
-        return self.id
+            value = getattr(self, column_list[1])
+            if isinstance(value, DB_Model):
+                value = value.quick_preview()
+            return str(value)
+        return self.as_text()
+
+    def as_text(self):
+        '''
+        Text preview of record, no html tag. Override this if necessary
+        '''
+        column_list = self._column_list
+        if len(column_list) >1:
+            value = getattr(self, column_list[1])
+            if isinstance(value, DB_Model):
+                value = value.quick_preview()
+            return str(value)
+        return self.id        
     
     def _get_tabular_column_names_by_state(self, state = None):
         '''

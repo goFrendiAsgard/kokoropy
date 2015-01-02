@@ -63,16 +63,19 @@ def scaffold_migration(application_name, migration_name, table_name='your_table'
     # write file
     write_and_backup(filename, content)
 
-def add_column_to_structure(structure, table_name, column_name = None, content = None, no_form = False):
+def add_column_to_structure(structure, table_name, column_name = None, content = None, **kwargs):
     '''
     return new column_name
     '''
+    no_form = kwargs.pop('no_form', False)
+    ordered = kwargs.pop('ordered', False)
     if '__list__' not in structure:
         structure['__list__'] = []
     if table_name not in structure:
         structure[table_name] = {'__list__' : []}
         structure['__list__'].append(table_name)
         structure[table_name]['__no_form__'] = no_form
+        structure[table_name]['__ordered__'] = ordered
     if column_name is not None:
         if column_name in structure[table_name]:
             i = 1
@@ -128,7 +131,8 @@ def _structure_to_script(structure, table = None):
     script = ''
     for table_name in table_list:
         ucase_table_name = table_name.title()
-        script += 'class ' + ucase_table_name + '(DB_Model):\n'
+        model_base_class = 'Ordered_DB_Model' if structure[table_name]['__ordered__'] else 'DB_Model'
+        script += 'class ' + ucase_table_name + '(' + model_base_class + '):\n'
         script += '    __session__          = session\n'
         # excluded column
         if '__detail_excluded_shown_column__' in structure[table_name]:
@@ -182,16 +186,20 @@ def _structure_to_script(structure, table = None):
 
 def _scaffold_model(structure, table_name, *columns):
     ucase_table_name = table_name.title()
+    OneToMany  = ('OneToMany', 'onetomany', 'one_to_many', 'one-to-many')
+    ManyToOne  = ('ManyToOne', 'manytoone', 'many_to_one', 'many-to-one')
+    ManyToMany = ('ManyToMany', 'manytomany', 'many_to_many', 'many-to-many')
     for column in columns:
         column = column.split(':')
         if len(column)>2:
             colname = column[0]
             other_table_name = column[1]
             relationship = column[2]
+            is_ordered = len(column)>3 and column[3] == 'ordered'
             ucase_other_table_name = other_table_name.title()
-            if relationship == 'onetomany' or relationship == 'one_to_many' or relationship == 'one-to-many':
+            if relationship in OneToMany:
                 # other table
-                add_column_to_structure(structure, other_table_name)
+                add_column_to_structure(structure, other_table_name, no_form = True, ordered = is_ordered)
                 # foreign key
                 coltype = 'fk_column("' + table_name + '._real_id")'
                 fk_col_name = 'fk_' + table_name
@@ -199,7 +207,7 @@ def _scaffold_model(structure, table_name, *columns):
                 # relationship
                 coltype = 'one_to_many("' + ucase_other_table_name + '", "' + ucase_other_table_name + '.' + fk_col_name + '")'
                 add_column_to_structure(structure, table_name, colname, coltype)
-            elif relationship == 'manytoone' or relationship == 'manytone' or relationship == 'many_to_one' or relationship == 'many-to-one':
+            elif relationship in ManyToOne:
                 # other table
                 add_column_to_structure(structure, other_table_name)
                 # foreign key
@@ -209,13 +217,13 @@ def _scaffold_model(structure, table_name, *columns):
                 # relationship
                 coltype = 'many_to_one("' + ucase_other_table_name + '", "' + ucase_table_name + '.' + fk_col_name + '")'
                 add_column_to_structure(structure, table_name, colname, coltype)
-            elif relationship == 'manytomany' or relationship == 'many_to_many' or relationship == 'many-to-many':
+            elif relationship in ManyToMany:
                 # other table
                 add_column_to_structure(structure, other_table_name)
                 # association table
                 association_table_name = table_name + '_' + colname
                 ucase_association_table_name = association_table_name.title()
-                add_column_to_structure(structure, association_table_name, None, None, True)
+                add_column_to_structure(structure, association_table_name, no_form = True, ordered = is_ordered)
                 # determine foreign key & relationship names
                 if table_name == other_table_name:
                     fk_col_name_left = 'fk_left_' + table_name

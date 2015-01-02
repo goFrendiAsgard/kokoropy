@@ -128,7 +128,6 @@ def _kill_process(process):
             os.killpg(process.pid, signal.SIGTERM)
         else:
             subprocess.call(['taskkill', '/F', '/T', '/PID', str(process.pid)])
-            # os.kill(process.pid, signal.SIGTERM)
 
 def run_server_forever():
     print ('%sDevelopment Server Started ...%s\n' % (Fore.MAGENTA, Fore.RESET))
@@ -148,82 +147,45 @@ def run_server_forever():
         _kill_process(PROCESS)
     print ('\n%sDevelopment Server Stopped ...%s\n' % (Fore.MAGENTA, Fore.RESET))
 
-def scaffold_application():
-    if len(sys.argv)>2:
-        application_name = sys.argv[2]
-        scaffold.scaffold_application(application_name)
-        print(' * Application Created')
+def _do_thing(fn, min_param=0, success_message = ''):
+    if len(sys.argv) == 3 and min_param > 1:
+        file_name = sys.argv[2]
+        if os.path.isfile(file_name):
+            # read content of file as 1 line
+            content = ' '.join(open(file_name, 'r').readlines())
+            # remove multiple spaces
+            content = ' '.join(content.split())
+            # split it again
+            args = content.split(' ')
+        else:
+            print (' * ERROR: File \''+ file_name +'\' not found')
+            return False
+    elif len(sys.argv) >= 2 + min_param:
+        args = sys.argv[2 :]
     else:
-        help()
+        info()
+        return False
+    fn(*args)
+    if success_message != '':
+        print (' * ' +success_message)
+
+def scaffold_application():
+    _do_thing(scaffold.scaffold_application, 1, 'Application Created')
 
 def scaffold_migration():
-    if len(sys.argv)>3:
-        application_name = sys.argv[2]
-        migration_name = sys.argv[3]
-        if len(sys.argv)>4:
-            table_name = sys.argv[4]
-        else:
-            table_name = 'table'
-        if len(sys.argv)>5:
-            columns = sys.argv[5:]
-        else:
-            columns = []
-        scaffold.scaffold_migration(application_name, migration_name, table_name, *columns)
-        print(' * Migration Created')
-    else:
-        help()
+    _do_thing(scaffold.scaffold_migration, 3, 'Migration Created')
 
 def scaffold_model():
-    if len(sys.argv)>2:
-        application_name = sys.argv[2]
-        if len(sys.argv)>3:
-            table_name = sys.argv[3]
-        else:
-            table_name = 'table'
-        if len(sys.argv)>4:
-            columns = sys.argv[4:]
-        else:
-            columns = []
-        scaffold.scaffold_model(application_name, table_name, *columns)
-        print(' * Model Created')
-    else:
-        help()
+    _do_thing(scaffold.scaffold_migration, 3, 'Model Created')
 
 def scaffold_crud():
-    if len(sys.argv)>2:
-        application_name = sys.argv[2]
-        if len(sys.argv)>3:
-            table_name = sys.argv[3]
-        else:
-            table_name = 'table'
-        if len(sys.argv)>4:
-            columns = sys.argv[4:]
-        else:
-            columns = []
-        scaffold.scaffold_crud(application_name, table_name, *columns)
-        print(' * CRUD Application Created')
-    else:
-        help()
+    _do_thing(scaffold.scaffold_crud, 3, 'CRUD Created')
 
 def scaffold_view():
-    if len(sys.argv)>2:
-        application_name = sys.argv[2]
-        if len(sys.argv)>3:
-            table_name = sys.argv[3]
-        else:
-            table_name = 'table'
-        if len(sys.argv)>4:
-            view = sys.argv[4]
-        else:
-            view = None
-        scaffold.scaffold_view(application_name, table_name, view)
-        print(' * View Created')
-    else:
-        help
+    _do_thing(scaffold.scaffold_view, 1, 'View Created')
 
 def scaffold_cms():
-    scaffold.scaffold_cms()
-    print(' * CMS Created')
+    _do_thing(scaffold.scaffold_cms, 1, 'CMS Created')
         
 def migration_upgrade():
     if len(sys.argv)>2:
@@ -262,13 +224,13 @@ def info():
     print(' * Scaffold Application')
     print('     %spython %s%s scaffold-application %sAPPLICATION-NAME%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
     print(' * Scaffold Migration')
-    print('     %spython %s%s scaffold-migration %sAPPLICATION-NAME MIGRATION-NAME [table-name] [column-name:type] ... %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
+    print('     %spython %s%s scaffold-migration %sAPPLICATION-NAME MIGRATION-NAME table-name [column-name:type] ... %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
     print(' * Scaffold Model')
-    print('     %spython %s%s scaffold-model %sAPPLICATION-NAME [table-name] [column-name:type] ... %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
+    print('     %spython %s%s scaffold-model %sAPPLICATION-NAME table-name [column-name:type] ... %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
     print(' * Scaffold CRUD')
-    print('     %spython %s%s scaffold-crud %sAPPLICATION-NAME [table-name] [column-name:type] ... %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
+    print('     %spython %s%s scaffold-crud %sAPPLICATION-NAME table-name [column-name:type] ... %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
     print(' * Scaffold View (to make custom CRUD view)')
-    print('     %spython %s%s scaffold-view %sAPPLICATION-NAME [table-name] [view]%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
+    print('     %spython %s%s scaffold-view %sAPPLICATION-NAME table-name [view]%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.MAGENTA, Fore.RESET))
     print(' * Scaffold CMS')
     print('     %spython %s%s scaffold-cms %s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.RESET))
     print(' * Migration upgrade (to the newest version)')

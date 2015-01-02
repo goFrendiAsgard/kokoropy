@@ -361,7 +361,8 @@ def load_view(application_name, *args, **kwargs):
     return load_template(content, *args, **kwargs)
 
 def load_template(template, *args, **kwargs):
-    import_asset = '% from kokoropy.asset import JQUI_BOOTSTRAP_STYLE, JQUI_BOOTSTRAP_SCRIPT, KOKORO_CRUD_STYLE, KOKORO_CRUD_SCRIPT\n' +\
+    import_asset = '% from kokoropy.asset import JQUI_BOOTSTRAP_STYLE, ' +\
+    'JQUI_BOOTSTRAP_SCRIPT, KOKORO_CRUD_STYLE, KOKORO_CRUD_SCRIPT\n' +\
     '% from kokoropy import html as HTML'
     # modify kwargs
     if 'BASE_URL' in request and request.BASE_URL is not None:
@@ -733,22 +734,30 @@ def kokoro_init(**kwargs):
     # Load models
     ###################################################################################################
     for application in application_list:
-        for file_name in os.listdir(os.path.join(APPLICATION_PATH, application, "models")):
-            # get application inside application's model
-            file_name_segments = file_name.split(".")
-            first_segment = file_name_segments[0]
-            last_segment = file_name_segments[-1]
-            if (first_segment == "__init__") or (not last_segment == "py"):
-                continue
-            module_name = inspect.getmodulename(file_name)
-            print(Fore.YELLOW + "* Find Model : "+ Fore.BLUE + application + ".models." + module_name + Fore.RESET)
-            __import__(APPLICATION_PACKAGE+'.'+application+'.models.'+module_name, globals(), locals())
+        model_file_names = os.listdir(os.path.join(APPLICATION_PATH, application, "models"))
+        # if there is _all.py in the model, just import _all.py and ignore others
+        if '_all.py' in model_file_names:
+            print(Fore.YELLOW + "* Find \'_all\' Model : "+ Fore.BLUE + application + ".models._all" + Fore.YELLOW +\
+                ', other models in ' + Fore.BLUE + application + '.models' + Fore.YELLOW + ' are ignored' + Fore.RESET)
+            __import__(APPLICATION_PACKAGE+'.'+application+'.models._all', globals(), locals())
+        else:
+            for file_name in model_file_names:
+                # get application inside application's model
+                file_name_segments = file_name.split(".")
+                first_segment = file_name_segments[0]
+                last_segment = file_name_segments[-1]
+                if (first_segment == "__init__") or (not last_segment == "py"):
+                    continue
+                module_name = inspect.getmodulename(file_name)
+                print(Fore.YELLOW + "* Find Model : "+ Fore.BLUE + application + ".models." + module_name + Fore.RESET)
+                __import__(APPLICATION_PACKAGE+'.'+application+'.models.'+module_name, globals(), locals())
     ###################################################################################################
     # Load Autoroute inside controller modules
     ###################################################################################################
     for application in controller_dict_list:
         for controller in controller_dict_list[application]:
-            print(Fore.YELLOW + "* Find Controller : "+ Fore.BLUE + application + ".controllers." + controller + Fore.RESET)
+            print(Fore.YELLOW + "* Find Controller : "+ Fore.BLUE + application + ".controllers." +\
+                controller + Fore.RESET)
             # import our controllers
             module_obj = None
             import_location = APPLICATION_PACKAGE+"."+application+".controllers."+controller
@@ -781,7 +790,7 @@ def kokoro_init(**kwargs):
             _publish_methods(application, controller, "action", methods, [route, get, post,
                                                                           put, delete]      )
             print(Fore.YELLOW + "   Register Autoroute Controller : " + Fore.BLUE + 
-                  autoroute_controller_name + Fore.RESET)
+                  application + ".controllers." + controller + "." + autoroute_controller_name + Fore.RESET)
     ###################################################################################################
     # add template & assets path
     ###################################################################################################
