@@ -258,6 +258,12 @@ class Column(SA_Column):
     def is_coltype_match(self, cls):
         return isinstance(self._coltype, cls) or self._coltype == cls
 
+    def get_coltype_attr(self, attr):
+        if hasattr(self._coltype, attr):
+            return getattr(self._coltype, attr)
+        else:
+            return None
+
     def is_coltype_attr_match(self, attr, value):
         if not hasattr(self._coltype, attr):
             return False
@@ -293,6 +299,10 @@ class RichText(TypeDecorator):
 
 class Code(TypeDecorator):
     impl = UnicodeText
+    def __init__(self, *args, **kwargs):
+        self.theme = kwargs.pop('theme', 'monokai')
+        self.language = kwargs.pop('language', 'python')
+        super(Code, self).__init__(*args, **kwargs)
         
 class DB_Model(Base):
     '''
@@ -1020,6 +1030,13 @@ class DB_Model(Base):
             return colmetadata.is_coltype_attr_match(attr, value)
         else:
             return False
+
+    def get_coltype_attr(self, column_name, attr, default = None):
+        colmetadata = self._get_actual_column_metadata(column_name)
+        if hasattr(colmetadata, 'get_coltype_attr'):
+            return colmetadata.get_coltype_attr(attr)
+        else:
+            return default
     
     def _save_detail(self, already_saved_object):
         for relation_name in self._get_relation_names():
@@ -1521,6 +1538,28 @@ class DB_Model(Base):
             self.generated_js += self._mutator_js('autosize_textarea', 
                     '$("._richtext-textarea").ckeditor();'
                 )
+        # Code
+        elif self.is_coltype_match(column_name, Code):
+            theme = self.get_coltype_attr(column_name, 'theme', 'monokai')
+            language = self.get_coltype_attr(column_name, 'language', 'python')
+            input_selector += '.form-control._code-textarea._code_' + language + '_' + theme
+            input_element = HTML.textarea(input_selector, input_name, value, placeholder)
+            # add autosize mutator
+            self.generated_js.append(base_url('assets/jquery-ace/ace/ace.js'))
+            self.generated_js.append(base_url('assets/jquery-ace/ace/theme-' + theme + '.js'))
+            self.generated_js.append(base_url('assets/jquery-ace/ace/mode-' + language + '.js'))
+            self.generated_js.append(base_url('assets/jquery-ace/jquery-ace.min.js'))
+            self.generated_js += self._mutator_js('code_' + language + '_' + theme + '_textarea',
+                    '$("._code_' + language + '_' + theme + '").ace({' +\
+                    '    theme: "' + theme + '",' +\
+                    '    lang: "' + language + '",' +\
+                    '});'+\
+                    '$("._code_' + language + '_' + theme + '").each(function(){' +\
+                    '    var ace = $(this).data("ace").editor.ace;' +\
+                    'console.log(ace);'+\
+                    '    ace.setOptions({"minLines": 5, "maxLines": 30, "fontSize": 16});' +\
+                    '});'
+                )            
         # Password
         elif self.is_coltype_match(column_name, Password):
             input_selector += '.form-control'

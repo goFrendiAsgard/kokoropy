@@ -147,7 +147,7 @@ def run_server_forever():
         _kill_process(PROCESS)
     print ('\n%sDevelopment Server Stopped ...%s\n' % (Fore.MAGENTA, Fore.RESET))
 
-def _do_thing(fn, min_param=0, success_message = ''):
+def _do_thing(fn, min_param = 0, success_message = ''):
     if len(sys.argv) == 3 and min_param > 1:
         file_name = sys.argv[2]
         if os.path.isfile(file_name):
@@ -158,7 +158,7 @@ def _do_thing(fn, min_param=0, success_message = ''):
             # split it again
             args = content.split(' ')
         else:
-            print (' * ERROR: File \''+ file_name +'\' not found')
+            print (Fore.RED + ' * ERROR: File \''+ file_name +'\' not found' + Fore.RESET)
             return False
     elif len(sys.argv) >= 2 + min_param:
         args = sys.argv[2 :]
@@ -167,7 +167,7 @@ def _do_thing(fn, min_param=0, success_message = ''):
         return False
     fn(*args)
     if success_message != '':
-        print (' * ' +success_message)
+        print (Fore.MAGENTA + ' * ' +success_message + Fore.RESET)
 
 def scaffold_application():
     _do_thing(scaffold.scaffold_application, 1, 'Application Created')
@@ -185,7 +185,7 @@ def scaffold_view():
     _do_thing(scaffold.scaffold_view, 1, 'View Created')
 
 def scaffold_cms():
-    _do_thing(scaffold.scaffold_cms, 1, 'CMS Created')
+    _do_thing(scaffold.scaffold_cms, 0, 'CMS Created')
         
 def migration_upgrade():
     if len(sys.argv)>2:
@@ -215,8 +215,8 @@ def migration_log():
 
 def info():
     print('')
-    print(' %sVERSION:%s %s\n' % (Fore.MAGENTA + Back.GREEN, Back.RESET + Fore.RESET, VERSION))
-    print(' %sUSAGE:%s\n' % (Fore.MAGENTA + Back.GREEN, Back.RESET + Fore.RESET))
+    print(' %s VERSION: %s %s\n' % (Fore.WHITE + Back.RED, Back.RESET + Fore.RESET, VERSION))
+    print(' %s USAGE: %s\n' % (Fore.WHITE + Back.RED, Back.RESET + Fore.RESET))
     print(' * Help')
     print('     %spython %s%s help%s\n' % (Fore.GREEN, __file__, Fore.YELLOW, Fore.RESET))
     print(' * Run Server')
