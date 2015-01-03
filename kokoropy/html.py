@@ -227,16 +227,16 @@ def select(*args, **kwargs):
     default_value = kwargs.pop('value', default_value)
 
     # prepare children
-    children = []    
+    children = []
+    if multiple:
+        for val in default_value:
+            children.append(tag('option', 'selected', value = val, children =  options[val]))
     # create option
     for key in options:
         o_args = []
         # add selected attribute
-        if multiple:
-            for val in default_value:
-                if key == val:
-                    o_args.append('selected')
-                    break
+        if multiple and val in default_value:
+            continue
         elif key == default_value:
             o_args.append('selected')
         # add other attributes
@@ -244,6 +244,7 @@ def select(*args, **kwargs):
         # add option
         children.append(tag('option', *o_args, **o_kwargs))
     kwargs['children'] = children
+    # return    
     return tag('select'+selector, *args, **kwargs)
 
 def title(*args, **kwargs):

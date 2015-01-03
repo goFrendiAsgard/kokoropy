@@ -827,7 +827,8 @@ class DB_Model(Base):
                             list_old.append(old_val)
                             # delete
                             if old_val not in list_lookup:
-                                getattr(self, column_name).remove(ref_obj)
+                                if child in getattr(self, column_name):
+                                    getattr(self, column_name).remove(child)
                                 child.trash()
                             # edit ordered
                             elif is_ordered:
@@ -893,7 +894,8 @@ class DB_Model(Base):
                             if issubclass(ref_class, Ordered_DB_Model):
                                 ref_obj._index = index
                             if deleted:
-                                getattr(self, column_name).remove(ref_obj)
+                                if ref_obj in getattr(self, column_name):
+                                    getattr(self, column_name).remove(ref_obj)
                                 ref_obj.trash()
                 else:
                     # many to one
@@ -1263,16 +1265,15 @@ class DB_Model(Base):
         if len(shown_column) == 1 and shown_column[0] in ref_obj._get_relation_names():
             input_selector = '#field_' + column_name + '.form-control'
             input_name = column_name+'[]'
-            # get options
-            options = {}
             # lookup class is the selection table, while child is association table
             lookup_class = ref_obj._get_relation_class(shown_column[0])
-            for lookup in lookup_class.get():
-                options[lookup.id] = lookup.as_text()
-            # get values
+            # get values & options
             values = []
+            options = {}
             for child in getattr(self, column_name):
                 values.append(getattr(child, shown_column[0]).id)
+            for lookup in lookup_class.get():
+                options[lookup.id] = lookup.as_text()
             # create combobox
             style = ''
             # ordered
@@ -1284,7 +1285,7 @@ class DB_Model(Base):
                     )
                 input_selector += '._ordered'
                 style = 'min-height:150px;'
-            # onordered
+            # unordered
             else:
                 self.generated_css.append(base_url('assets/chosen/chosen.min.css'))
                 self.generated_js.append(base_url('assets/chosen/chosen.jquery.min.js'))
