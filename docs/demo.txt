@@ -5,7 +5,7 @@ demo
         created:DateTime
         level:Integer
         active:Boolean
-        photo:Upload
+        photo:Image
         friends:village:many-to-many
         commodities:resource:many-to-many:ordered
         villagers:villager:one-to-many

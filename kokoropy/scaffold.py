@@ -275,9 +275,20 @@ def _scaffold_model(structure, table_name, *columns):
             colname = column[0]
             if len(column)>1:
                 coltype = column[1]
-                coltype_element = coltype.split('-')
-                if len(coltype_element)>1:
-                    coltype = coltype_element[0] + '(' + ', '.join(coltype_element[1:]) + ')'
+                if coltype == 'Image':
+                    coltype = 'Upload(is_image=True)'
+                elif coltype == 'CSSCode':
+                    coltype = 'Code(language="css")'
+                elif coltype == 'HTMLCode':
+                    coltype = 'Code(language="html")'
+                elif coltype == 'PythonCode':
+                    coltype = 'Code(language="python")'
+                elif coltype == 'JSCode':
+                    coltype = 'Code(language="javascript")'
+                else:
+                    coltype_element = coltype.split('-')
+                    if len(coltype_element)>1:
+                        coltype = coltype_element[0] + '(' + ', '.join(coltype_element[1:]) + ')'
                 # in case of length is not defined
                 if coltype == 'String':
                     coltype = 'String(50)'

@@ -1,8 +1,0 @@
-% rebase('cms/views/base')
-{% block content %}
-    <ul>
-        % for label in url_list:
-            <li><a href="{{ url_list[label] }}">{{ label }}</a></li>
-        % end
-    </ul>
-{% endblock %}
