@@ -10,7 +10,8 @@ demo
         commodities:resource:many-to-many:ordered
         villagers:villager:one-to-many
         important_structure:structure:one-to-many:ordered
-        description:RichText,
+        description:RichText
+        some_code:PythonCode,
     clan
         name:String-50,
     resource

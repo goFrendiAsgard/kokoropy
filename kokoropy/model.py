@@ -810,17 +810,17 @@ class DB_Model(Base):
                     ref_obj = ref_class()
                     # determine if the model is ordered
                     is_ordered = isinstance(ref_obj, Ordered_DB_Model)
-                    # column name
+                    # custom_label and shown column
                     custom_label = self.__detail_column_label__[column_name]\
                         if column_name in self.__detail_column_label__ else {}
                     shown_column = self._get_detail_column_list(column_name)
 
                     # if only one column to be shown and it is a relationship
                     if len(shown_column) == 1 and shown_column[0] in ref_obj._get_relation_names():
-                        list_val       = []
-                        list_lookup    = []
-                        list_old       = []
-                        relation_value = []
+                        list_val       = [] # value from variable
+                        list_lookup    = [] # lookup (from list_val)
+                        list_old       = [] # old lookup value (from database)
+                        relation_value = [] # old relation value (from database)
                         lookup_class   = ref_obj._get_relation_class(shown_column[0])
                         # get list value
                         variable_key = column_name + '[]'
@@ -840,43 +840,42 @@ class DB_Model(Base):
                                 if child in getattr(self, column_name):
                                     getattr(self, column_name).remove(child)
                                 child.trash()
-                            # edit ordered
+                            # edit if is_ordered
                             elif is_ordered:
                                 for index, val in enumerate(list_lookup):
                                     if old_val == val:
-                                        child._index = index
+                                        child._index = index + 1
                                         break
-                        # if list_lookup not in old_val.shown_column[0], add it
+                        # if list_lookup not in old_val.shown_column[0], add it, set index if is_ordered
                         for index, val in enumerate(list_lookup):
                             if val not in list_old:
                                 param = {shown_column[0] : val}
                                 if is_ordered:
-                                    param['_index'] = index
+                                    param['_index'] = index + 1
                                 new_record = ref_class(**param)
                                 getattr(self, column_name).append(new_record)
                     # else, it must be tabular  
                     else:
                         # one to many
-                        old_id_list = []
-                        deleted_list = []
-                        relation_variable_list = []
-                        index_list = []
-                        record_count = 0
+                        old_id_list             = [] # old id from database        
+                        deleted_list            = [] # deleted id from variable (form)
+                        relation_variable_list  = [] # from variable (form)
+                        index_list              = [] # indexes from variable (form)
+                        record_count            = 0  # total record count (from variable)
                         # by default bottle request doesn't automatically accept 
                         # POST with [] name
                         for variable_key in variable:
                             if hasattr(variable, 'getall') and variable_key[0:len(column_name)] == column_name and variable_key[-2:] == '[]':
                                 # get list value
-                                list_val = variable.getall(variable_key)
-                                if len(list_val) > record_count:
-                                    record_count = len(list_val)
-                                    # make list of dictionary (as much as needed)
-                                    for i in xrange(record_count):
-                                        relation_variable_list.append({})
-                                        del(i)
+                                list_val = variable.getall(variable_key)                            
+                                # make list of dictionary (as much as needed)
+                                while record_count < len(list_val):
+                                    relation_variable_list.append({})
+                                    record_count +=1
                                 new_variable_key = variable_key[len(column_name)+1:-2]
                                 for i in xrange(record_count):
                                     relation_variable_list[i][new_variable_key] = list_val[i]
+                        # special variables
                         if hasattr(variable, 'getall'):
                             old_id_list = variable.getall('_' + column_name + '_id[]')
                             deleted_list = variable.getall('_' + column_name + '_delete[]')
@@ -888,7 +887,7 @@ class DB_Model(Base):
                             old_id = old_id_list[i]
                             deleted = deleted_list[i] == "1"
                             relation_variable = relation_variable_list[i]
-                            if issubclass(ref_class, Ordered_DB_Model):
+                            if is_ordered:
                                 index = index_list[i]
                             ref_obj = None
                             for child in relation_value:
@@ -901,7 +900,7 @@ class DB_Model(Base):
                                 ref_obj = ref_class()
                                 ref_obj.assign_from_dict(relation_variable)
                                 getattr(self, column_name).append(ref_obj)
-                            if issubclass(ref_class, Ordered_DB_Model):
+                            if is_ordered:
                                 ref_obj._index = index
                             if deleted:
                                 if ref_obj in getattr(self, column_name):
@@ -1256,7 +1255,8 @@ class DB_Model(Base):
             input_selector += '.form-control._chosen'
             options = {'': 'None'}
             for obj in option_obj:
-                options[obj.id] = obj.as_text()
+                if isinstance(obj, DB_Model):
+                    options[obj.id] = obj.as_text()
             value =  value.id if hasattr(value,'id') else ''
             input_element = HTML.select(input_selector, input_name, options, value)
             # add mutator
@@ -1288,9 +1288,11 @@ class DB_Model(Base):
             values = []
             options = {}
             for child in getattr(self, column_name):
-                values.append(getattr(child, shown_column[0]).id)
+                if isinstance(child, DB_Model):
+                    values.append(getattr(child, shown_column[0]).id)
             for lookup in lookup_class.get():
-                options[lookup.id] = lookup.as_text()
+                if isinstance(lookup, DB_Model):
+                    options[lookup.id] = lookup.as_text()
             # create combobox
             style = ''
             # ordered
@@ -1472,14 +1474,12 @@ class DB_Model(Base):
         return input_element
 
     def _mutator_js(self, mutation_name, script):
-        return 'function _mutate_' + mutation_name + '(){ ' +\
-                script +\
-            '}' +\
-            '$(document).ready(function(){ ' +\
-            '    _mutate_' + mutation_name + '(); ' +\
-            '    $("._new_row").live("click", function(event){ ' +\
-            '        _mutate_' + mutation_name + '(); ' +\
-            '    }); ' +\
+        return '$(document).ready(function(){' +\
+            '    function _mutate_' + mutation_name + '(){' +script + '}' +\
+            '    _mutate_' + mutation_name + '();' +\
+            '    $("._new_row").live("click", function(event){' +\
+            '        _mutate_' + mutation_name + '();' +\
+            '    });' +\
             '});'
 
     def _build_column_input(self, column_name, **kwargs):
@@ -1535,7 +1535,7 @@ class DB_Model(Base):
             # add mutator script
             self.generated_js.append(base_url('assets/ckeditor/ckeditor.js'))
             self.generated_js.append(base_url('assets/ckeditor/adapters/jquery.js'))
-            self.generated_js += self._mutator_js('autosize_textarea', 
+            self.generated_js += self._mutator_js('richtext_textarea', 
                     '$("._richtext-textarea").ckeditor();'
                 )
         # Code
@@ -1544,7 +1544,7 @@ class DB_Model(Base):
             language = self.get_coltype_attr(column_name, 'language', 'python')
             input_selector += '.form-control._code-textarea._code_' + language + '_' + theme
             input_element = HTML.textarea(input_selector, input_name, value, placeholder)
-            # add autosize mutator
+            # add mutator script
             self.generated_js.append(base_url('assets/jquery-ace/ace/ace.js'))
             self.generated_js.append(base_url('assets/jquery-ace/ace/theme-' + theme + '.js'))
             self.generated_js.append(base_url('assets/jquery-ace/ace/mode-' + language + '.js'))
@@ -1556,10 +1556,9 @@ class DB_Model(Base):
                     '});'+\
                     '$("._code_' + language + '_' + theme + '").each(function(){' +\
                     '    var ace = $(this).data("ace").editor.ace;' +\
-                    'console.log(ace);'+\
                     '    ace.setOptions({"minLines": 5, "maxLines": 30, "fontSize": 16});' +\
                     '});'
-                )            
+                )
         # Password
         elif self.is_coltype_match(column_name, Password):
             input_selector += '.form-control'
@@ -1682,20 +1681,34 @@ class DB_Model(Base):
                     if column_name in self.__detail_column_label__ else {}
                 shown_column = self._get_detail_column_list(column_name)
                 # if only one column to be shown
-                if len(shown_column) == 1 and shown_column[0] in ref_obj._get_relation_names():
+                if len(shown_column) == 1:
                     if len(children) == 0:
                         value = 'No Data'
                     elif len(children) == 1:
                         child = children[0]
-                        value = child.quick_preview()
-                    else:
-                        li = ''
-                        for child in children:
-                            li += HTML.li(child.quick_preview())
-                        if isinstance(ref_obj, Ordered_DB_Model):
-                            value = HTML.ol(li)
+                        if shown_column[0] not in child._get_relation_names():
+                            value = child.quick_preview()
                         else:
-                            value = HTML.ul(li)
+                            value = child.build_representation(shown_column[0])
+                    else:
+                        is_ordered = isinstance(ref_obj, Ordered_DB_Model);
+                        value = []
+                        for child in children:
+                            # determine single value
+                            if shown_column[0] not in child._get_relation_names():
+                                single_value = child.quick_preview()
+                            else:
+                                single_value = child.build_representation(shown_column[0])
+
+                            if is_ordered:
+                                value.append(HTML.li(single_value))
+                            else:
+                                value.append(single_value)
+
+                        if is_ordered:
+                            value = HTML.ol('.container', value)
+                        else:
+                            value = ', '.join(value)
                 else:
                     # generate thead
                     ref_obj.generate_tabular_label(state = 'view',
@@ -1729,7 +1742,38 @@ class DB_Model(Base):
     def _build_column_representation(self, column_name, **kwargs):
         # get value      
         value = getattr(self, column_name) if hasattr(self, column_name) else None
-        if isinstance(value, unicode) or isinstance(value, str):
+        if self.is_coltype_match(column_name, RichText):
+            input_selector = '#_field_' + column_name + '.form-control._richtext-textarea'
+            value = HTML.textarea(input_selector, '', value)
+            # add mutator script
+            self.generated_js.append(base_url('assets/ckeditor/ckeditor.js'))
+            self.generated_js.append(base_url('assets/ckeditor/adapters/jquery.js'))
+            self.generated_js += self._mutator_js('richtext_textarea', 
+                    '$("._richtext-textarea").ckeditor({readOnly:true});'
+                )
+        # Code
+        elif self.is_coltype_match(column_name, Code):
+            theme = self.get_coltype_attr(column_name, 'theme', 'monokai')
+            language = self.get_coltype_attr(column_name, 'language', 'python')
+            input_selector = '.form-control._code-textarea._code_' + language + '_' + theme
+            value = HTML.textarea(input_selector, '', value)
+            # add mutator script
+            self.generated_js.append(base_url('assets/jquery-ace/ace/ace.js'))
+            self.generated_js.append(base_url('assets/jquery-ace/ace/theme-' + theme + '.js'))
+            self.generated_js.append(base_url('assets/jquery-ace/ace/mode-' + language + '.js'))
+            self.generated_js.append(base_url('assets/jquery-ace/jquery-ace.min.js'))
+            self.generated_js += self._mutator_js('code_' + language + '_' + theme + '_textarea',
+                    '$("._code_' + language + '_' + theme + '").ace({' +\
+                    '    theme: "' + theme + '",' +\
+                    '    lang: "' + language + '",' +\
+                    '});'+\
+                    '$("._code_' + language + '_' + theme + '").each(function(){' +\
+                    '    var ace = $(this).data("ace").editor.ace;' +\
+                    '    ace.setOptions({"minLines": 5, "maxLines": 30, "fontSize": 16});' +\
+                    '    ace.setReadOnly(true);' +\
+                    '});'
+                )
+        elif isinstance(value, unicode) or isinstance(value, str):
             value = HTML.presented_html_code(value)
         colmetadata = self._get_actual_column_metadata(column_name)
         if value is None:
@@ -1957,21 +2001,21 @@ class Ordered_DB_Model(DB_Model):
             else:
                 max_index = int(max_index)
             index = max_index+1
-        # increase self._index if index is collide
-        while True:
-            query = self.session.query(func.count(classobj._index).label("duplicate_count"))
-            if group_by_field is not None:
-                group_by_value = getattr(self, self.__group_by__)
-                query = query.filter(group_by_field==group_by_value, classobj._index == index, classobj._real_id != real_id)
-            else:
-                query = query.filter(classobj._index == index, classobj._real_id != real_id)
-            query = query.one()
-            duplicate_count = query.duplicate_count
-            if duplicate_count == 0:
-                break
-            else:
-                index += 1
-        self._index = index
+            # increase self._index if index is collide
+            while True:
+                query = self.session.query(func.count(classobj._index).label("duplicate_count"))
+                if group_by_field is not None:
+                    group_by_value = getattr(self, self.__group_by__)
+                    query = query.filter(group_by_field==group_by_value, classobj._index == index, classobj._real_id != real_id)
+                else:
+                    query = query.filter(classobj._index == index, classobj._real_id != real_id)
+                query = query.one()
+                duplicate_count = query.duplicate_count
+                if duplicate_count == 0:
+                    break
+                else:
+                    index += 1
+            self._index = index
         DB_Model.save(self, already_saved_object)
     
     @classmethod

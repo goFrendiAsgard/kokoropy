@@ -234,8 +234,9 @@ def select(*args, **kwargs):
     # create option
     for key in options:
         o_args = []
-        # add selected attribute
-        if multiple and val in default_value:
+        # add selected attribute. If it is multiple, selected option has been previously added, so
+        # it is no need to add it again
+        if multiple and (key in default_value):
             continue
         elif key == default_value:
             o_args.append('selected')
