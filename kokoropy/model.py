@@ -196,6 +196,7 @@ class BaseConfig(object):
 
     def __init__( self, connection_string, *args, **kwargs):
         engine = create_engine(connection_string, *args, **kwargs)
+        engine.raw_connection().connection.text_factory = str
         session = scoped_session(sessionmaker(bind=self.engine))
         metadata = MetaData()
         metadata.bind = engine
@@ -707,18 +708,23 @@ class DB_Model(Base):
         else:
             obj = cls()
             session = obj.session
-        query = session.query(cls)
-        # define "where" for trashed
-        if only_trashed == True:
-            query = query.filter(cls._trashed == True)
-        else:
-            if include_trashed == False:
-                query = query.filter(cls._trashed == False)
-        # run the query
-        if order_by is None:
-            result = query.filter(*criterion).limit(limit).offset(offset).all()
-        else:
-            result = query.filter(*criterion).order_by(order_by).limit(limit).offset(offset).all()
+        try:
+            query = session.query(cls)
+            # define "where" for trashed
+            if only_trashed == True:
+                query = query.filter(cls._trashed == True)
+            else:
+                if include_trashed == False:
+                    query = query.filter(cls._trashed == False)
+            # run the query
+            if order_by is None:
+                result = query.filter(*criterion).limit(limit).offset(offset).all()
+            else:
+                result = query.filter(*criterion).order_by(order_by).limit(limit).offset(offset).all()
+        except Exception, e:
+            session.rollback()
+            raise
+
         # as json
         if as_json:
             kwargs = {'include_relation' : include_relation, 'isoformat' : True}
@@ -741,17 +747,21 @@ class DB_Model(Base):
         else:
             obj = cls()
             session = obj.session
-        query = session.query(cls)
-        if include_trashed == False:
-            query = query.filter(cls._trashed == False)
-        # apply filter
-        query = query.filter(*criterion)
-        # apply limit & offset
-        if limit is not None:
-            query = query.limit(limit)
-        if offset is not None:
-            query = query.offset(offset)
-        return query.count()
+        try:
+            query = session.query(cls)
+            if include_trashed == False:
+                query = query.filter(cls._trashed == False)
+            # apply filter
+            query = query.filter(*criterion)
+            # apply limit & offset
+            if limit is not None:
+                query = query.limit(limit)
+            if offset is not None:
+                query = query.offset(offset)
+            return query.count()
+        except Exception, e:
+            session.rollback()
+            raise
         
     @classmethod
     def find(cls, id_value, include_trashed = False):
@@ -800,6 +810,11 @@ class DB_Model(Base):
                         else:
                             value = True
                     if value is not None:
+                        if isinstance(value, str) or isinstance(value, unicode):
+                            try:
+                                value = value.decode('ascii')
+                            except:
+                                value = value.decode('utf8')
                         setattr(self, column_name, value)
             elif column_name in self._get_relation_names():
                 relation_metadata = self._get_relation_metadata(column_name)
@@ -1744,6 +1759,7 @@ class DB_Model(Base):
         value = getattr(self, column_name) if hasattr(self, column_name) else None
         if self.is_coltype_match(column_name, RichText):
             input_selector = '#_field_' + column_name + '.form-control._richtext-textarea'
+            value = '' if value is None else value
             value = HTML.textarea(input_selector, '', value)
             # add mutator script
             self.generated_js.append(base_url('assets/ckeditor/ckeditor.js'))
@@ -1756,6 +1772,7 @@ class DB_Model(Base):
             theme = self.get_coltype_attr(column_name, 'theme', 'monokai')
             language = self.get_coltype_attr(column_name, 'language', 'python')
             input_selector = '.form-control._code-textarea._code_' + language + '_' + theme
+            value = '' if value is None else value
             value = HTML.textarea(input_selector, '', value)
             # add mutator script
             self.generated_js.append(base_url('assets/jquery-ace/ace/ace.js'))

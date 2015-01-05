@@ -41,7 +41,7 @@ class Page(DB_Model):
     layout               = many_to_one("Layout", "Page.fk_layout")
     active               = Column(Boolean)
 
-    def after_save(self):
+    def before_save(self):
         if self.page_order is None:
             query = self.session.query(func.max(Page.page_order).label("max_page_order")).filter(Page.fk_parent_id == self.fk_parent_id).one()
             max_page_order = query.max_page_order

@@ -31,72 +31,80 @@ def get_pages(*criterion):
     is_super_admin = current_user.super_admin if current_user is not None else False
     current_user_id = current_user.id if current_user is not None else None
 
-    subquery = session.query(func.count(Group.id).label('group_count'), Page_Groups.fk_page).\
-                join(User_Groups).\
-                join(User).\
-                join(Page_Groups).\
-                filter(User.id == current_user_id).\
-                subquery("subquery")
+    try:
+        subquery = session.query(func.count(Group.id).label('group_count'), Page_Groups.fk_page).\
+                    join(User_Groups).\
+                    join(User).\
+                    join(Page_Groups).\
+                    filter(User.id == current_user_id).\
+                    subquery("subquery")
 
-    return session.query(Page).\
-        filter(Page.active == True).\
-        filter(*criterion).\
-        filter(
-                or_(
-                        Page.authorization == 'everyone',                                       # EVERYONE
-                        and_(Page.authorization == 'unauthenticated', current_user is None),    # UNAUTHENTICATED
-                        and_(Page.authorization == 'authenticated', current_user is not None),  # AUTHENTICATED
-                        and_(Page.authorization == 'authorized', is_super_admin),               # AUTHORIZED & Super Admin
-                        and_(                                                                   # AUTHORIZED or STRICT_AUTHORIZED
-                                or_(
-                                        Page.authorization == 'authorized', 
-                                        Page.authorization == 'strict_authorized'
-                                    ),
-                                and_( 
-                                        subquery.c.group_count > 0,
-                                        subquery.c.fk_page == Page._real_id
-                                    )
-                            )
-                        
-                    )
-            ).\
-        all()
+        return session.query(Page).\
+            filter(Page.active == True).\
+            filter(*criterion).\
+            filter(
+                    or_(
+                            Page.authorization == 'everyone',                                       # EVERYONE
+                            and_(Page.authorization == 'unauthenticated', current_user is None),    # UNAUTHENTICATED
+                            and_(Page.authorization == 'authenticated', current_user is not None),  # AUTHENTICATED
+                            and_(Page.authorization == 'authorized', is_super_admin),               # AUTHORIZED & Super Admin
+                            and_(                                                                   # AUTHORIZED or STRICT_AUTHORIZED
+                                    or_(
+                                            Page.authorization == 'authorized', 
+                                            Page.authorization == 'strict_authorized'
+                                        ),
+                                    and_( 
+                                            subquery.c.group_count > 0,
+                                            subquery.c.fk_page == Page._real_id
+                                        )
+                                )
+                            
+                        )
+                ).\
+            all()
+    except Exception, e:
+        session.rollback()
+        raise
 
 def get_widgets(*criterion):
     current_user = get_current_user()
     is_super_admin = current_user.super_admin if current_user is not None else False
     current_user_id = current_user.id if current_user is not None else None
 
-    subquery = session.query(func.count(Group.id).label('group_count'), Widget_Groups.fk_widget).\
-                join(User_Groups).\
-                join(User).\
-                join(Widget_Groups).\
-                filter(User.id == current_user_id).\
-                subquery("subquery")
+    try:
+        subquery = session.query(func.count(Group.id).label('group_count'), Widget_Groups.fk_widget).\
+                    join(User_Groups).\
+                    join(User).\
+                    join(Widget_Groups).\
+                    filter(User.id == current_user_id).\
+                    subquery("subquery")
 
-    return session.query(Widget).\
-        filter(Widget.active == True).\
-        filter(*criterion).\
-        filter(
-                or_(
-                        Widget.authorization == 'everyone',                                       # EVERYONE
-                        and_(Widget.authorization == 'unauthenticated', current_user is None),    # UNAUTHENTICATED
-                        and_(Widget.authorization == 'authenticated', current_user is not None),  # AUTHENTICATED
-                        and_(Widget.authorization == 'authorized', is_super_admin),               # AUTHORIZED & Super Admin
-                        and_(                                                                     # AUTHORIZED or STRICT_AUTHORIZED
-                                or_(
-                                        Widget.authorization == 'authorized', 
-                                        Widget.authorization == 'strict_authorized'
-                                    ),
-                                and_( 
-                                        subquery.c.group_count > 0,
-                                        subquery.c.fk_widget == Widget._real_id
-                                    )
-                            )
-                        
-                    )
-            ).\
-        all()
+        return session.query(Widget).\
+            filter(Widget.active == True).\
+            filter(*criterion).\
+            filter(
+                    or_(
+                            Widget.authorization == 'everyone',                                       # EVERYONE
+                            and_(Widget.authorization == 'unauthenticated', current_user is None),    # UNAUTHENTICATED
+                            and_(Widget.authorization == 'authenticated', current_user is not None),  # AUTHENTICATED
+                            and_(Widget.authorization == 'authorized', is_super_admin),               # AUTHORIZED & Super Admin
+                            and_(                                                                     # AUTHORIZED or STRICT_AUTHORIZED
+                                    or_(
+                                            Widget.authorization == 'authorized', 
+                                            Widget.authorization == 'strict_authorized'
+                                        ),
+                                    and_( 
+                                            subquery.c.group_count > 0,
+                                            subquery.c.fk_widget == Widget._real_id
+                                        )
+                                )
+                            
+                        )
+                ).\
+            all()
+    except Exception, e:
+        session.rollback()
+        raise
 
 def insert_default():
     # default action
