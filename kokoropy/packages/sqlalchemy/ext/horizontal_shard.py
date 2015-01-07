@@ -1,5 +1,6 @@
 # ext/horizontal_shard.py
-# Copyright (C) 2005-2014 the SQLAlchemy authors and contributors <see AUTHORS file>
+# Copyright (C) 2005-2014 the SQLAlchemy authors and contributors
+# <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
@@ -43,22 +44,22 @@ class ShardedQuery(Query):
         def iter_for_shard(shard_id):
             context.attributes['shard_id'] = shard_id
             result = self._connection_from_session(
-                            mapper=self._mapper_zero(),
-                            shard_id=shard_id).execute(
-                                                context.statement,
-                                                self._params)
+                mapper=self._mapper_zero(),
+                shard_id=shard_id).execute(
+                context.statement,
+                self._params)
             return self.instances(result, context)
 
         if self._shard_id is not None:
             return iter_for_shard(self._shard_id)
         else:
-            _partial = []
+            partial = []
             for shard_id in self.query_chooser(self):
-                _partial.extend(iter_for_shard(shard_id))
+                partial.extend(iter_for_shard(shard_id))
 
             # if some kind of in memory 'sorting'
             # were done, this is where it would happen
-            return iter(_partial)
+            return iter(partial)
 
     def get(self, ident, **kwargs):
         if self._shard_id is not None:
@@ -114,9 +115,11 @@ class ShardedSession(Session):
         if self.transaction is not None:
             return self.transaction.connection(mapper, shard_id=shard_id)
         else:
-            return self.get_bind(mapper,
-                                shard_id=shard_id,
-                                instance=instance).contextual_connect(**kwargs)
+            return self.get_bind(
+                mapper,
+                shard_id=shard_id,
+                instance=instance
+            ).contextual_connect(**kwargs)
 
     def get_bind(self, mapper, shard_id=None,
                  instance=None, clause=None, **kw):

@@ -1,5 +1,6 @@
 # ext/orderinglist.py
-# Copyright (C) 2005-2014 the SQLAlchemy authors and contributors <see AUTHORS file>
+# Copyright (C) 2005-2014 the SQLAlchemy authors and contributors
+# <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
@@ -82,32 +83,43 @@ With the above mapping the ``Bullet.position`` attribute is managed::
     s.bullets[2].position
     >>> 2
 
-The :class:`.OrderingList` construct only works with **changes** to a collection,
-and not the initial load from the database, and requires that the list be
-sorted when loaded.  Therefore, be sure to
-specify ``order_by`` on the :func:`.relationship` against the target ordering
-attribute, so that the ordering is correct when first loaded.
+The :class:`.OrderingList` construct only works with **changes** to a
+collection, and not the initial load from the database, and requires that the
+list be sorted when loaded.  Therefore, be sure to specify ``order_by`` on the
+:func:`.relationship` against the target ordering attribute, so that the
+ordering is correct when first loaded.
 
 .. warning::
 
   :class:`.OrderingList` only provides limited functionality when a primary
-  key column or unique column is the target of the sort.  Since changing the
-  order of entries often means that two rows must trade values, this is not
-  possible when the value is constrained by a primary key or unique
-  constraint, since one of the rows would temporarily have to point to a
-  third available value so that the other row could take its old
-  value. :class:`.OrderingList` doesn't do any of this for you,
-  nor does SQLAlchemy itself.
+  key column or unique column is the target of the sort.  Operations
+  that are unsupported or are problematic include:
 
-:func:`.ordering_list` takes the name of the related object's ordering attribute as
-an argument.  By default, the zero-based integer index of the object's
-position in the :func:`.ordering_list` is synchronized with the ordering attribute:
-index 0 will get position 0, index 1 position 1, etc.  To start numbering at 1
-or some other integer, provide ``count_from=1``.
+    * two entries must trade values.  This is not supported directly in the
+      case of a primary key or unique constraint because it means at least
+      one row would need to be temporarily removed first, or changed to
+      a third, neutral value while the switch occurs.
+
+    * an entry must be deleted in order to make room for a new entry.
+      SQLAlchemy's unit of work performs all INSERTs before DELETEs within a
+      single flush.  In the case of a primary key, it will trade
+      an INSERT/DELETE of the same primary key for an UPDATE statement in order
+      to lessen the impact of this limitation, however this does not take place
+      for a UNIQUE column.
+      A future feature will allow the "DELETE before INSERT" behavior to be
+      possible, allevating this limitation, though this feature will require
+      explicit configuration at the mapper level for sets of columns that
+      are to be handled in this way.
+
+:func:`.ordering_list` takes the name of the related object's ordering
+attribute as an argument.  By default, the zero-based integer index of the
+object's position in the :func:`.ordering_list` is synchronized with the
+ordering attribute: index 0 will get position 0, index 1 position 1, etc.  To
+start numbering at 1 or some other integer, provide ``count_from=1``.
 
 
 """
-from ..orm.collections import collection
+from ..orm.collections import collection, collection_adapter
 from .. import util
 
 __all__ = ['ordering_list']
@@ -307,7 +319,10 @@ class OrderingList(list):
 
     def remove(self, entity):
         super(OrderingList, self).remove(entity)
-        self._reorder()
+
+        adapter = collection_adapter(self)
+        if adapter and adapter._referenced_by_owner:
+            self._reorder()
 
     def pop(self, index=-1):
         entity = super(OrderingList, self).pop(index)
@@ -347,7 +362,7 @@ class OrderingList(list):
 
     for func_name, func in list(locals().items()):
         if (util.callable(func) and func.__name__ == func_name and
-            not func.__doc__ and hasattr(list, func_name)):
+                not func.__doc__ and hasattr(list, func_name)):
             func.__doc__ = getattr(list, func_name).__doc__
     del func_name, func
 

@@ -1,5 +1,6 @@
 # testing/requirements.py
-# Copyright (C) 2005-2014 the SQLAlchemy authors and contributors <see AUTHORS file>
+# Copyright (C) 2005-2014 the SQLAlchemy authors and contributors
+# <see AUTHORS file>
 #
 # This module is part of SQLAlchemy and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
@@ -10,7 +11,7 @@ Provides decorators to mark tests requiring specific feature support from the
 target database.
 
 External dialect test suites should subclass SuiteRequirements
-to provide specific inclusion/exlusions.
+to provide specific inclusion/exclusions.
 
 """
 
@@ -19,6 +20,7 @@ from . import exclusions
 
 class Requirements(object):
     pass
+
 
 class SuiteRequirements(Requirements):
 
@@ -48,6 +50,12 @@ class SuiteRequirements(Requirements):
         return exclusions.open()
 
     @property
+    def non_updating_cascade(self):
+        """target database must *not* support ON UPDATE..CASCADE behavior in
+        foreign keys."""
+        return exclusions.closed()
+
+    @property
     def deferrable_fks(self):
         return exclusions.closed()
 
@@ -57,9 +65,9 @@ class SuiteRequirements(Requirements):
         # somehow only_if([x, y]) isn't working here, negation/conjunctions
         # getting confused.
         return exclusions.only_if(
-                    lambda: self.on_update_cascade.enabled or self.deferrable_fks.enabled
-                )
-
+            lambda: self.on_update_cascade.enabled or
+            self.deferrable_fks.enabled
+        )
 
     @property
     def self_referential_foreign_keys(self):
@@ -87,7 +95,9 @@ class SuiteRequirements(Requirements):
 
     @property
     def offset(self):
-        """target database can render OFFSET, or an equivalent, in a SELECT."""
+        """target database can render OFFSET, or an equivalent, in a
+        SELECT.
+        """
 
         return exclusions.open()
 
@@ -146,17 +156,16 @@ class SuiteRequirements(Requirements):
 
         return exclusions.open()
 
-
     @property
     def empty_inserts(self):
         """target platform supports INSERT with no values, i.e.
         INSERT DEFAULT VALUES or equivalent."""
 
         return exclusions.only_if(
-                    lambda config: config.db.dialect.supports_empty_insert or \
-                        config.db.dialect.supports_default_values,
-                    "empty inserts not supported"
-                )
+            lambda config: config.db.dialect.supports_empty_insert or
+            config.db.dialect.supports_default_values,
+            "empty inserts not supported"
+        )
 
     @property
     def insert_from_select(self):
@@ -169,9 +178,9 @@ class SuiteRequirements(Requirements):
         """target platform supports RETURNING."""
 
         return exclusions.only_if(
-                lambda config: config.db.dialect.implicit_returning,
-                "'returning' not supported by database"
-            )
+            lambda config: config.db.dialect.implicit_returning,
+            "%(database)s %(does_support)s 'returning'"
+        )
 
     @property
     def duplicate_names_in_cursor_description(self):
@@ -186,9 +195,9 @@ class SuiteRequirements(Requirements):
         UPPERCASE as case insensitive names."""
 
         return exclusions.skip_if(
-                    lambda config: not config.db.dialect.requires_name_normalize,
-                    "Backend does not require denormalized names."
-                )
+            lambda config: not config.db.dialect.requires_name_normalize,
+            "Backend does not require denormalized names."
+        )
 
     @property
     def multivalues_inserts(self):
@@ -196,10 +205,9 @@ class SuiteRequirements(Requirements):
         INSERT statement."""
 
         return exclusions.skip_if(
-                    lambda config: not config.db.dialect.supports_multivalues_insert,
-                    "Backend does not support multirow inserts."
-                )
-
+            lambda config: not config.db.dialect.supports_multivalues_insert,
+            "Backend does not support multirow inserts."
+        )
 
     @property
     def implements_get_lastrowid(self):
@@ -247,8 +255,8 @@ class SuiteRequirements(Requirements):
         """Target database must support SEQUENCEs."""
 
         return exclusions.only_if([
-                lambda config: config.db.dialect.supports_sequences
-            ], "no sequence support")
+            lambda config: config.db.dialect.supports_sequences
+        ], "no sequence support")
 
     @property
     def sequences_optional(self):
@@ -256,13 +264,9 @@ class SuiteRequirements(Requirements):
         as a means of generating new PK values."""
 
         return exclusions.only_if([
-                lambda config: config.db.dialect.supports_sequences and \
-                    config.db.dialect.sequences_optional
-            ], "no sequence support, or sequences not optional")
-
-
-
-
+            lambda config: config.db.dialect.supports_sequences and
+            config.db.dialect.sequences_optional
+        ], "no sequence support, or sequences not optional")
 
     @property
     def reflects_pk_names(self):
@@ -326,7 +330,9 @@ class SuiteRequirements(Requirements):
 
     @property
     def unicode_ddl(self):
-        """Target driver must support some degree of non-ascii symbol names."""
+        """Target driver must support some degree of non-ascii symbol
+        names.
+        """
         return exclusions.closed()
 
     @property
@@ -363,6 +369,13 @@ class SuiteRequirements(Requirements):
     def date(self):
         """target dialect supports representation of Python
         datetime.date() objects."""
+
+        return exclusions.open()
+
+    @property
+    def date_coerces_from_datetime(self):
+        """target dialect accepts a datetime object as the target
+        of a date column."""
 
         return exclusions.open()
 
@@ -511,7 +524,6 @@ class SuiteRequirements(Requirements):
 
         return exclusions.closed()
 
-
     @property
     def update_from(self):
         """Target must support UPDATE..FROM syntax"""
@@ -567,7 +579,17 @@ class SuiteRequirements(Requirements):
 
     @property
     def unicode_connections(self):
-        """Target driver must support non-ASCII characters being passed at all."""
+        """Target driver must support non-ASCII characters being passed at
+        all.
+        """
+        return exclusions.open()
+
+    @property
+    def graceful_disconnects(self):
+        """Target driver must raise a DBAPI-level exception, such as
+        InterfaceError, when the underlying connection has been closed
+        and the execute() method is called.
+        """
         return exclusions.open()
 
     @property
@@ -580,11 +602,12 @@ class SuiteRequirements(Requirements):
         """Test environment must allow ad-hoc engine/connection creation.
 
         DBs that scale poorly for many connections, even when closed, i.e.
-        Oracle, may use the "--low-connections" option which flags this requirement
-        as not present.
+        Oracle, may use the "--low-connections" option which flags this
+        requirement as not present.
 
         """
-        return exclusions.skip_if(lambda config: config.options.low_connections)
+        return exclusions.skip_if(
+            lambda config: config.options.low_connections)
 
     def _has_mysql_on_windows(self, config):
         return False
@@ -599,8 +622,8 @@ class SuiteRequirements(Requirements):
     @property
     def cextensions(self):
         return exclusions.skip_if(
-                lambda: not self._has_cextensions(), "C extensions not installed"
-                )
+            lambda: not self._has_cextensions(), "C extensions not installed"
+        )
 
     def _has_sqlite(self):
         from sqlalchemy import create_engine
