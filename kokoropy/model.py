@@ -4,13 +4,13 @@ from sqlalchemy import or_, and_, ForeignKey, create_engine, func,\
     INTEGER, Integer, VARCHAR, String, TEXT, Text, MetaData, util
 from sqlalchemy import Column as SA_Column
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
+from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref, validates
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.types import TypeDecorator, Unicode, UnicodeText
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from kokoropy import Fore, Back, base_url, request, save_uploaded_asset, var_dump
+from kokoropy import Fore, Back, base_url, request, save_uploaded_asset, var_dump, decode_string, encode_string
 from kokoropy import html as HTML
 import datetime, time, json, sys, os, asset
 
@@ -271,8 +271,6 @@ class Column(SA_Column):
         attr = getattr(self._coltype, attr)
         return attr == value
 
-
-# TODO: make custom type
 class Password(TypeDecorator):
     impl = Unicode
 
@@ -304,6 +302,39 @@ class Code(TypeDecorator):
         self.theme = kwargs.pop('theme', 'monokai')
         self.language = kwargs.pop('language', 'python')
         super(Code, self).__init__(*args, **kwargs)
+
+
+def _db_operation_method(func):
+    '''
+    Decorator for DB_Model's method that use session. add try-except automatically
+    '''
+    def func_wrapper(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except Exception, e:
+            self.session.rollback()
+            logger.error('Database commit failed, ' + str(e))
+            self.success = False
+            self.error_message = str(e)
+    return func_wrapper
+
+def _static_db_operation_method(func):
+    '''
+    Decorator for DB_Model's static method that use session. Add try-except automatically
+    '''
+    def func_wrapper(cls, *args, **kwargs):
+        if hasattr(cls,'__session__ '):
+            session = cls.__session__
+        else:
+            obj = cls()
+            session = obj.session
+        try:
+            return func(cls, *args, **kwargs)
+        except Exception, e:
+            session.rollback()
+            raise
+    return func_wrapper
+
         
 class DB_Model(Base):
     '''
@@ -689,6 +720,7 @@ class DB_Model(Base):
         return self._trashed
     
     @classmethod
+    @_static_db_operation_method
     def get(cls, *criterion, **kwargs):
         '''
         Usage:
@@ -708,22 +740,19 @@ class DB_Model(Base):
         else:
             obj = cls()
             session = obj.session
-        try:
-            query = session.query(cls)
-            # define "where" for trashed
-            if only_trashed == True:
-                query = query.filter(cls._trashed == True)
-            else:
-                if include_trashed == False:
-                    query = query.filter(cls._trashed == False)
-            # run the query
-            if order_by is None:
-                result = query.filter(*criterion).limit(limit).offset(offset).all()
-            else:
-                result = query.filter(*criterion).order_by(order_by).limit(limit).offset(offset).all()
-        except Exception, e:
-            session.rollback()
-            raise
+
+        query = session.query(cls)
+        # define "where" for trashed
+        if only_trashed == True:
+            query = query.filter(cls._trashed == True)
+        else:
+            if include_trashed == False:
+                query = query.filter(cls._trashed == False)
+        # run the query
+        if order_by is None:
+            result = query.filter(*criterion).limit(limit).offset(offset).all()
+        else:
+            result = query.filter(*criterion).order_by(order_by).limit(limit).offset(offset).all()
 
         # as json
         if as_json:
@@ -736,6 +765,7 @@ class DB_Model(Base):
             return result
     
     @classmethod
+    @_static_db_operation_method
     def count(cls, *criterion, **kwargs):
         # get kwargs parameters
         limit = kwargs.pop('limit', None)
@@ -747,21 +777,18 @@ class DB_Model(Base):
         else:
             obj = cls()
             session = obj.session
-        try:
-            query = session.query(cls)
-            if include_trashed == False:
-                query = query.filter(cls._trashed == False)
-            # apply filter
-            query = query.filter(*criterion)
-            # apply limit & offset
-            if limit is not None:
-                query = query.limit(limit)
-            if offset is not None:
-                query = query.offset(offset)
-            return query.count()
-        except Exception, e:
-            session.rollback()
-            raise
+        # count
+        query = session.query(cls)
+        if include_trashed == False:
+            query = query.filter(cls._trashed == False)
+        # apply filter
+        query = query.filter(*criterion)
+        # apply limit & offset
+        if limit is not None:
+            query = query.limit(limit)
+        if offset is not None:
+            query = query.offset(offset)
+        return query.count()
         
     @classmethod
     def find(cls, id_value, include_trashed = False):
@@ -810,11 +837,7 @@ class DB_Model(Base):
                         else:
                             value = True
                     if value is not None:
-                        if isinstance(value, str) or isinstance(value, unicode):
-                            try:
-                                value = value.decode('ascii')
-                            except:
-                                value = value.decode('utf8')
+                        value = decode_string(value)
                         setattr(self, column_name, value)
             elif column_name in self._get_relation_names():
                 relation_metadata = self._get_relation_metadata(column_name)
@@ -1066,100 +1089,114 @@ class DB_Model(Base):
                         if child not in already_saved_object:
                             child.save(already_saved_object)
     
-    def _commit(self):
-        # success or rollback
-        if self.success:
-            try:
-                self.session.commit()
-            except Exception, e:
-                self.session.rollback()
-                self.success = False
-                logger.error('Database commit failed, ' + str(e))
-        else:
-            self.session.rollback()
-            
+    @_db_operation_method  
     def save(self, already_saved_object = []):
         # is it insert or update?
         inserting = False
         if self._real_id is None:
             inserting = True
             # before insert
-            self.before_insert()
+            if self.success:
+                self.before_insert()
             # insert
             if self.success:
                 self.session.add(self)
         else:
             #before update
-            self.before_update()
-        self.before_save()
+            if self.success:
+                self.before_update()
+        # before save
+        if self.success:
+            self.before_save()
         # also upload the file
-        for column_name in self._get_actual_column_names():            
-            colmetadata = self._get_actual_column_metadata(column_name)
-            upload =  request.files.get(column_name)
-            if self.is_coltype_match(column_name, Upload) and upload is not None:
-                save_uploaded_asset(column_name, path='uploads', application_name = self.__application_name__)
-                setattr(self, column_name, upload.filename)
+        if self.success:
+            for column_name in self._get_actual_column_names():            
+                colmetadata = self._get_actual_column_metadata(column_name)
+                upload =  request.files.get(column_name)
+                if self.is_coltype_match(column_name, Upload) and upload is not None:
+                    save_uploaded_asset(column_name, path='uploads', application_name = self.__application_name__)
+                    setattr(self, column_name, upload.filename)
         # save
-        self._commit()
-        # generate id if not exists
-        if self.id is None:
-            self.generate_id()
-        self._commit()
+        if self.success:
+            self.session.commit()
+        # generate id if not exists and re-save
+        if self.success:
+            if self.id is None:
+                self.generate_id()
+                self.session.commit()
         # after insert, after update and after save
-        if inserting:
-            self.after_insert()
-        else:
-            self.after_update()
-        self.after_save()
-        # don't save the same object twice, it will make endless recursive
-        already_saved_object.append(self)
-        # also trigger save of relation
-        self._save_detail(already_saved_object)
+        if self.success:
+            if inserting:
+                self.after_insert()
+            else:
+                self.after_update()
+        if self.success:
+            self.after_save()
+        if self.success:
+            # don't save the same object twice, it will make endless recursive
+            already_saved_object.append(self)
+            # also trigger save of relation
+            self._save_detail(already_saved_object)
     
+    @_db_operation_method
     def trash(self):
-        self.before_trash()
+        if self.success:
+            self.before_trash()
         if self.success:
             self._trashed = True
-        self._commit()
-        self.after_trash()
-        # also trash children
-        for relation_name in self._get_relation_names():
-            relation_value = self._get_relation_value(relation_name)
-            if isinstance(relation_value, list):
-                for child in relation_value:
-                    if isinstance(child, DB_Model):
-                        child.trash()
-                        child.save()
+        if self.success:
+            self.session.commit()
+        if self.success:
+            self.after_trash()
+        if self.success:
+            # also trash children
+            for relation_name in self._get_relation_names():
+                relation_value = self._get_relation_value(relation_name)
+                if isinstance(relation_value, list):
+                    for child in relation_value:
+                        if isinstance(child, DB_Model):
+                            child.trash()
+                            child.save()
     
+    @_db_operation_method
     def untrash(self):
-        self.before_untrash()
+        if self.success:
+            self.before_untrash()
         if self.success:
             self._trashed = False
-        self._commit()
-        self.after_untrash()
-        # also untrash children
-        for relation_name in self._get_relation_names():
-            relation_value = self._get_relation_value(relation_name)
-            if isinstance(relation_value, list):
-                for child in relation_value:
-                    if isinstance(child, DB_Model):
-                        child.untrash()
-                        child.save()
+        if self.success:
+            self.session.commit()
+        if self.success:
+            self.after_untrash()
+        if self.success:
+            # also untrash children
+            for relation_name in self._get_relation_names():
+                relation_value = self._get_relation_value(relation_name)
+                if isinstance(relation_value, list):
+                    for child in relation_value:
+                        if isinstance(child, DB_Model):
+                            child.untrash()
+                            child.save()
     
+    @_db_operation_method
     def delete(self):
-        self.before_delete()
+        if self.success:
+            self.before_delete()
         if self.success:
             self.session.delete(self)
-        self._commit()
-        self.after_delete()
-        # also delete children
-        for relation_name in self._get_relation_names():
-            relation_value = self._get_relation_value(relation_name)
-            if isinstance(relation_value, list):
-                for child in relation_value:
-                    if isinstance(child, DB_Model):
-                        child.trash()
-                        child.delete()
+        if self.success:
+            self.session.commit()
+        if self.success:
+            self.after_delete()
+        if self.success:
+            # also delete children
+            for relation_name in self._get_relation_names():
+                relation_value = self._get_relation_value(relation_name)
+                if isinstance(relation_value, list):
+                    for child in relation_value:
+                        if isinstance(child, DB_Model):
+                            child.trash()
+                            child.delete()
     
     def generate_prefix_id(self):
         return datetime.datetime.fromtimestamp(time.time()).strftime(self.__id_prefix__)
@@ -1593,7 +1630,7 @@ class DB_Model(Base):
                 )
         # Others (Date, Integer, and normal string)
         else:
-            value = str(value)
+            value = str(encode_string(value))
             # DateTime
             if isinstance(actual_column_type, DateTime):
                 input_selector += '.form-control._datetime-input'
@@ -1837,7 +1874,7 @@ class DB_Model(Base):
             # get metadata and coltype
             value = self._build_column_representation(column_name, **kwargs)            
         # If not available
-        value = str(value) if value is not None else 'Not available'
+        value = str(encode_string(value)) if value is not None else 'Not available'
         return value
     
     def build_labeled_representation(self, column_name, **kwargs):
@@ -1870,7 +1907,7 @@ class DB_Model(Base):
             value = getattr(self, column_list[1])
             if isinstance(value, DB_Model):
                 value = value.quick_preview()
-            return str(value)
+            return str(encode_string(value))
         return self.as_text()
 
     def as_text(self):
@@ -1882,7 +1919,7 @@ class DB_Model(Base):
             value = getattr(self, column_list[1])
             if isinstance(value, DB_Model):
                 value = value.quick_preview()
-            return str(value)
+            return str(encode_string(value))
         return self.id        
     
     def _get_tabular_column_names_by_state(self, state = None):

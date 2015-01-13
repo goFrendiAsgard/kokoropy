@@ -198,17 +198,23 @@ class Crud_Controller(Multi_Language_Controller):
         return '__token_' + self.__application_name__ + '_' + self.__model_name__
     
     def _set_token(self):
-        value = str.zfill(str(random.randrange(0,10000)), 5)
-        request.SESSION[self._token_key()] = value
-        return value
+        new_token = str.zfill(str(random.randrange(0,10000)), 5)
+        tokens =self._get_token()
+        tokens.append(new_token)
+        request.SESSION[self._token_key()] = ','.join(tokens)
+        return new_token
     
     def _get_token(self):
-        return request.SESSION[self._token_key()]
+        if self._token_key() not in request.SESSION:
+            request.SESSION[self._token_key()] = ''
+        return request.SESSION[self._token_key()].split(',')
     
     def _is_token_match(self, token):
-        value = request.SESSION.pop(self._token_key(), '')
-        match = value == token
-        self._set_token()
+        tokens = self._get_token()
+        match = token in tokens
+        if match:
+            tokens.remove(token)
+            request.SESSION[self._token_key()] = ','.join(tokens)
         return match
     
     def index(self):
@@ -292,8 +298,6 @@ class Crud_Controller(Multi_Language_Controller):
         if request.is_xhr or request.POST.pop('__as_json', False):
             if success:
                 token = self._set_token()
-            else:
-                token = self._get_token()
             self._set_view_parameter('__token', token)
             return self._get_view_parameter_as_json()
         return self._load_view('create')
@@ -337,8 +341,6 @@ class Crud_Controller(Multi_Language_Controller):
         if request.is_xhr or request.POST.pop('__as_json', False):
             if success:
                 token = self._set_token()
-            else:
-                token = self._get_token()
             self._set_view_parameter('__token', token)
             return self._get_view_parameter_as_json()
         return self._load_view('update')
@@ -377,8 +379,6 @@ class Crud_Controller(Multi_Language_Controller):
         if request.is_xhr or request.POST.pop('__as_json', False):
             if success:
                 token = self._set_token()
-            else:
-                token = self._get_token()
             self._set_view_parameter('__token', token)
             return self._get_view_parameter_as_json()
         return self._load_view('remove')
@@ -407,8 +407,6 @@ class Crud_Controller(Multi_Language_Controller):
         if request.is_xhr or request.POST.pop('__as_json', False):
             if success:
                 token = self._set_token()
-            else:
-                token = self._get_token()
             self._set_view_parameter('__token', token)
             return self._get_view_parameter_as_json()
         return self._load_view('untrash')
@@ -447,8 +445,6 @@ class Crud_Controller(Multi_Language_Controller):
         if request.is_xhr or request.POST.pop('__as_json', False):
             if success:
                 token = self._set_token()
-            else:
-                token = self._get_token()
             self._set_view_parameter('__token', token)
             return self._get_view_parameter_as_json()
         return self._load_view('destroy')

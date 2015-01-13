@@ -195,6 +195,24 @@ def file_get_contents(filename):
     else:
         return ''.join(urlopen(filename).readlines())
 
+def decode_string(value):
+    if isinstance(value, str) or isinstance(value, unicode):
+        try:
+            value = value.decode('ascii')
+        except:
+            value = value.decode('utf8')
+        return value
+    return value
+
+def encode_string(value):
+    if isinstance(value, str) or isinstance(value, unicode):
+        try:
+            value = value.encode('ascii')
+        except:
+            value = value.encode('utf8')
+        return value
+    return value
+
 def _key_spaces(data):
     spaces = {}
     max_len = 0
@@ -251,7 +269,9 @@ def _var_dump(variable, depth = 0, not_new_line = False, mode = 'plain'):
     not_new_line  = True
     depth+= 1
     # Dictionary
-    if type(variable) == types.DictType :
+    if depth >10:
+        return first_padding + _type_label('...', mode) 
+    elif type(variable) == types.DictType :
         items = []
         spaces = _key_spaces(variable)
         for key in variable :
@@ -315,10 +335,13 @@ def _var_dump(variable, depth = 0, not_new_line = False, mode = 'plain'):
     else:
         return first_padding + _type_label(type(variable), mode)
 
-def var_dump(variable = None, **kwargs):
+def var_dump(variable = None, *args, **kwargs):
     if variable is None:
         variable = {'globals()' : globals(), 'locals()' : locals()}
-    print_output = kwargs.pop('print_output', False)
+    if len(args)>0:
+        print_output = args[0]
+    else:
+        print_output = kwargs.pop('print_output', False)
     mode         = kwargs.pop('mode', 'plain')
     result       = _var_dump(variable, 0, False, mode)
     if mode == 'html':

@@ -25,16 +25,13 @@
                         // change token
                         $('#__token').val(response.__token);
                         // get response's properties
-                        var success         = 'success' in response?
-                            response.success            : false;
-                        var error_message   = 'error_message' in response?
-                            response.error_message      : 'Invalid response';
-                        var id              = 'g_table_name' in response && 'id' in response.g_table_name?
-                            response.g_table_name.id    : '';
+                        var success         = 'success' in response? response.success : false;
+                        var error_message   = 'error_message' in response? response.error_message : 'Invalid response';
                         // determine message
                         var message_html    = '';
                         if(success){
                             message_html   += '<b>Success</b> ' + error_message;
+                            var id              = 'g_table_name' in response && 'id' in response.g_table_name? response.g_table_name.id    : '';
                             $('#__message_div').html(message_html);
                             $('#__message_div').addClass('alert alert-success');
                             // also change button
